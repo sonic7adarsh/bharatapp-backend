@@ -3,6 +3,7 @@ package com.bharatshop.web;
 import com.bharatshop.domain.CartItem;
 import com.bharatshop.security.UserPrincipal;
 import com.bharatshop.service.CartService;
+import com.bharatshop.error.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -80,7 +81,7 @@ public class StorefrontCartController {
         log.info("Storefront update cart item: tenant={} userId={} id={} quantity={} ", tenant, userId, id, req != null ? req.getQuantity() : null);
         List<CartItem> items = cartService.getCart(userId);
         if (req == null || req.getQuantity() == null) {
-            return ResponseEntity.status(400).body(Map.of("message", "quantity required"));
+            throw new BadRequestException("quantity required");
         }
         int quantity = req.getQuantity();
         if (quantity <= 0) {

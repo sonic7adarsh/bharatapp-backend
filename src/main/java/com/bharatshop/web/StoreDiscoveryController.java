@@ -3,6 +3,8 @@ package com.bharatshop.web;
 import com.bharatshop.domain.Product;
 import com.bharatshop.domain.Store;
 import com.bharatshop.factory.FactoryProvider;
+import com.bharatshop.tenant.TenantContext;
+import com.bharatshop.error.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -20,41 +22,42 @@ public class StoreDiscoveryController {
     public StoreDiscoveryController(FactoryProvider factoryProvider) { this.factoryProvider = factoryProvider; }
 
     @GetMapping("/stores")
-    public ResponseEntity<List<Store>> stores(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                              @RequestParam(required = false) String search,
+    public ResponseEntity<List<Store>> stores(@RequestParam(required = false) String search,
                                               @RequestParam(required = false) String category) {
+        String tenant = TenantContext.getTenant();
         log.info("Discover stores: tenant={} search={} category={}", tenant, search, category);
-        return ResponseEntity.ok(factoryProvider.getFactory(tenant).stores().list(search, category));
+        return ResponseEntity.ok(factoryProvider.getFactory().stores().list(search, category));
     }
 
     @GetMapping("/stores/{id}")
-    public ResponseEntity<?> getStore(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                      @PathVariable String id) {
+    public ResponseEntity<?> getStore(@PathVariable String id) {
+        String tenant = TenantContext.getTenant();
         log.info("Get store: tenant={} id={}", tenant, id);
-        Store s = factoryProvider.getFactory(tenant).stores().get(id);
-        if (s == null) return ResponseEntity.status(404).body(Map.of("message", "Store not found"));
+        Store s = factoryProvider.getFactory().stores().get(id);
+        if (s == null) throw new NotFoundException("Store not found");
         log.info("Get store success: id={} name={} ", s.getId(), s.getName());
         return ResponseEntity.ok(s);
     }
 
     @GetMapping("/products")
-    public ResponseEntity<List<Product>> productsByStore(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                                         @RequestParam String storeId) {
+    public ResponseEntity<List<Product>> productsByStore(@RequestParam String storeId) {
+        String tenant = TenantContext.getTenant();
         log.info("Products by store: tenant={} storeId={}", tenant, storeId);
-        return ResponseEntity.ok(factoryProvider.getFactory(tenant).products().byStore(storeId));
+        return ResponseEntity.ok(factoryProvider.getFactory().products().byStore(storeId));
     }
 
     @GetMapping("/stores/{storeId}/products")
-    public ResponseEntity<List<Product>> productsByStoreAlt(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                                            @PathVariable String storeId) {
+    public ResponseEntity<List<Product>> productsByStoreAlt(@PathVariable String storeId) {
+        String tenant = TenantContext.getTenant();
         log.info("Products by store (alt): tenant={} storeId={}", tenant, storeId);
-        return ResponseEntity.ok(factoryProvider.getFactory(tenant).products().byStore(storeId));
+        return ResponseEntity.ok(factoryProvider.getFactory().products().byStore(storeId));
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<String>> globalCategories(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
+    public ResponseEntity<List<String>> globalCategories() {
+        String tenant = TenantContext.getTenant();
         log.info("Global categories requested: tenant={}", tenant);
-        return ResponseEntity.ok(factoryProvider.getFactory(tenant).products().categories());
+        return ResponseEntity.ok(factoryProvider.getFactory().products().categories());
     }
 
     @PostMapping("/stores")

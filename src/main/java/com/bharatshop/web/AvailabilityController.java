@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.bharatshop.error.BadRequestException;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -36,11 +37,7 @@ public class AvailabilityController {
             inDate = LocalDate.parse(checkIn, fmt);
             outDate = LocalDate.parse(checkOut, fmt);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "ok", false,
-                    "code", "VALIDATION_ERROR",
-                    "message", "Invalid date format. Use YYYY-MM-DD for checkIn/checkOut"
-            ));
+            throw new BadRequestException("Invalid date format. Use YYYY-MM-DD for checkIn/checkOut");
         }
 
         long nights = ChronoUnit.DAYS.between(inDate, outDate);

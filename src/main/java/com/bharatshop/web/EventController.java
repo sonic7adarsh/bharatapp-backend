@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.bharatshop.error.BadRequestException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
@@ -22,11 +23,7 @@ public class EventController {
                                     HttpServletRequest request) {
         String name = body != null ? String.valueOf(body.get("name")) : null;
         if (name == null || name.isBlank() || "null".equalsIgnoreCase(name)) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "ok", false,
-                    "code", "VALIDATION_ERROR",
-                    "message", "Event 'name' is required"
-            ));
+            throw new BadRequestException("Event 'name' is required");
         }
 
         Object payload = body.get("payload");

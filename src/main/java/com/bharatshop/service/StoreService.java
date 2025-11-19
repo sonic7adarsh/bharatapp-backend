@@ -35,6 +35,7 @@ public class StoreService {
         e.setOrderingDisabled(Boolean.TRUE.equals(s.getOrderingDisabled()) ? true : false);
         e.setClosedReason(s.getClosedReason());
         e.setClosedUntil(s.getClosedUntil());
+        e.setLogo(s.getLogo());
         e.setUpdatedAt(java.time.Instant.now());
         e = storeRepository.save(e);
         return toDto(e);
@@ -48,6 +49,7 @@ public class StoreService {
         s.setOrderingDisabled(e.getOrderingDisabled());
         s.setClosedReason(e.getClosedReason());
         s.setClosedUntil(e.getClosedUntil());
+        s.setLogo(e.getLogo());
         s.setUpdatedAt(e.getUpdatedAt());
         return s;
     }

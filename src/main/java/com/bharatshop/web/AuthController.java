@@ -12,6 +12,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.BadRequestException;
 
 import java.util.Map;
 
@@ -65,7 +67,7 @@ public class AuthController {
         if (token != null && token.startsWith("Bearer ")) token = token.substring(7);
         log.info("Profile requested: tokenPresent={} ", token != null);
         var user = authService.getProfile(token);
-        if (user == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (user == null) throw new UnauthorizedException("Unauthorized");
         log.info("Profile success: userId={}", user.getId());
         return ResponseEntity.ok(user);
     }
@@ -83,7 +85,7 @@ public class AuthController {
         String otp = body.get("otp") == null ? null : body.get("otp").toString();
         log.info("OTP verify requested: phone={} otpPresent={}", phone, otp != null);
         var session = authService.verifyOtp(phone, otp);
-        if (session == null) return ResponseEntity.status(400).body(Map.of("success", false));
+        if (session == null) throw new BadRequestException("Invalid OTP");
         User user = authService.getProfile(session.token());
         log.info("OTP verify success: userId={} tokenPresent=true", user.getId());
         return ResponseEntity.ok(Map.of("success", true, "token", session.token(), "user", user));
@@ -94,6 +96,13 @@ public class AuthController {
         String phone = body.get("phone") == null ? null : body.get("phone").toString();
         String otpId = body.get("otpId") == null ? null : body.get("otpId").toString();
         log.info("OTP resend requested: phone={} otpIdPresent={}", phone, otpId != null);
-        return ResponseEntity.ok(authService.resendOtp(phone, otpId));
+        Map<String, Object> resp = authService.resendOtp(phone, otpId);
+        // Log whatever OTP we got back in the response (testing convenience)
+        Object otp = resp.get("otp");
+        log.info("OTP resend response: success={} otpId={} otpPresent={}", resp.get("success"), resp.get("otpId"), otp != null);
+        if (otp != null) {
+            log.info("OTP resend received OTP: {}", otp);
+        }
+        return ResponseEntity.ok(resp);
     }
 }

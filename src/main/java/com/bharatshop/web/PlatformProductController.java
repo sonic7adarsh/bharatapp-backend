@@ -3,6 +3,8 @@ package com.bharatshop.web;
 import com.bharatshop.domain.Product;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -38,7 +40,7 @@ public class PlatformProductController {
                                  @RequestPart(value = "image", required = false) MultipartFile image,
                                  @RequestBody(required = false) Map<String, Object> json) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (up == null) throw new UnauthorizedException("Unauthorized");
         log.info("Platform add product requested: name={} price={} storeId={} imagePresent={}", name, price, storeId, image != null);
 
         if (json != null && (name == null || price == null)) {
@@ -51,7 +53,7 @@ public class PlatformProductController {
         }
 
         if (name == null || price == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "name and price are required"));
+            throw new BadRequestException("name and price are required");
         }
         Product product = new Product(UUID.randomUUID().toString(), name, price, category, storeId);
         product.setDescription(description);

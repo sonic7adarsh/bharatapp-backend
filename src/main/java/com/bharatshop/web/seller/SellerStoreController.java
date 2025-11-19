@@ -3,6 +3,10 @@ package com.bharatshop.web.seller;
 import com.bharatshop.domain.Store;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.NotFoundException;
+import com.bharatshop.error.ForbiddenException;
+import com.bharatshop.error.BadRequestException;
 import com.bharatshop.entity.UserEntity;
 import com.bharatshop.repository.UserRepository;
 import org.slf4j.Logger;
@@ -24,30 +28,36 @@ public class SellerStoreController {
     private final com.bharatshop.service.AuthService authService;
     private final UserRepository userRepository;
 
-    public SellerStoreController(FactoryProvider factoryProvider, com.bharatshop.service.AuthService authService, UserRepository userRepository) {
+    public SellerStoreController(FactoryProvider factoryProvider, com.bharatshop.service.AuthService authService,
+            UserRepository userRepository) {
         this.factoryProvider = factoryProvider;
         this.authService = authService;
         this.userRepository = userRepository;
     }
 
-    private boolean ensureAuth() { return UserPrincipal.current() != null; }
+    private boolean ensureAuth() {
+        return UserPrincipal.current() != null;
+    }
 
     @GetMapping("/stores")
     public ResponseEntity<Map<String, Object>> listStores(@RequestParam(required = false) String search,
-                                                 @RequestParam(required = false) Integer page,
-                                                 @RequestParam(required = false, name = "limit") Integer limit,
-                                                 @RequestParam(required = false, name = "pageSize") Integer pageSize,
-                                                 @RequestParam(required = false, name = "ownerPhone") String ownerPhone,
-                                                 @RequestParam(required = false, name = "status") String status,
-                                                 @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, name = "limit") Integer limit,
+            @RequestParam(required = false, name = "pageSize") Integer pageSize,
+            @RequestParam(required = false, name = "ownerPhone") String ownerPhone,
+            @RequestParam(required = false, name = "status") String status,
+            @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).build();
-        if (!isSellerOrVendor(up.getRole())) return ResponseEntity.status(403).body(Map.of("message", "Forbidden"));
-        log.info("Seller list stores: search={} page={} limit={} pageSize={} ownerPhone={} status={} tenant={} userId={}", search, page, limit, pageSize, ownerPhone, status, tenantDomain, up.getUserId());
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        log.info(
+                "Seller list stores: search={} page={} limit={} pageSize={} ownerPhone={} status={} tenant={} userId={}",
+                search, page, limit, pageSize, ownerPhone, status, tenantDomain, up.getUserId());
         try {
             Integer effectiveLimit = limit != null ? limit : pageSize;
-            List<Store> stores = factoryProvider.getSellerFactory(tenantDomain).stores().list(search, page, effectiveLimit);
-            if (stores == null) stores = java.util.Collections.emptyList();
+            List<Store> stores = factoryProvider.getSellerFactory(tenantDomain).stores().list(search, page,
+                    effectiveLimit);
+            if (stores == null)
+                stores = java.util.Collections.emptyList();
             String normalizedFilter = normalizePhone(ownerPhone);
             if (normalizedFilter != null) {
                 final String nf = normalizedFilter;
@@ -79,31 +89,39 @@ public class SellerStoreController {
                 boolean bookings = s.getCategory() != null && s.getCategory().trim().equalsIgnoreCase("hospitality");
                 caps.put("bookings", bookings);
                 m.put("capabilities", caps);
+                m.put("closedReason", s.getClosedReason());
                 m.put("closedUntil", s.getClosedUntil());
                 return m;
             }).toList();
             return ResponseEntity.ok(Map.of("stores", items));
         } catch (Exception ex) {
             log.error("Seller list stores failed", ex);
-            return ResponseEntity.status(500).body(Map.of("message", "internal_error"));
+            throw new RuntimeException("internal_error", ex);
         }
     }
 
-    @PostMapping(value = "/stores", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PostMapping(value = "/stores", consumes = { MediaType.APPLICATION_JSON_VALUE,
+            MediaType.MULTIPART_FORM_DATA_VALUE })
     public ResponseEntity<?> createStore(@RequestPart(value = "name", required = false) String name,
-                                             @RequestPart(value = "city", required = false) String city,
-                                             @RequestPart(value = "area", required = false) String area,
-                                             @RequestPart(value = "category", required = false) String category,
-                                             @RequestPart(value = "image", required = false) MultipartFile image,
-                                             @RequestBody(required = false) Map<String, Object> body) {
-        if (!ensureAuth()) return ResponseEntity.status(401).build();
-        log.info("Seller create store requested: name={} city={} area={} category={} imagePresent={}", name, city, area, category, image != null);
+            @RequestPart(value = "city", required = false) String city,
+            @RequestPart(value = "area", required = false) String area,
+            @RequestPart(value = "category", required = false) String category,
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestBody(required = false) Map<String, Object> body) {
+        if (!ensureAuth())
+            throw new UnauthorizedException("Unauthorized");
+        log.info("Seller create store requested: name={} city={} area={} category={} imagePresent={}", name, city, area,
+                category, image != null);
         // Prefer multipart parts, fallback to JSON body if provided
         if (body != null) {
-            if (name == null) name = (String) body.get("name");
-            if (city == null) city = body.get("city") == null ? null : body.get("city").toString();
-            if (area == null) area = body.get("area") == null ? null : body.get("area").toString();
-            if (category == null) category = (String) body.get("category");
+            if (name == null)
+                name = (String) body.get("name");
+            if (city == null)
+                city = body.get("city") == null ? null : body.get("city").toString();
+            if (area == null)
+                area = body.get("area") == null ? null : body.get("area").toString();
+            if (category == null)
+                category = (String) body.get("category");
         }
         try {
             Store s = new Store();
@@ -131,53 +149,198 @@ public class SellerStoreController {
             resp.put("status", created.getStatus() != null ? created.getStatus() : "open");
             return ResponseEntity.ok(resp);
         } catch (Exception ex) {
-            log.warn("Seller create store failed: name={} city={} area={} category={} err={}", name, city, area, category, ex.getMessage());
-            return ResponseEntity.status(422).body(Map.of(
-                    "message", "Could not create store",
-                    "code", "store_create_failed"
-            ));
+            log.warn("Seller create store failed: name={} city={} area={} category={} err={}", name, city, area,
+                    category, ex.getMessage());
+            throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY,
+                    "store_create_failed", "Could not create store");
         }
     }
 
     private boolean isSellerOrVendor(String role) {
-        if (role == null) return false;
+        if (role == null)
+            return false;
         String r = role.trim().toLowerCase();
         return "seller".equals(r) || "vendor".equals(r);
     }
 
     private String normalizePhone(String phone) {
-        if (phone == null) return null;
+        if (phone == null)
+            return null;
         String digits = phone.replaceAll("[^0-9]", "");
         // Trim +91, 91, or leading 0
-        if (digits.startsWith("91") && digits.length() > 10) digits = digits.substring(digits.length() - 10);
-        if (digits.startsWith("0") && digits.length() > 10) digits = digits.substring(digits.length() - 10);
-        if (digits.length() == 10) return digits;
+        if (digits.startsWith("91") && digits.length() > 10)
+            digits = digits.substring(digits.length() - 10);
+        if (digits.startsWith("0") && digits.length() > 10)
+            digits = digits.substring(digits.length() - 10);
+        if (digits.length() == 10)
+            return digits;
         return digits.isEmpty() ? null : digits;
     }
 
     private String resolvePhone(String userId) {
-        if (userId == null) return null;
+        if (userId == null)
+            return null;
         java.util.Optional<UserEntity> opt = userRepository.findById(userId);
         return opt.map(UserEntity::getPhone).orElse(null);
     }
 
     @PatchMapping("/stores/{storeId}")
-    public ResponseEntity<Store> updateStore(@PathVariable String storeId,
-                                             @RequestBody Map<String, Object> changes) {
-        if (!ensureAuth()) return ResponseEntity.status(401).build();
-        log.info("Seller update store: storeId={} changesKeys={}", storeId, changes != null ? changes.keySet() : java.util.Collections.emptySet());
-        Map<String,Object> safe = new HashMap<>();
+    public ResponseEntity<?> updateStore(@PathVariable String storeId,
+                                         @RequestBody Map<String, Object> changes,
+                                         @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+        log.info("Seller update store: storeId={} changesKeys={} tenant={} ", storeId,
+                changes != null ? changes.keySet() : java.util.Collections.emptySet(), tenantDomain);
+
+        // Ownership enforcement (owner or admin)
+        Store existing = factoryProvider.getSellerFactory(tenantDomain).stores().get(storeId);
+        var principal = UserPrincipal.current();
+        if (existing == null || principal == null) {
+            throw new NotFoundException("Store not found");
+        }
+        boolean isOwner = existing.getOwnerId() != null && existing.getOwnerId().equals(principal.getUserId());
+        boolean isAdmin = principal.getRole() != null && principal.getRole().equalsIgnoreCase("admin");
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("Forbidden");
+        }
+
+        Map<String, Object> safe = new HashMap<>();
+        if (changes == null) changes = java.util.Collections.emptyMap();
         if (changes.containsKey("name")) safe.put("name", changes.get("name"));
         if (changes.containsKey("area")) safe.put("area", changes.get("area"));
         if (changes.containsKey("city")) safe.put("city", changes.get("city"));
         if (changes.containsKey("category")) safe.put("category", changes.get("category"));
-        if (changes.containsKey("status")) safe.put("status", changes.get("status"));
+        if (changes.containsKey("status")) {
+            Object stObj = changes.get("status");
+            String st = stObj == null ? null : String.valueOf(stObj).trim().toLowerCase();
+            if (st != null && !st.isBlank()) {
+                if (!st.equals("open") && !st.equals("closed")) {
+                    throw new BadRequestException("invalid_status");
+                }
+                safe.put("status", st);
+                if (st.equals("closed")) {
+                    safe.put("orderingDisabled", true);
+                } else if (!changes.containsKey("orderingDisabled")) {
+                    safe.put("orderingDisabled", false);
+                    // Auto-clear expired closedUntil when reopening
+                    if (existing.getClosedUntil() != null && java.time.Instant.now().isAfter(existing.getClosedUntil()) && !changes.containsKey("closedUntil")) {
+                        safe.put("closedUntil", null);
+                    }
+                }
+            }
+        }
         if (changes.containsKey("orderingDisabled")) safe.put("orderingDisabled", changes.get("orderingDisabled"));
         if (changes.containsKey("closedReason")) safe.put("closedReason", changes.get("closedReason"));
-        if (changes.containsKey("closedUntil")) safe.put("closedUntil", changes.get("closedUntil"));
-        Store updated = factoryProvider.getSellerFactory(null).stores().updatePartial(storeId, safe);
-        if (updated == null) return ResponseEntity.notFound().build();
-        log.info("Seller update store success: storeId={} name={} ", updated.getId(), updated.getName());
-        return ResponseEntity.ok(updated);
+        if (changes.containsKey("closedUntil")) {
+            Object cu = changes.get("closedUntil");
+            if (cu != null && String.valueOf(cu).trim().length() > 0) {
+                try { java.time.Instant.parse(String.valueOf(cu)); } catch (Exception ex) {
+                    throw new BadRequestException("invalid_closedUntil");
+                }
+                safe.put("closedUntil", String.valueOf(cu));
+            } else {
+                safe.put("closedUntil", null);
+            }
+        }
+        Store updated = factoryProvider.getSellerFactory(tenantDomain).stores().updatePartial(storeId, safe);
+        if (updated == null) throw new NotFoundException("Store not found");
+        log.info("Seller update store success: storeId={} name={} status={} orderingDisabled={} ", updated.getId(), updated.getName(), updated.getStatus(), updated.getOrderingDisabled());
+        return ResponseEntity.ok(Map.of("success", true, "store", updated));
+    }
+
+    @PatchMapping(value = "/stores/{storeId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateStoreMultipart(@PathVariable String storeId,
+                                                  @RequestPart(value = "name", required = false) String name,
+                                                  @RequestPart(value = "area", required = false) String area,
+                                                  @RequestPart(value = "city", required = false) String city,
+                                                  @RequestPart(value = "category", required = false) String category,
+                                                  @RequestPart(value = "status", required = false) String status,
+                                                  @RequestPart(value = "orderingDisabled", required = false) String orderingDisabled,
+                                                  @RequestPart(value = "closedReason", required = false) String closedReason,
+                                                  @RequestPart(value = "closedUntil", required = false) String closedUntil,
+                                                  @RequestPart(value = "logoFile", required = false) org.springframework.web.multipart.MultipartFile logoFile,
+                                                  @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+        log.info("Seller update store (multipart): storeId={} name={} area={} category={} status={} logoPresent={} tenant={}", storeId, name, area, category, status, logoFile != null, tenantDomain);
+
+        Store existing = factoryProvider.getSellerFactory(tenantDomain).stores().get(storeId);
+        var principal = UserPrincipal.current();
+        if (existing == null || principal == null) {
+            throw new NotFoundException("Store not found");
+        }
+        boolean isOwner = existing.getOwnerId() != null && existing.getOwnerId().equals(principal.getUserId());
+        boolean isAdmin = principal.getRole() != null && principal.getRole().equalsIgnoreCase("admin");
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("Forbidden");
+        }
+
+        Map<String, Object> safe = new HashMap<>();
+        if (name != null) safe.put("name", name);
+        if (area != null) safe.put("area", area);
+        if (city != null) safe.put("city", city);
+        if (category != null) safe.put("category", category);
+        if (status != null) {
+            String st = status.trim().toLowerCase();
+            if (!st.equals("open") && !st.equals("closed")) throw new BadRequestException("invalid_status");
+            safe.put("status", st);
+            if (st.equals("closed")) safe.put("orderingDisabled", true);
+            else if (orderingDisabled == null) {
+                safe.put("orderingDisabled", false);
+                // Auto-clear expired closedUntil when reopening, if not explicitly provided
+                if (existing.getClosedUntil() != null && java.time.Instant.now().isAfter(existing.getClosedUntil()) && closedUntil == null) {
+                    safe.put("closedUntil", null);
+                }
+            }
+        }
+        if (orderingDisabled != null) {
+            String a = orderingDisabled.trim().toLowerCase();
+            safe.put("orderingDisabled", ("true".equals(a) || "1".equals(a)) ? Boolean.TRUE : Boolean.FALSE);
+        }
+        if (closedReason != null) safe.put("closedReason", closedReason);
+        if (closedUntil != null) {
+            String cu = closedUntil.trim();
+            if (!cu.isEmpty()) {
+                try { java.time.Instant.parse(cu); } catch (Exception ex) {
+                    throw new BadRequestException("invalid_closedUntil");
+                }
+                safe.put("closedUntil", cu);
+            } else {
+                safe.put("closedUntil", null);
+            }
+        }
+        if (logoFile != null && !logoFile.isEmpty()) {
+            // Persist original filename; Integrations can resolve public URL via media service in future
+            safe.put("logo", logoFile.getOriginalFilename());
+        }
+
+        Store updated = factoryProvider.getSellerFactory(tenantDomain).stores().updatePartial(storeId, safe);
+        if (updated == null) throw new NotFoundException("Store not found");
+        log.info("Seller update store (multipart) success: storeId={} name={} logo={}", updated.getId(), updated.getName(), updated.getLogo());
+        return ResponseEntity.ok(Map.of("success", true, "store", updated));
+    }
+
+    @GetMapping("/stores/{storeId}")
+    public ResponseEntity<?> getStore(@PathVariable String storeId,
+                                      @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+        var principal = UserPrincipal.current();
+        Store s = factoryProvider.getSellerFactory(tenantDomain).stores().get(storeId);
+        if (s == null || principal == null || s.getOwnerId() == null || !s.getOwnerId().equals(principal.getUserId())) {
+            throw new NotFoundException("Store not found");
+        }
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("id", s.getId());
+        resp.put("name", s.getName());
+        resp.put("area", s.getArea());
+        resp.put("category", s.getCategory());
+        resp.put("ownerId", s.getOwnerId());
+        resp.put("ownerPhone", s.getOwnerPhone());
+        resp.put("status", s.getStatus() != null ? s.getStatus() : "open");
+        resp.put("orderingDisabled", s.getOrderingDisabled() != null ? s.getOrderingDisabled() : Boolean.FALSE);
+        resp.put("closedReason", s.getClosedReason());
+        resp.put("closedUntil", s.getClosedUntil());
+        resp.put("logo", s.getLogo());
+        resp.put("updatedAt", s.getUpdatedAt());
+        return ResponseEntity.ok(resp);
     }
 }

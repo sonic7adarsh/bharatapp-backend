@@ -20,6 +20,7 @@ public class StoreEntity {
     private Boolean orderingDisabled;
     private String closedReason;
     private java.time.Instant closedUntil;
+    private String logo; // filename or URL reference
     private java.time.Instant createdAt;
     private java.time.Instant updatedAt;
 
@@ -57,6 +58,8 @@ public class StoreEntity {
     public void setClosedReason(String closedReason) { this.closedReason = closedReason; }
     public java.time.Instant getClosedUntil() { return closedUntil; }
     public void setClosedUntil(java.time.Instant closedUntil) { this.closedUntil = closedUntil; }
+    public String getLogo() { return logo; }
+    public void setLogo(String logo) { this.logo = logo; }
     public java.time.Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.Instant createdAt) { this.createdAt = createdAt; }
     public java.time.Instant getUpdatedAt() { return updatedAt; }

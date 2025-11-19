@@ -10,8 +10,14 @@ server:
       prefix: access
       suffix: .log
       rotate: true
+    max-swallow-size: 50MB
+    max-http-form-post-size: 50MB
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher

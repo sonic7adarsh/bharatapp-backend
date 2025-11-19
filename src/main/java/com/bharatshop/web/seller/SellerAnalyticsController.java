@@ -2,6 +2,7 @@ package com.bharatshop.web.seller;
 
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class SellerAnalyticsController {
                                       @RequestParam(required = false) String from,
                                       @RequestParam(required = false) String to,
                                       @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         log.info("Seller analytics overview: storeId={} from={} to={} tenant={}", storeId, from, to, tenant);
         Map<String, Object> resp = factoryProvider.getSellerFactory(tenant).analytics().overview(storeId, from, to);
         log.info("Seller analytics overview success: keys={}", resp != null ? resp.keySet() : java.util.Collections.emptySet());

@@ -14,6 +14,7 @@ public class Store {
     private Boolean orderingDisabled;
     private String closedReason;
     private java.time.Instant closedUntil;
+    private String logo;
     private java.time.Instant updatedAt;
 
     public Store() {}
@@ -44,6 +45,8 @@ public class Store {
     public void setClosedReason(String closedReason) { this.closedReason = closedReason; }
     public java.time.Instant getClosedUntil() { return closedUntil; }
     public void setClosedUntil(java.time.Instant closedUntil) { this.closedUntil = closedUntil; }
+    public String getLogo() { return logo; }
+    public void setLogo(String logo) { this.logo = logo; }
     public java.time.Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.Instant updatedAt) { this.updatedAt = updatedAt; }
 }

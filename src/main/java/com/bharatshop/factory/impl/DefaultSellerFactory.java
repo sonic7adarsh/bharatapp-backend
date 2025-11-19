@@ -312,6 +312,7 @@ public class DefaultSellerFactory implements SellerFactory {
                     s.setOrderingDisabled(e.getOrderingDisabled());
                     s.setClosedReason(e.getClosedReason());
                     s.setClosedUntil(e.getClosedUntil());
+                    s.setLogo(e.getLogo());
                     s.setUpdatedAt(e.getUpdatedAt());
                     return s;
                 }).sorted(Comparator.comparing(Store::getName)).collect(Collectors.toList());
@@ -359,6 +360,7 @@ public class DefaultSellerFactory implements SellerFactory {
                             entity.setClosedUntil((java.time.Instant) cu);
                         }
                     }
+                    if (changes.containsKey("logo")) entity.setLogo((String) changes.get("logo"));
                     entity.setUpdatedAt(Instant.now());
                     storeRepository.save(entity);
                     Store s = new Store(entity.getId(), entity.getName(), entity.getArea(), entity.getCategory());
@@ -368,6 +370,7 @@ public class DefaultSellerFactory implements SellerFactory {
                     s.setOrderingDisabled(entity.getOrderingDisabled());
                     s.setClosedReason(entity.getClosedReason());
                     s.setClosedUntil(entity.getClosedUntil());
+                    s.setLogo(entity.getLogo());
                     s.setUpdatedAt(entity.getUpdatedAt());
                     return s;
                 }).orElse(null);

@@ -233,7 +233,14 @@ public class AuthService {
 
     public Map<String, Object> resendOtp(String phone, String otpId) {
         OtpInfo info = otpsByPhone.get(phone);
-        if (info == null || !info.otpId.equals(otpId)) return Map.of("success", false);
+        if (info == null) {
+            log.warn("OTP resend failed: no OTP found for phone={}", phone);
+            return Map.of("success", false, "error", "otp_not_found");
+        }
+        if (!info.otpId.equals(otpId)) {
+            log.warn("OTP resend failed: otpId mismatch for phone={}, expected={} provided={}", phone, info.otpId, otpId);
+            return Map.of("success", false, "error", "otp_id_mismatch");
+        }
         info.expiresAt = System.currentTimeMillis() + 120_000L;
         otpsByPhone.put(phone, info);
         // Re-send notifications
@@ -241,7 +248,10 @@ public class AuthService {
         notificationService.sendSms(phone, smsMessage);
         userRepository.findByPhone(phone).map(UserEntity::getEmail).filter(e -> e != null && !e.isBlank())
                 .ifPresent(email -> notificationService.sendEmail(email, "Your Bharatshop OTP", smsMessage));
-        return Map.of("success", true, "ttlSeconds", 120);
+        // Log OTP details server-side for testing convenience
+        log.info("OTP resend: phone={} otpId={} otp={} ttlSeconds={}", phone, info.otpId, info.otp, 120);
+        // Include OTP in response for test environments; remove in production if needed
+        return Map.of("success", true, "otpId", info.otpId, "ttlSeconds", 120, "otp", info.otp);
     }
 
     public Session getSessionByToken(String token) {

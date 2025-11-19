@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.bharatshop.repository.RoomRepository;
 import com.bharatshop.entity.RoomEntity;
+import com.bharatshop.error.BadRequestException;
+import com.bharatshop.error.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -51,13 +53,13 @@ public class RoomsController {
             log.info("Rooms availability check: tenant={} roomId={} in={} out={} guests={}", tenant, roomId, checkIn, checkOut, guests);
             return ResponseEntity.ok(Map.of("available", true));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("available", false, "reason", "BAD_REQUEST"));
+            throw new BadRequestException("Invalid availability request");
         }
     }
 
     @GetMapping
     public ResponseEntity<?> list(@RequestParam(required = false) String storeId) {
-        if (storeId == null || storeId.isBlank()) return ResponseEntity.badRequest().body(Map.of("message", "storeId is required"));
+        if (storeId == null || storeId.isBlank()) throw new BadRequestException("storeId is required");
         List<RoomEntity> rooms = roomRepository.findByStoreIdAndActiveIsTrueOrderByCreatedAtDesc(storeId);
         return ResponseEntity.ok(rooms);
     }
@@ -66,6 +68,6 @@ public class RoomsController {
     public ResponseEntity<?> get(@PathVariable String id) {
         return roomRepository.findById(id)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(404).body(Map.of("message", "Room not found")));
+                .orElseThrow(() -> new NotFoundException("Room not found"));
     }
 }

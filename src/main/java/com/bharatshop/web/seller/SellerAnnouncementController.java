@@ -1,6 +1,8 @@
 package com.bharatshop.web.seller;
 
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.BadRequestException;
 import com.bharatshop.factory.FactoryProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +27,11 @@ public class SellerAnnouncementController {
     @PostMapping("/announcements")
     public ResponseEntity<?> post(@RequestBody Map<String, Object> body,
                                   @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         String storeId = (String) body.get("storeId");
         String message = (String) body.get("message");
         String activeUntil = (String) body.getOrDefault("activeUntil", null);
-        if (storeId == null || message == null) return ResponseEntity.badRequest().body(Map.of("message", "storeId and message are required"));
+        if (storeId == null || message == null) throw new BadRequestException("storeId and message are required");
         log.info("Seller post announcement: storeId={} messageLen={} activeUntil={} tenant={}", storeId, message != null ? message.length() : 0, activeUntil, tenant);
         Map<String, Object> a = factoryProvider.getSellerFactory(tenant).announcements().post(storeId, message, activeUntil);
         log.info("Seller announcement posted: storeId={} idPresent={}", storeId, a != null && a.get("id") != null);

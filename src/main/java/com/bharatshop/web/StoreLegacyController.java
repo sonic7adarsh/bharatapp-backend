@@ -5,11 +5,17 @@ import com.bharatshop.domain.Product;
 import com.bharatshop.dto.CheckoutRequest;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.factory.StorefrontFactory;
+import com.bharatshop.policy.StoreAvailabilityPolicy;
+import com.bharatshop.tenant.TenantContext;
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.NotFoundException;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +26,12 @@ import java.util.Map;
 public class StoreLegacyController {
     private static final Logger log = LoggerFactory.getLogger(StoreLegacyController.class);
     private final FactoryProvider factoryProvider;
+    private final StoreAvailabilityPolicy storeAvailabilityPolicy;
 
-    public StoreLegacyController(FactoryProvider factoryProvider) { this.factoryProvider = factoryProvider; }
+    public StoreLegacyController(FactoryProvider factoryProvider, StoreAvailabilityPolicy storeAvailabilityPolicy) {
+        this.factoryProvider = factoryProvider;
+        this.storeAvailabilityPolicy = storeAvailabilityPolicy;
+    }
 
     private StorefrontFactory factory(String tenant) { return factoryProvider.getFactory(tenant); }
 
@@ -33,23 +43,23 @@ public class StoreLegacyController {
                                                       @RequestParam(required = false) Integer size,
                                                       @RequestParam(required = false) String sort) {
         // Pagination/sorting are ignored in this mock. Filtering supported.
-        log.info("Legacy list products: tenant={} category={} search={}", tenant, category, search);
+        log.info("Legacy list products: tenant={} category={} search={}", tenant != null ? tenant : TenantContext.getTenant(), category, search);
         return ResponseEntity.ok(factory(tenant).products().list(category, search));
     }
 
     @GetMapping("/products/{id}")
     public ResponseEntity<?> getProduct(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
                                         @PathVariable String id) {
-        log.info("Legacy get product: tenant={} id={} ", tenant, id);
+        log.info("Legacy get product: tenant={} id={} ", tenant != null ? tenant : TenantContext.getTenant(), id);
         Product p = factory(tenant).products().get(id);
-        if (p == null) return ResponseEntity.status(404).body(Map.of("message", "Product not found"));
+        if (p == null) throw new NotFoundException("Product not found");
         log.info("Legacy get product success: id={} name={}", p.getId(), p.getName());
         return ResponseEntity.ok(p);
     }
 
     @GetMapping("/categories")
     public ResponseEntity<List<String>> categories(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        log.info("Legacy list categories: tenant={}", tenant);
+        log.info("Legacy list categories: tenant={}", tenant != null ? tenant : TenantContext.getTenant());
         return ResponseEntity.ok(factory(tenant).products().categories());
     }
 
@@ -57,19 +67,18 @@ public class StoreLegacyController {
     public ResponseEntity<?> checkout(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
                                       @Valid @RequestBody CheckoutRequest req) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
-        log.info("Legacy checkout: tenant={} userId={} items={} paymentMethod={}", tenant, up.getUserId(),
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        log.info("Legacy checkout: tenant={} userId={} items={} paymentMethod={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId(),
                 req.getItems() != null ? req.getItems().size() : 0, req.getPaymentMethod());
         // Enforce store availability
         if (req.getStoreId() != null && !req.getStoreId().isBlank()) {
             com.bharatshop.domain.Store store = factory(tenant).stores().get(req.getStoreId());
-            if (store == null) return ResponseEntity.status(400).body(Map.of("message", "Invalid storeId"));
-            boolean disabled = Boolean.TRUE.equals(store.getOrderingDisabled());
-            boolean closed = store.getStatus() != null && store.getStatus().equalsIgnoreCase("closed");
-            boolean untilClosed = store.getClosedUntil() != null && java.time.Instant.now().isBefore(store.getClosedUntil());
-            if (disabled || closed || untilClosed) {
-                String reason = store.getClosedReason() != null ? store.getClosedReason() : "store_unavailable";
-                return ResponseEntity.status(403).body(Map.of("message", "Store not accepting orders", "reason", reason));
+            if (store == null) throw new BadRequestException("Invalid storeId");
+            java.util.Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store);
+            if (availabilityError != null) {
+                String code = String.valueOf(availabilityError.getOrDefault("code", "CONFLICT"));
+                String message = String.valueOf(availabilityError.getOrDefault("message", "Conflict"));
+                throw new com.bharatshop.error.ApiException(HttpStatus.CONFLICT, code, message, availabilityError);
             }
         }
         Order order;
@@ -95,8 +104,8 @@ public class StoreLegacyController {
                                     @RequestParam(required = false) Integer page,
                                     @RequestParam(required = false) Integer size) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
-        log.info("Legacy list orders: tenant={} userId={}", tenant, up.getUserId());
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        log.info("Legacy list orders: tenant={} userId={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId());
         List<Order> orders = factory(tenant).orders().listOrders(up.getUserId());
         log.info("Legacy orders fetched: count={}", orders != null ? orders.size() : 0);
         return ResponseEntity.ok(orders);
@@ -106,14 +115,14 @@ public class StoreLegacyController {
     public ResponseEntity<?> orderDetail(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
                                          @PathVariable String id) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
-        log.info("Legacy order detail: tenant={} userId={} id={}", tenant, up.getUserId(), id);
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        log.info("Legacy order detail: tenant={} userId={} id={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId(), id);
         List<Order> orders = factory(tenant).orders().listOrders(up.getUserId());
         Order match = null;
         for (Order o : orders) {
             if (id.equals(o.getId())) { match = o; break; }
         }
-        if (match == null) return ResponseEntity.status(404).body(Map.of("message", "Order not found"));
+        if (match == null) throw new NotFoundException("Order not found");
         log.info("Legacy order detail success: id={} status={}", match.getId(), match.getStatus());
         return ResponseEntity.ok(match);
     }

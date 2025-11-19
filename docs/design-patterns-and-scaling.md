@@ -1,201 +1,173 @@
-# BharatShop – Design Patterns & Scaling Playbook
+# BharatShop – Design Patterns & Scaling Playbook (Implementation Prompts)
 
-This document maps concrete design patterns to current modules, proposes bounded contexts (Retail vs Hospitality), and outlines best practices to scale to millions of users. It is implementation-ready guidance to follow before coding changes.
+Yeh document pure project ka design-patterns audit + practical prompts deta hai. In prompts ko follow karke tum behaviour, creational aur structural patterns ko systematically implement kar sakte ho, aur system design ko scale-ready bana sakte ho.
 
-## Bounded Contexts
-- Retail (Store Catalog & Orders): Products, Categories, Cart, Retail Checkout, Retail Orders.
-- Hospitality (Hotel/Rooms & Bookings): Rooms, Availability, Booking Checkout, Booking Orders.
-- Shared: Auth, Payments, Media (images/docs), Notifications, Events/Analytics, Tenancy.
-- Rationale: Different lifecycles (inventory vs capacity), pricing logic, and state machines deserve distinct modules/services.
+## Quick Architecture Audit (Current)
+- Layered monolith present: `Controller → Factory → Service → Domain → Repository`.
+- Multi-tenant hook via `FactoryProvider`; `X-Tenant-Domain` se tenant pass hota hai.
+- Patterns already visible: Factory (`DefaultStorefrontFactory`, `DefaultSellerFactory`), Repository (Spring Data), Adapter-ish for payments/notifications planned, basic state checks in checkout.
+- Gaps: Central `TenantContext` missing, checkout orchestration scattered, validations mixed in controllers, payment/notification adapters incomplete, idempotency & outbox not implemented, specification queries absent.
 
-## Module Split (Monolith → Modular Monolith)
-- `catalog-retail`: Store, Product, Category, Search.
-- `hospitality`: Room, Availability, Booking, Pricing.
-- `cart`: Guest/user carts; retail-only in phase 1.
-- `checkout`: Orchestrator for retail/hospitality flows; validates store operational state.
-- `orders`: Retail orders & hospitality bookings; common envelope, separate state machines.
-- `payments`: Gateway adapters, signature verification, webhooks.
-- `media`: Presign uploads, media metadata, S3 keys/public URLs.
-- `auth`: Register/Login/OTP/Profile; centralized token issuing.
-- `events`: Ingestion and export.
+## Creational Patterns — Prompts
 
-## Design Patterns (Where/How)
-- Strategy
-  - Payments: `PaymentGateway` interface; implementations `RazorpayGateway`, `PayUGateway`, `StripeGateway`.
-  - Notifications: `NotificationChannel` for SMS/Email providers.
-- Adapter
-  - External providers: wrap SDKs (Razorpay, Msg91, Twilio, AWS S3) behind adapters.
-- Factory
-  - Storefront composition per tenant: `StorefrontFactory` (`DefaultStorefrontFactory`) to toggle features by tenant.
-- Repository
-  - Domain persistence per aggregate: `OrderRepository`, `ProductRepository`, `StoreRepository`, `BookingRepository`.
-- Aggregate Root
-  - `Order`/`Booking`: gateway for items/booking details/totals/status changes; enforce invariants.
-- State Machine
-  - Retail order: `draft → placed → accepted/rejected → paid → preparing → dispatched → delivered → cancelled`.
-  - Booking: `placed → confirmed → checked_in → completed → cancelled`.
-- Facade
-  - `CheckoutService`: orchestrates pricing validation, availability checks, payment, and order creation.
-- Builder
-  - DTO assembly: `CheckoutRequest`, `AvailabilityResponse` without leaking internals.
-- Specification
-  - Catalog search: compose filters (category, price range, text search).
-- Outbox + Saga (Reliability)
-  - Payment verification → order state transitions; cross-service workflows (future).
-- CQRS (Selective)
-  - Read-optimized projections for product listings/orders dashboards; write model stays normalized.
-- Circuit Breaker/Resilience
-  - External calls (payment/notifications) protected via Resilience4j.
+### 1) Factory Specialization by Tenant
+- Goal: Tenant-wise feature toggles and service wiring.
+- Prompt:
+  - Create `com.bharatshop.tenancy.TenantContext` (ThreadLocal) and `TenantInterceptor` that reads `X-Tenant-Domain` and sets context.
+  - Update `FactoryProvider#getFactory(String tenantDomain)` to resolve specialized factories by tenant (map/cache), fallback to `DefaultStorefrontFactory`.
+  - Same for `getSellerFactory`.
+- Acceptance: Controllers no longer pass tenant strings around; services read `TenantContext.current()`.
 
-## Tenancy Best Practices
-- TenantContext: resolve from `X-Tenant-Domain`; inject via interceptor.
-- Persistence isolation: start with `tenant_id` + JPA filters; migrate to schema-per-tenant or DB-per-tenant for premium tenants.
-- Rate limits & quotas per tenant; config flags via remote config.
+### 2) Builder for Complex DTOs
+- Goal: Readability + immutability for complex responses.
+- Prompt:
+  - Introduce builders for `AvailabilityResponse`, `PaymentOrder`, and `Order.Totals`.
+  - Use fluent builder methods; avoid telescoping constructors.
+- Acceptance: Controllers/services use `.builder()` to assemble DTOs without null juggling.
 
-## Data & Storage
-- Primary DB: MySQL/PostgreSQL; Flyway/Liquibase for migrations.
-- Cache: Redis (catalog caching, store status, availability holds, rate limiting).
-- Search: OpenSearch/Elasticsearch for text search and facets (optional).
-- Media: S3/MinIO via presigned uploads; store `publicUrl` on Product/Store.
-- Files/Docs: S3/MinIO with lifecycle rules; CDN (CloudFront) for delivery.
+### 3) Object Mother (Tests)
+- Goal: Stable, reusable test data creation.
+- Prompt:
+  - Add `testsupport/ObjectMothers` for `Store`, `Product`, `Order`, `BookingDetails` with sensible defaults per domain.
+- Acceptance: Unit/integration tests construct rich objects via object mothers.
 
-## API Contracts (Key Improvements)
-- Pagination everywhere: default limits; cursors or page/limit.
-- Idempotency: `Idempotency-Key` on checkout & payment verify.
-- Server-side pricing verification: compute totals on backend to avoid client tampering.
-- Consistent errors: `{ message, code?, reason? }`.
-- Validation: strong schema constraints and descriptive messages.
+## Structural Patterns — Prompts
 
-## Performance & Scale
-- Indexing: DB indexes on `tenant_id`, `store_id`, `product.category`, `order.status`, `created_at`.
-- N+1 avoidance: review repositories; batch loads; projections for listings.
-- Caching: Redis for hot endpoints; cache invalidation on write.
-- Async workflows: notifications, analytics, webhooks via queues.
-- Backpressure: rate limits, bulkheads, circuit breakers.
-- Observability: OpenTelemetry traces, metrics (latency, error rate, saturation), structured logs.
+### 4) Facade for Checkout Orchestration
+- Goal: Single orchestrator over validations, pricing, availability, payment, and order creation.
+- Prompt:
+  - Create `CheckoutService` (Facade) with methods: `placeRetailOrder(...)`, `placeBooking(...)`.
+  - Move validation logic (items required, store availability, pricing recompute, idempotency) from `CheckoutController` into `CheckoutService`.
+  - Controller becomes thin: parse, delegate, return.
+- Acceptance: Checkout flow is testable via service unit tests; controller is slim.
 
-## Security & Compliance
-- Auth: JWT; short-lived access tokens; refresh mechanism.
-- Authorization: method-level policies; roles (`USER`, `SELLER`, `ADMIN`).
-- Input hardening: validation; prescription-specific rules.
-- Payments: signature verification, amount checks, replay protection.
-- PII: encryption at rest; redaction in logs; consent/audit trails.
+### 5) Adapter + Ports for External Providers
+- Goal: Clean boundary for payments/notifications/storage.
+- Prompt:
+  - Define `PaymentGateway` port (`createOrder`, `verify`, `refund?`) with `RazorpayAdapter` implementation; keep room for `StripeAdapter`, `PayUAdapter`.
+  - Define `NotificationChannel` port (`sendSms`, `sendEmail`) with `Msg91Adapter`, `TwilioAdapter`, `SmtpAdapter`.
+  - Define `MediaStorage` port with `S3Adapter`/`MinIOAdapter`.
+- Acceptance: Services depend on interfaces; adapters handle SDK specifics.
 
-## Hospitality Separation (Example)
-- Entities: `Room`, `RatePlan`, `Booking`, `AvailabilityCalendar`.
-- Pricing: `PricingService` computes `base + surcharge + taxes + fees`.
-- Availability: `AvailabilityService` checks capacity/operational status.
-- Reservation holds: Redis-backed soft-hold with TTL during checkout.
-- Service boundary: separate `hospitality` module; later extract to microservice with own DB.
+### 6) Repository + Specification
+- Goal: Powerful, composable querying without leaking details.
+- Prompt:
+  - Introduce Specification objects for catalog filtering: `StoreSpec.byCategory`, `StoreSpec.search`, `ProductSpec.byStore`, composable AND/OR.
+  - Add simple query DSL or use Spring Data Specifications.
+- Acceptance: Discovery endpoints use specifications; code stays expressive.
 
-## Media Service (S3) — Implementation Plan
-- Endpoints:
-  - `POST /api/media/presign-upload` → returns `{ method, uploadUrl, headers, bucket, region, key, expiresInSec, publicUrl }`.
-  - `POST /api/media` → finalize and persist metadata `{ key, bucket, region, size, contentType }` → returns `{ id, publicUrl }`.
-  - `DELETE /api/media/:id` → deletes S3 object and invalidates CDN (optional).
-- AWS SDK v2 S3: use `S3Presigner` for presign; `S3Client` for deletes.
-- Config: `aws.region`, `aws.s3.bucket`, optional `aws.cloudfront.domain`, creds via IAM role/keys.
-- Frontend flow: direct `PUT` to S3 using presigned URL; store `publicUrl` in Product/Store payloads.
-- Security: enforce `contentType`, `maxSize`, allowed folders per tenant; short expiry; CORS on bucket.
+### 7) CQRS (Selective) Read Models
+- Goal: Fast listings/dashboards under load.
+- Prompt:
+  - Create lightweight projections for `StoreListItem`, `OrderSummary`, `BookingSummary` (read models) separate from write models.
+  - Services expose read ops returning projections, write ops return full aggregates.
+- Acceptance: List endpoints return lean DTOs; complex aggregates not over-fetched.
 
-## Migration Path (Monolith → Services)
-- Extract first: Payments, Auth, Media (stateless, clear boundaries).
-- Then: Catalog, Orders, Hospitality.
-- Introduce API Gateway; service discovery; per-service schemas; async messaging.
+## Behavioral Patterns — Prompts
 
-## Testing Strategy
-- Unit tests: services, pricing, availability, verification logic.
-- Contract tests: payment adapters, presign endpoints.
-- Integration tests: tenant filters, checkout validations, order transitions.
-- E2E: Cart → Payment → Checkout → Status updates.
-- Load tests: availability (peak dates), checkout (flash sales), media uploads.
+### 8) Chain of Responsibility for Validations
+- Goal: Pluggable validation steps.
+- Prompt:
+  - Implement `CheckoutValidationChain` with handlers: `ItemsValidator`, `StoreAvailabilityValidator`, `PricingValidator`, `PrescriptionPolicyValidator`, `IdempotencyValidator`.
+  - `CheckoutService` runs the chain; each handler returns `ok` or throws domain error.
+- Acceptance: Validation order and composition are testable and extendable.
 
-## Action Items (Prioritized)
-- Implement Media Service with S3 presign/finalize; switch image fields to `publicUrl`.
-- Add idempotency and server-side pricing verification in checkout.
-- Introduce Redis caching and rate limiting per tenant.
-- Add order/booking state machines with SLAs and notifications.
-- Enable OpenAPI docs via `springdoc-openapi` to align FE/BE.
-- Add observability stack (OTel + dashboards) and resilience policies.
+### 9) Strategy for Pricing & Policies
+- Goal: Different pricing/policy rules per tenant/category.
+- Prompt:
+  - Introduce `PricingStrategy` (retail/hospitality), `CodPolicyStrategy`, `DiscountStrategy` with tenant/category-based selection via factory.
+  - Wire selection through `FactoryProvider` using `TenantContext`.
+- Acceptance: Strategies switch cleanly; unit tests verify per-tenant behavior.
 
-## Requirements Collection (Frontend + Product)
-- Tenants & locales: supported locales per tenant, default locale, `Accept-Language` header policy and fallback order.
-- Pages & copy keys: list each FE page slug and provide copy keys with language variants and variable placeholders.
-- Domain translations: which entity fields need localization (product/store name/description) and which locales to serve.
-- Notifications: user/tenant channel preferences (`sms`, `email`, `whatsapp`), template keys per event, opt-in/opt-out requirements.
-- Media policy: allowed formats (`jpg/png/webp/pdf`), max size, target dimensions, cropping rules, CDN domain, caching headers.
-- Checkout flow specifics: delivery slot rules, prescription flow, idempotency-key usage, pricing confirmation UX.
-- Payment gateways: which providers to enable (Razorpay/Stripe/PayU), capture/authorize mode, refund flows.
-- Hospitality needs: availability search params, rate plans, hold TTL, overbooking policy.
-- Security/compliance: PII handling, consent texts, analytics identifiers, audit requirements.
+### 10) State Machine for Orders/Bookings
+- Goal: Predictable lifecycle transitions.
+- Prompt:
+  - Define explicit states and transitions; implement in `OrderService`/`BookingService`.
+  - Enforce invariants (e.g., cannot dispatch before paid; auto-cancel on SLA breach).
+  - Add `sellerResponseDeadline` timers.
+- Acceptance: Transition APIs reject invalid moves; state diagrams reflected in code.
 
-## Entities & Normalization
-- Product: move `category` to master `categories` table; support multi-category via `product_category_map` if needed.
-- Store: add `StoreStatus` enum and `store_capabilities` table for flags (accepts_orders, accepts_bookings, prescription_required, delivery_slots config).
-- Order: keep `Order` as aggregate; normalize payments into `payment_transactions` with gateway, amounts, currency, ids, signature, status, timestamps.
-- Address: separate `addresses` table for reusable addresses; store immutable snapshot in orders.
-- Tenancy: ensure `tenant_id` column for major tables; apply JPA filter for queries.
-- Audit: add `created_at`, `updated_at`, `created_by` consistently.
+### 11) Observer/Event for Notifications & Analytics
+- Goal: Decouple side effects.
+- Prompt:
+  - Publish domain events (`order_placed`, `payment_verified`, `store_closed`) via `EventBus`.
+  - Handlers trigger notifications/analytics; prepare for Kafka/RabbitMQ later.
+- Acceptance: Core flows remain synchronous; side effects move to handlers.
 
-## Enums Catalogue
-- OrderType: `ORDER`, `ROOM_BOOKING`.
-- OrderStatus: `DRAFT`, `PLACED`, `SELLER_ACCEPTED`, `SELLER_REJECTED`, `PAYMENT_PENDING`, `PAID`, `PREPARING`, `DISPATCHED`, `DELIVERED`, `CANCELLED`.
-- PaymentMethod: `COD`, `ONLINE`, `UPI`, `CARD`, `WALLET`.
-- PaymentStatus: `INITIATED`, `VERIFIED`, `FAILED`, `REFUNDED`.
-- StoreStatus: `OPEN`, `CLOSED`, `DISABLED`.
-- UserRole: `USER`, `SELLER`, `ADMIN`.
-- AvailabilityReason: `STORE_UNAVAILABLE`, `CAPACITY_FULL`, `INVALID_INPUT`, `CLOSED_UNTIL`.
+## Tenancy & Cross-Cutting — Prompts
 
-## Notifications – WhatsApp Integration
-- Providers: Twilio WhatsApp (quick if Twilio is used) or WhatsApp Cloud API (Meta official).
-- Configuration: `notifications.provider.whatsapp = twilio|meta` with credentials (`TWILIO_*` or `WHATSAPP_CLOUD_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`).
-- Design: add `WhatsAppChannel` implementing `NotificationChannel`; register via `NotificationConfig` in composite service.
-- Templates: store message templates `{ template_key, locale, text, variables }`; render per locale with placeholders.
-- Events: trigger notifications on `ORDER_PLACED`, `SELLER_ACCEPTED`, `DELIVERY_UPDATE`, `BOOKING_CONFIRMED` based on tenant/user preferences.
-- Compliance: user opt-in storage, rate limiting, retries, WhatsApp policy adherence.
+### 12) TenantContext & Propagation
+- Goal: Central, consistent tenant scoping.
+- Prompt:
+  - Implement `TenantContext`, interceptor, and filter to set/clear per request.
+  - Ensure async tasks propagate context (decorated `Executor` or context snapshot).
+- Acceptance: Services read tenant implicitly; controllers stop threading headers.
 
-## Internationalization (Backend-Driven)
-- Pages API: `GET /api/i18n/pages/{page}?locale=hi-IN` returns `{ key: text }` for the requested page.
-- Storage: `translations` table with `tenant_id, page, key, locale, text, version` and uniqueness constraints; editing via admin tools.
-- Caching: Redis cache key `{tenant}:{page}:{locale}` with TTL; bust on updates; ETag/If-None-Match support.
-- Domain i18n:
-  - Option A: per-entity JSON fields (`name_i18n`, `description_i18n`) like `{ "en-IN": "...", "hi-IN": "..." }`.
-  - Option B: `entity_translations` table (`entity_type, entity_id, field, locale, text`) for normalized storage and better indexing.
-- Frontend usage: send `Accept-Language` or `?locale=...` consistently; rely on backend fallbacks to default tenant locale.
+### 13) Resilience (Circuit Breakers/Timeouts/Retry)
+- Goal: Stable under provider issues.
+- Prompt:
+  - Add Resilience4j annotations/config around payment/notification/storage adapters.
+  - Define sensible timeouts and fallbacks; capture metrics.
+- Acceptance: External failures don’t cascade; observability shows circuit activity.
 
-### Frontend Prompt – Pages & Keys
-Provide page-wise JSON keys with language variants and placeholders.
+### 14) Idempotency & Outbox
+- Goal: No duplicate side effects; reliable async.
+- Prompt:
+  - Add `IdempotencyService` using request hash keyed by `Idempotency-Key` header (checkout/payments).
+  - Implement Outbox table + processor for `payment_verified → order_paid` updates.
+- Acceptance: Replays safe; webhooks processed exactly-once.
 
-Example (Checkout page):
+## API & Error Best Practices — Prompts
+- Pagination defaults everywhere; enforce `page`/`limit` or cursor.
+- Standardized errors: `{ code, message, details? }` with domain codes like `STORE_CLOSED`, `INVALID_ITEMS`, `INVALID_STATUS`.
+- Strong validation messages; avoid silent failures.
+- Server-side pricing recompute and mismatch rejection.
 
-```
-page: "checkout"
-keys: {
-  "title": { "en-IN": "Checkout", "hi-IN": "चेकआउट" },
-  "placeOrder": { "en-IN": "Place Order", "hi-IN": "ऑर्डर करें" },
-  "deliverySlot": { "en-IN": "Delivery Slot", "hi-IN": "डिलीवरी स्लॉट" },
-  "welcomeUser": { "en-IN": "Welcome, {{name}}", "hi-IN": "स्वागत है, {{name}}" }
-}
-```
+## Concrete Implementation Steps (File-Level)
+- `src/main/java/com/bharatshop/factory/FactoryProvider.java`
+  - Add tenant specialization registry; use `TenantContext`.
+- `src/main/java/com/bharatshop/web/CheckoutController.java`
+  - Delegate to new `CheckoutService` facade; remove heavy validation from controller.
+- `src/main/java/com/bharatshop/service/CheckoutService.java` (new)
+  - Implement validation chain, pricing recompute, store availability policy, idempotency, order creation.
+- `src/main/java/com/bharatshop/policy/StoreAvailabilityPolicy.java` (new)
+  - Encapsulate closed/disabled/closedUntil checks; return `{ available, code, reason, closedUntil }`.
+- `src/main/java/com/bharatshop/payment/PaymentGateway.java` + `adapter/RazorpayAdapter.java`
+  - Define gateway port and adapter with Resilience4j.
+- `src/main/java/com/bharatshop/notification/NotificationChannel.java` + adapters
+  - Implement SMS/Email adapters.
+- `src/main/java/com/bharatshop/tenancy/TenantContext.java` + `TenantInterceptor.java`
+  - Centralize tenant scoping.
+- `src/main/java/com/bharatshop/spec/*`
+  - Add Specifications for Store/Product discovery and apply in services.
+- `src/main/java/com/bharatshop/events/*`
+  - Event bus + handlers for notifications/analytics (seed now, queue later).
 
-Also provide:
-- Supported locales list per tenant and default locale.
-- Which domain fields should be localized (product/store name/description) and required locales.
-- Notification channel preferences (`sms`, `email`, `whatsapp`) and template keys per event.
-- Versioning policy for page bundles (for cache control).
+## Acceptance Matrix (High-Level)
+- Controllers slim; services hold orchestration.
+- Tenant propagation centralized.
+- Payment/notifications wrapped behind ports/adapters.
+- Checkout validations pluggable and tested.
+- Domain events published for key transitions.
+- Read models/projections used for listings.
+- Standardized error shapes with domain codes.
 
-## S3 Image Storage – Status & Plan
-- Current status: no direct AWS S3 SDK usage found in code; adopt Media Service with presign and finalize endpoints.
-- Endpoints:
-  - `POST /api/media/presign-upload` → `{ method, uploadUrl, headers, bucket, region, key, expiresInSec, publicUrl }`.
-  - `POST /api/media` → persist `{ key, bucket, region, size, contentType }` → returns `{ id, publicUrl }`.
-  - `DELETE /api/media/:id` → delete S3 object; optional CDN invalidation.
-- Frontend flow: direct `PUT` to S3 using presigned URL; backend stores `publicUrl` on Product/Store.
-- Requirements to collect: `aws.region`, `aws.s3.bucket`, IAM/cross-account setup, CORS policy, allowed content types, max size, folder conventions per tenant.
+## Rollout Plan
+- Phase 1: TenantContext, CheckoutService facade, StoreAvailabilityPolicy, error standardization.
+- Phase 2: Payment/Notification adapters + resilience, IdempotencyService, Outbox skeleton.
+- Phase 3: Specifications/CQRS projections, event bus handlers, rate limiting.
+- Phase 4: Service extraction (Auth/Payments/Catalog) when traffic demands.
 
-## Additional Scale Practices (Operational)
-- Idempotency keys: require `Idempotency-Key` in checkout and payment verification endpoints; store request hash to prevent duplicate side effects.
-- Pricing verification: recompute totals server-side; compare with client-provided values; reject mismatches and log anomalies.
-- Observability: include correlation IDs, per-tenant metrics dashboards, error budgets; OpenTelemetry tracing across checkout/payment paths.
-- Rate limiting: per tenant/user/IP on critical endpoints; bursts controlled with Redis tokens.
-- Indexes & projections: ensure indexes on high-cardinality columns and use lightweight projections for listings.
+---
+
+## Quick Prompts (Copy-Paste for Tasks)
+- Implement `TenantContext` and wire interceptor; remove direct tenant passing in controllers.
+- Create `CheckoutService` and move validations there; add `CheckoutValidationChain`.
+- Add `StoreAvailabilityPolicy` and reuse in checkout and availability.
+- Introduce `PaymentGateway` interface + `RazorpayAdapter` with Resilience4j.
+- Add `NotificationChannel` interface + SMS/Email adapters.
+- Add `IdempotencyService` with `Idempotency-Key` support for checkout/payments.
+- Seed Outbox table and processor for payment → order state transitions.
+- Add `Specification` classes for discovery queries; refactor `StoreService`/`ProductService` to use them.
+- Add read projections for listings; controllers return lean DTOs.
+- Standardize error responses with `code` + `message` + optional `details`.

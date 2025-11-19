@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import com.bharatshop.error.NotFoundException;
+import com.bharatshop.error.BadRequestException;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -127,7 +129,7 @@ public class I18nController {
         log.info("i18n page translations requested: page={}, locale={}", page, locale);
         Map<String, Map<String, String>> pageMap = PAGE_TRANSLATIONS.get(page);
         if (pageMap == null) {
-            return ResponseEntity.status(404).body(Map.of("message", "Page not found"));
+            throw new NotFoundException("Page not found");
         }
         Map<String, String> t = pageMap.get(locale);
         if (t == null) {
@@ -146,7 +148,7 @@ public class I18nController {
         String locale = body != null ? (String) body.get("locale") : null;
         log.info("i18n preferences set: localePresent={}", StringUtils.hasText(locale));
         if (!StringUtils.hasText(locale) || !LOCALES.contains(locale)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid or unsupported locale"));
+            throw new BadRequestException("Invalid or unsupported locale");
         }
         String userKey = StringUtils.hasText(auth) ? auth : "guest";
         preferencesStore.put(userKey, Map.of("locale", locale));

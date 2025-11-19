@@ -3,6 +3,9 @@ package com.bharatshop.web;
 import com.bharatshop.domain.Order;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.tenant.TenantContext;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -20,55 +23,57 @@ public class OrdersController {
     public OrdersController(FactoryProvider factoryProvider) { this.factoryProvider = factoryProvider; }
 
     @GetMapping("/orders")
-    public ResponseEntity<?> orders(@RequestHeader(value = "X-Tenant-Domain") String tenant) {
+    public ResponseEntity<?> orders() {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        String tenant = TenantContext.getTenant();
         log.info("List orders: tenant={} userId={}", tenant, up.getUserId());
-        List<Order> orders = factoryProvider.getFactory(tenant).orders().listOrders(up.getUserId());
+        List<Order> orders = factoryProvider.getFactory().orders().listOrders(up.getUserId());
         log.info("Orders fetched: count={}", orders != null ? orders.size() : 0);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/orders/{id}")
-    public ResponseEntity<?> orderDetail(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                         @PathVariable String id) {
+    public ResponseEntity<?> orderDetail(@PathVariable String id) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        String tenant = TenantContext.getTenant();
         log.info("Order detail: tenant={} userId={} id={}", tenant, up.getUserId(), id);
-        List<Order> orders = factoryProvider.getFactory(tenant).orders().listOrders(up.getUserId());
+        List<Order> orders = factoryProvider.getFactory().orders().listOrders(up.getUserId());
         Order match = null;
         if (orders != null) {
             for (Order o : orders) {
                 if (id.equals(o.getId())) { match = o; break; }
             }
         }
-        if (match == null) return ResponseEntity.status(404).body(Map.of("message", "Order not found"));
+        if (match == null) throw new NotFoundException("Order not found");
         log.info("Order detail success: id={} status={}", match.getId(), match.getStatus());
         return ResponseEntity.ok(match);
     }
 
     @GetMapping("/bookings")
-    public ResponseEntity<?> bookings(@RequestHeader(value = "X-Tenant-Domain") String tenant) {
+    public ResponseEntity<?> bookings() {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        String tenant = TenantContext.getTenant();
         log.info("List bookings: tenant={} userId={}", tenant, up.getUserId());
-        return ResponseEntity.ok(factoryProvider.getFactory(tenant).orders().listBookings(up.getUserId()));
+        return ResponseEntity.ok(factoryProvider.getFactory().orders().listBookings(up.getUserId()));
     }
 
     @GetMapping("/bookings/{id}")
-    public ResponseEntity<?> bookingDetail(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                           @PathVariable String id) {
+    public ResponseEntity<?> bookingDetail(@PathVariable String id) {
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (up == null) throw new UnauthorizedException("Unauthorized");
+        String tenant = TenantContext.getTenant();
         log.info("Booking detail: tenant={} userId={} id={}", tenant, up.getUserId(), id);
-        List<Order> bookings = factoryProvider.getFactory(tenant).orders().listBookings(up.getUserId());
+        List<Order> bookings = factoryProvider.getFactory().orders().listBookings(up.getUserId());
         Order match = null;
         if (bookings != null) {
             for (Order o : bookings) {
                 if (id.equals(o.getId())) { match = o; break; }
             }
         }
-        if (match == null) return ResponseEntity.status(404).body(Map.of("message", "Booking not found"));
+        if (match == null) throw new NotFoundException("Booking not found");
         log.info("Booking detail success: id={} status={}", match.getId(), match.getStatus());
         return ResponseEntity.ok(match);
     }

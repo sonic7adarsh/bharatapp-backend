@@ -1,6 +1,8 @@
 package com.bharatshop.web.seller;
 
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.NotFoundException;
 import com.bharatshop.service.BulkUploadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +34,7 @@ public class SellerBulkUploadController {
                                     @RequestPart(required = false, name = "file") MultipartFile file,
                                     @RequestBody(required = false) Map<String, Object> body,
                                     @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         boolean isDry = dryRun != null && dryRun;
         String effectiveMode = StringUtils.hasText(mode) ? mode : "upsert";
         String source;
@@ -63,9 +65,9 @@ public class SellerBulkUploadController {
     // GET /api/seller/products/bulk-upload/{jobId}
     @GetMapping("/{jobId}")
     public ResponseEntity<?> status(@PathVariable String jobId) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         var js = bulkUploadService.getStatus(jobId);
-        if (js == null) return ResponseEntity.status(404).body(Map.of("message", "Job not found"));
+        if (js == null) throw new NotFoundException("Job not found");
         return ResponseEntity.ok(Map.of(
                 "jobId", js.jobId,
                 "status", js.status,
@@ -78,18 +80,18 @@ public class SellerBulkUploadController {
     // GET /api/seller/products/bulk-upload/{jobId}/errors
     @GetMapping("/{jobId}/errors")
     public ResponseEntity<?> errors(@PathVariable String jobId) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         List<BulkUploadService.JobError> errs = bulkUploadService.getErrors(jobId);
-        if (errs == null) return ResponseEntity.status(404).body(Map.of("message", "Job not found"));
+        if (errs == null) throw new NotFoundException("Job not found");
         return ResponseEntity.ok(errs);
     }
 
     // Optional cancel: behaves consistently with pipeline semantics
     @DeleteMapping("/{jobId}")
     public ResponseEntity<?> cancel(@PathVariable String jobId) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         var js = bulkUploadService.cancel(jobId);
-        if (js == null) return ResponseEntity.status(404).body(Map.of("message", "Job not found"));
+        if (js == null) throw new NotFoundException("Job not found");
         return ResponseEntity.ok(Map.of(
                 "jobId", js.jobId,
                 "status", js.status,

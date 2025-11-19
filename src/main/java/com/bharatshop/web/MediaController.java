@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.bharatshop.error.NotFoundException;
 
 import java.util.Map;
 
@@ -49,6 +50,6 @@ public class MediaController {
         log.info("Media delete requested: tenant={} id={} ", tenant, id);
         boolean ok = mediaService.delete(id);
         if (ok) return ResponseEntity.ok(Map.of("ok", true));
-        return ResponseEntity.status(404).body(Map.of("message", "Not found"));
+        throw new NotFoundException("Not found");
     }
 }

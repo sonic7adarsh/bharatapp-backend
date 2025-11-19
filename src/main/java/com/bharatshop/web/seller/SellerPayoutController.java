@@ -1,6 +1,8 @@
 package com.bharatshop.web.seller;
 
 import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.error.UnauthorizedException;
+import com.bharatshop.error.BadRequestException;
 import com.bharatshop.factory.FactoryProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +26,7 @@ public class SellerPayoutController {
 
     @GetMapping
     public ResponseEntity<?> list(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         log.info("Seller list payouts: tenant={}", tenant);
         return ResponseEntity.ok(factoryProvider.getSellerFactory(tenant).payouts().list());
     }
@@ -32,9 +34,9 @@ public class SellerPayoutController {
     @PostMapping("/request")
     public ResponseEntity<?> request(@RequestBody Map<String, Object> body,
                                      @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         Number amount = (Number) body.get("amount");
-        if (amount == null) return ResponseEntity.badRequest().body(Map.of("message", "amount is required"));
+        if (amount == null) throw new BadRequestException("amount is required");
         log.info("Seller payout request: amount={} tenant={}", amount, tenant);
         Map<String, Object> p = factoryProvider.getSellerFactory(tenant).payouts().request(amount.doubleValue());
         log.info("Seller payout request success: amount={} idPresent={}", amount, p != null && p.get("id") != null);
@@ -43,7 +45,7 @@ public class SellerPayoutController {
 
     @GetMapping("/config")
     public ResponseEntity<?> config(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         log.info("Seller payout config fetch: tenant={}", tenant);
         return ResponseEntity.ok(factoryProvider.getSellerFactory(tenant).payouts().getConfig());
     }
@@ -51,7 +53,7 @@ public class SellerPayoutController {
     @PatchMapping("/config")
     public ResponseEntity<?> updateConfig(@RequestBody Map<String, Object> body,
                                           @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         log.info("Seller payout config update: keys={} tenant={}", body != null ? body.keySet() : java.util.Collections.emptySet(), tenant);
         Map<String, Object> cfg = factoryProvider.getSellerFactory(tenant).payouts().updateConfig(body);
         log.info("Seller payout config update success: keys={}", cfg != null ? cfg.keySet() : java.util.Collections.emptySet());
