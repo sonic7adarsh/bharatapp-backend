@@ -607,98 +607,6 @@
             "url": "http://localhost:8081/api/seller/orders/{{SELLER_ORDER_ID}}/refunds",
             "body": { "mode": "raw", "raw": "{\"amount\":100,\"reason\":\"Customer returned item\"}" }
           }
-        },
-        {
-          "name": "Analytics Overview",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "local" }
-            ],
-            "url": "http://localhost:8081/api/seller/analytics/overview?storeId={{STORE_ID}}&from=&to="
-          }
-        },
-        {
-          "name": "Payouts",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "local" }
-            ],
-            "url": "http://localhost:8081/api/seller/payouts"
-          }
-        },
-        {
-          "name": "Payout Config",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "local" }
-            ],
-            "url": "http://localhost:8081/api/seller/payouts/config"
-          }
-        },
-        {
-          "name": "Bookings List",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "local" }
-            ],
-            "url": "http://localhost:8081/api/seller/bookings?storeId={{STORE_ID}}&status=&from=&to="
-          }
-        },
-        {
-          "name": "Post Announcement",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "local" }
-            ],
-            "url": "http://localhost:8081/api/seller/announcements",
-            "body": { "mode": "raw", "raw": "{\"storeId\":\"{{STORE_ID}}\",\"message\":\"Festival sale - 20% off till Sunday\"}" }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Platform",
-      "item": [
-        {
-          "name": "List Platform Products",
-          "request": { "method": "GET", "url": "http://localhost:8081/api/platform/products?search=&category=" }
-        },
-        {
-          "name": "Create Platform Product",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" }
-            ],
-            "url": "http://localhost:8081/api/platform/products",
-            "body": { "mode": "raw", "raw": "{\"name\":\"Platform Item\",\"price\":299,\"description\":\"Desc\",\"category\":\"General\",\"storeId\":\"{{STORE_ID}}\"}" }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "try {",
-                  "  const json = pm.response.json();",
-                  "  if (json && json.id) pm.collectionVariables.set('PLATFORM_PRODUCT_ID', json.id);",
-                  "} catch(e) { }"
-                ]
-              }
-            }
-          ]
         }
       ]
     }
@@ -746,7 +654,6 @@
     { "key": "STORE_ID", "value": "" },
     { "key": "SELLER_PRODUCT_ID", "value": "" },
     { "key": "SELLER_ORDER_ID", "value": "" },
-    { "key": "PLATFORM_PRODUCT_ID", "value": "" },
     { "key": "OTP_ID", "value": "" },
     { "key": "OTP", "value": "" }
   ]

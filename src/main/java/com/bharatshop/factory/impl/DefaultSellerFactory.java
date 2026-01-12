@@ -4,26 +4,22 @@ import com.bharatshop.domain.Order;
 import com.bharatshop.domain.Product;
 import com.bharatshop.domain.Store;
 import com.bharatshop.factory.SellerFactory;
-import com.bharatshop.factory.ops.SellerAnnouncementOps;
-import com.bharatshop.factory.ops.SellerAnalyticsOps;
-import com.bharatshop.factory.ops.SellerBookingOps;
 import com.bharatshop.factory.ops.SellerOrderOps;
 import com.bharatshop.factory.ops.SellerProductOps;
-import com.bharatshop.factory.ops.SellerPayoutOps;
 import com.bharatshop.factory.ops.SellerStoreOps;
 import com.bharatshop.repository.OrderItemRepository;
 import com.bharatshop.repository.OrderRepository;
-import com.bharatshop.repository.BookingRepository;
 import com.bharatshop.repository.ProductRepository;
 import com.bharatshop.repository.StoreRepository;
 import com.bharatshop.service.OrderService;
 import com.bharatshop.service.ProductService;
 import com.bharatshop.service.StoreService;
+import com.bharatshop.service.InventoryService;
+import com.bharatshop.service.NotificationService;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Component
@@ -34,12 +30,10 @@ public class DefaultSellerFactory implements SellerFactory {
     private final OrderService orderService;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final BookingRepository bookingRepository;
     private final StoreService storeService;
     private final StoreRepository storeRepository;
-
-    private final List<Map<String, Object>> payoutStubs = new CopyOnWriteArrayList<>();
-    private Map<String, Object> payoutConfig = new HashMap<>();
+    private final InventoryService inventoryService;
+    private final NotificationService notificationService;
 
     public DefaultSellerFactory(ProductService productService,
                                 ProductRepository productRepository,
@@ -48,7 +42,8 @@ public class DefaultSellerFactory implements SellerFactory {
                                 OrderItemRepository orderItemRepository,
                                 StoreService storeService,
                                 StoreRepository storeRepository,
-                                BookingRepository bookingRepository) {
+                                InventoryService inventoryService,
+                                NotificationService notificationService) {
         this.productService = productService;
         this.productRepository = productRepository;
         this.orderService = orderService;
@@ -56,8 +51,8 @@ public class DefaultSellerFactory implements SellerFactory {
         this.orderItemRepository = orderItemRepository;
         this.storeService = storeService;
         this.storeRepository = storeRepository;
-        this.bookingRepository = bookingRepository;
-        this.payoutConfig = new HashMap<>();
+        this.inventoryService = inventoryService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -140,6 +135,19 @@ public class DefaultSellerFactory implements SellerFactory {
                             e.setCancellationReason("auto_cancelled_no_response");
                         }
                         orderRepository.save(e);
+                        // Release reserved inventory on auto-cancel
+                        String tenantId = e.getTenantId();
+                        List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
+                        for (com.bharatshop.entity.OrderItemEntity oi : items) {
+                            if (oi.getProductId() != null) {
+                                inventoryService.release(tenantId, oi.getProductId(), oi.getQuantity());
+                            }
+                        }
+                        // Notify buyer about auto-cancel
+                        try {
+                            notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
+                                    Map.of("reason", "auto_cancelled_no_response"));
+                        } catch (Exception ex) { }
                     }
                 }
                 Instant fromTs = parseDayStart(from);
@@ -179,6 +187,19 @@ public class DefaultSellerFactory implements SellerFactory {
                                     e.setCancellationReason("auto_cancelled_no_response");
                                 }
                                 orderRepository.save(e);
+                                // Release reserved inventory on auto-cancel
+                                String tenantId = e.getTenantId();
+                                List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
+                                for (com.bharatshop.entity.OrderItemEntity oi : items) {
+                                    if (oi.getProductId() != null) {
+                                        inventoryService.release(tenantId, oi.getProductId(), oi.getQuantity());
+                                    }
+                                }
+                                // Notify buyer
+                                try {
+                                    notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
+                                            Map.of("reason", "auto_cancelled_no_response"));
+                                } catch (Exception ex) { }
                             }
                             return DefaultSellerFactory.this.toDto(e);
                         })
@@ -188,10 +209,71 @@ public class DefaultSellerFactory implements SellerFactory {
             @Override
             public Order updateStatus(String orderId, String status, String notes) {
                 return orderRepository.findById(orderId).map(entity -> {
-                    entity.setStatus(status);
-                    orderRepository.save(entity);
+                    String cur = entity.getStatus() != null ? entity.getStatus().toLowerCase() : "";
+                    String desired = status != null ? status.toLowerCase() : "";
+
+                    boolean valid = true;
+                    switch (desired) {
+                        case "accepted":
+                            valid = "placed".equals(cur);
+                            if (valid) { entity.setSellerAcceptedAt(java.time.Instant.now()); }
+                            break;
+                        case "ready":
+                            valid = "accepted".equals(cur);
+                            break;
+                        case "shipped":
+                            valid = "ready".equals(cur);
+                            break;
+                        case "delivered":
+                            valid = "shipped".equals(cur);
+                            break;
+                        case "rejected":
+                        case "cancelled":
+                            valid = true;
+                            entity.setCancelledAt(java.time.Instant.now());
+                            if (notes != null && !notes.isBlank()) entity.setCancellationReason(notes);
+                            break;
+                        default:
+                            valid = true; // allow other statuses for backward compatibility
+                    }
+
+                    if (valid) {
+                        entity.setStatus(status);
+                        orderRepository.save(entity);
+                        // Release inventory when cancelled or rejected
+                        if ("cancelled".equalsIgnoreCase(desired) || "rejected".equalsIgnoreCase(desired)) {
+                            String tenantId = entity.getTenantId();
+                            List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(entity.getId());
+                            for (com.bharatshop.entity.OrderItemEntity oi : items) {
+                                if (oi.getProductId() != null) {
+                                    inventoryService.release(tenantId, oi.getProductId(), oi.getQuantity());
+                                }
+                            }
+                        }
+                        // Notify buyer on status change
+                        try {
+                            notificationService.sendOrderNotification(entity.getTenantId(), entity.getUserId(), entity.getId(), status.toUpperCase(),
+                                    notes != null ? Map.of("notes", notes) : null);
+                        } catch (Exception ex) { }
+                    }
                     return DefaultSellerFactory.this.toDto(entity);
                 }).orElse(null);
+            }
+
+            @Override
+            public Order updateItemStatus(String orderId, String itemId, String status) {
+                var orderOpt = orderRepository.findById(orderId);
+                if (orderOpt.isEmpty()) return null;
+                List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(orderId);
+                com.bharatshop.entity.OrderItemEntity target = null;
+                for (com.bharatshop.entity.OrderItemEntity it : items) {
+                    if (it.getId().equals(itemId)) { target = it; break; }
+                }
+                if (target == null) return null;
+                target.setStatus(status);
+                target.setUpdatedAt(java.time.Instant.now());
+                orderItemRepository.save(target);
+                return DefaultSellerFactory.this.toDto(orderOpt.get());
             }
 
             @Override
@@ -206,90 +288,9 @@ public class DefaultSellerFactory implements SellerFactory {
         };
     }
 
-    @Override
-    public SellerBookingOps bookings() {
-        return new SellerBookingOps() {
-            @Override
-            public List<Order> listBookings(String storeId, String status, String from, String to) {
-                List<com.bharatshop.entity.BookingEntity> entities = bookingRepository.findAll();
-                Instant fromTs = parseDayStart(from);
-                Instant toTs = parseDayStart(to);
-                if (storeId != null && !storeId.isBlank()) {
-                    String sId = storeId;
-                    entities = entities.stream().filter(b -> sId.equals(b.getStoreId())).collect(Collectors.toList());
-                }
-                if (status != null && !status.isBlank()) {
-                    String s = status.toLowerCase();
-                    entities = entities.stream().filter(b -> b.getStatus() != null && b.getStatus().equalsIgnoreCase(s)).collect(Collectors.toList());
-                }
-                if (fromTs != null) {
-                    Instant f = fromTs;
-                    entities = entities.stream().filter(b -> b.getCreatedAt() != null && !b.getCreatedAt().isBefore(f)).collect(Collectors.toList());
-                }
-                if (toTs != null) {
-                    Instant t = toTs;
-                    entities = entities.stream().filter(b -> b.getCreatedAt() != null && !b.getCreatedAt().isAfter(t)).collect(Collectors.toList());
-                }
-                entities.sort(Comparator.comparing(com.bharatshop.entity.BookingEntity::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
-                return entities.stream().map(DefaultSellerFactory.this::toDtoFromBooking).collect(Collectors.toList());
-            }
 
-            @Override
-            public Order updateStatus(String bookingId, String status, String notes) {
-                return bookingRepository.findById(bookingId).map(entity -> {
-                    entity.setStatus(status);
-                    if (notes != null && !notes.isBlank()) entity.setNotes(notes);
-                    bookingRepository.save(entity);
-                    return DefaultSellerFactory.this.toDtoFromBooking(entity);
-                }).orElse(null);
-            }
-        };
-    }
 
-    @Override
-    public SellerAnalyticsOps analytics() {
-        return new SellerAnalyticsOps() {
-            @Override
-            public Map<String, Object> overview(String storeId, String from, String to) {
-                Instant fromTs = parseDayStart(from);
-                Instant toTs = parseDayStart(to);
-                List<com.bharatshop.entity.OrderEntity> entities = orderRepository.findAll();
-                if (fromTs != null) {
-                    Instant f = fromTs;
-                    entities = entities.stream().filter(o -> o.getCreatedAt() != null && !o.getCreatedAt().isBefore(f)).collect(Collectors.toList());
-                }
-                if (toTs != null) {
-                    Instant t = toTs;
-                    entities = entities.stream().filter(o -> o.getCreatedAt() != null && !o.getCreatedAt().isAfter(t)).collect(Collectors.toList());
-                }
 
-                int ordersCount = entities.size();
-                double revenue = entities.stream().map(com.bharatshop.entity.OrderEntity::getTotal).filter(Objects::nonNull).mapToDouble(Double::doubleValue).sum();
-
-                Map<String, Integer> productCounts = new HashMap<>();
-                for (com.bharatshop.entity.OrderEntity e : entities) {
-                    for (com.bharatshop.entity.OrderItemEntity oi : orderItemRepository.findByOrderId(e.getId())) {
-                        productCounts.merge(oi.getName(), oi.getQuantity(), Integer::sum);
-                    }
-                }
-                List<Map<String, Object>> topProducts = productCounts.entrySet().stream()
-                        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                        .limit(5)
-                        .map(en -> {
-                            Map<String, Object> m = new LinkedHashMap<>();
-                            m.put("name", en.getKey());
-                            m.put("count", en.getValue());
-                            return m;
-                        }).collect(Collectors.toList());
-
-                Map<String, Object> overview = new LinkedHashMap<>();
-                overview.put("orders", ordersCount);
-                overview.put("revenue", revenue);
-                overview.put("topProducts", topProducts);
-                return overview;
-            }
-        };
-    }
 
     @Override
     public SellerStoreOps stores() {
@@ -378,94 +379,9 @@ public class DefaultSellerFactory implements SellerFactory {
         };
     }
 
-    @Override
-    public SellerPayoutOps payouts() {
-        return new SellerPayoutOps() {
-            @Override
-            public List<Map<String, Object>> list() {
-                return payoutStubs;
-            }
 
-            @Override
-            public Map<String, Object> request(double amount) {
-                Map<String, Object> req = new HashMap<>();
-                req.put("id", UUID.randomUUID().toString());
-                req.put("amount", amount);
-                req.put("status", "pending");
-                req.put("requestedAt", Instant.now().toString());
-                payoutStubs.add(req);
-                return req;
-            }
 
-            @Override
-            public Map<String, Object> getConfig() {
-                return payoutConfig;
-            }
 
-            @Override
-            public Map<String, Object> updateConfig(Map<String, Object> body) {
-                payoutConfig.putAll(body);
-                return payoutConfig;
-            }
-        };
-    }
-
-    @Override
-    public SellerAnnouncementOps announcements() {
-        return new SellerAnnouncementOps() {
-            private final List<Map<String, Object>> announcements = new CopyOnWriteArrayList<>();
-
-            @Override
-            public Map<String, Object> post(String storeId, String message, String activeUntil) {
-                Map<String, Object> ann = new HashMap<>();
-                ann.put("id", UUID.randomUUID().toString());
-                ann.put("storeId", storeId);
-                ann.put("message", message);
-                ann.put("activeUntil", activeUntil);
-                ann.put("createdAt", Instant.now().toString());
-                announcements.add(ann);
-                return ann;
-            }
-        };
-    }
-
-    private Instant parseDayStart(String d) {
-        if (d == null || d.isBlank()) return null;
-        try { return java.time.LocalDate.parse(d).atStartOfDay().toInstant(java.time.ZoneOffset.UTC); }
-        catch (java.time.format.DateTimeParseException ex) { return null; }
-    }
-
-    private Order toDtoFromBooking(com.bharatshop.entity.BookingEntity e) {
-        Order o = new Order();
-        o.setId(e.getId());
-        o.setReference(e.getReference());
-        o.setStatus(e.getStatus());
-        o.setTotal(e.getTotal());
-        o.setPaymentMethod(e.getPaymentMethod());
-        o.setType("room_booking");
-        o.setCreatedAt(e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
-        o.setSellerResponseDeadline(e.getSellerResponseDeadline() != null ? e.getSellerResponseDeadline().toString() : null);
-        o.setSellerAcceptedAt(e.getSellerAcceptedAt() != null ? e.getSellerAcceptedAt().toString() : null);
-        o.setCancelledAt(e.getCancelledAt() != null ? e.getCancelledAt().toString() : null);
-        o.setCancellationReason(e.getCancellationReason());
-        o.setStoreId(e.getStoreId());
-        o.setNotes(e.getNotes());
-        com.bharatshop.domain.BookingDetails b = new com.bharatshop.domain.BookingDetails();
-        b.setCheckIn(e.getCheckIn());
-        b.setCheckOut(e.getCheckOut());
-        b.setGuests(e.getGuests() != null ? e.getGuests() : 0);
-        b.setNights(e.getNights() != null ? e.getNights() : 0);
-        b.setRooms(e.getRooms());
-        b.setPerRoomMax(e.getPerRoomMax());
-        b.setExtraMattressAllowed(e.getExtraMattressAllowed());
-        b.setExtraMattressCount(e.getExtraMattressCount());
-        b.setMattressFeePerNight(e.getMattressFeePerNight());
-        o.setBooking(b);
-        Order.Totals t = new Order.Totals();
-        t.payable = e.getTotal();
-        o.setTotals(t);
-        return o;
-    }
 
     private Order toDto(com.bharatshop.entity.OrderEntity e) {
         Order o = new Order();
@@ -493,6 +409,7 @@ public class DefaultSellerFactory implements SellerFactory {
             ci.setPrice(oi.getPrice());
             ci.setQuantity(oi.getQuantity());
             ci.setRequiresPrescription(oi.getRequiresPrescription());
+            ci.setStatus(oi.getStatus());
             return ci;
         }).collect(Collectors.toList());
         o.setItems(cartItems);

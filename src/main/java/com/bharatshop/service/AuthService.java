@@ -17,18 +17,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
-    private final NotificationService notificationService;
+    private final UserRoleService userRoleService;
     private final Map<String, Session> sessionsByToken = new ConcurrentHashMap<>();
     private final Map<String, OtpInfo> otpsByPhone = new ConcurrentHashMap<>();
     private final com.bharatshop.security.JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(UserRepository userRepository,
-                       NotificationService notificationService,
+                       UserRoleService userRoleService,
                        com.bharatshop.security.JwtService jwtService,
                        PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.notificationService = notificationService;
+        this.userRoleService = userRoleService;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -55,6 +55,10 @@ public class AuthService {
         entity.setRole("USER");
         entity.setPassword(passwordEncoder.encode(password));
         userRepository.save(entity);
+        
+        // Initialize multi-role system
+        userRoleService.initializeCustomerRole(entity.getId());
+        
         var session = createSession(fromEntity(entity));
         log.info("User registered: id={}, token={}", entity.getId(), session.token());
         return session;
@@ -74,6 +78,12 @@ public class AuthService {
         entity.setRole("SELLER");
         entity.setPassword(passwordEncoder.encode(password));
         userRepository.save(entity);
+        
+        // Initialize multi-role system with SELLER role
+        userRoleService.addRoleToUser(entity.getId(), "CUSTOMER");
+        userRoleService.addRoleToUser(entity.getId(), "SELLER");
+        userRoleService.switchUserRole(entity.getId(), "SELLER"); // Make SELLER active
+        
         var session = createSession(fromEntity(entity));
         log.info("Seller registered: id={}, token={}", entity.getId(), session.token());
         return session;
@@ -202,11 +212,6 @@ public class AuthService {
         info.expiresAt = System.currentTimeMillis() + 120_000L;
         otpsByPhone.put(phone, info);
         log.info("OTP generated: otpId={} expiresAt={}", info.otpId, info.expiresAt);
-        // Send notifications
-        String smsMessage = "Your Bharatshop OTP is " + info.otp + ". Valid for 2 minutes.";
-        notificationService.sendSms(phone, smsMessage);
-        userRepository.findByPhone(phone).map(UserEntity::getEmail).filter(e -> e != null && !e.isBlank())
-                .ifPresent(email -> notificationService.sendEmail(email, "Your Bharatshop OTP", smsMessage));
         // Note: For now, we expose the OTP in the response to facilitate testing.
         // Replace this with SMS integration and remove the 'otp' field in production.
         return Map.of("success", true, "otpId", info.otpId, "ttlSeconds", 120, "otp", info.otp);
@@ -243,11 +248,6 @@ public class AuthService {
         }
         info.expiresAt = System.currentTimeMillis() + 120_000L;
         otpsByPhone.put(phone, info);
-        // Re-send notifications
-        String smsMessage = "Your Bharatshop OTP is " + info.otp + ". Valid for 2 minutes.";
-        notificationService.sendSms(phone, smsMessage);
-        userRepository.findByPhone(phone).map(UserEntity::getEmail).filter(e -> e != null && !e.isBlank())
-                .ifPresent(email -> notificationService.sendEmail(email, "Your Bharatshop OTP", smsMessage));
         // Log OTP details server-side for testing convenience
         log.info("OTP resend: phone={} otpId={} otp={} ttlSeconds={}", phone, info.otpId, info.otp, 120);
         // Include OTP in response for test environments; remove in production if needed
@@ -278,7 +278,11 @@ public class AuthService {
     private Session createSession(User user) {
         String token;
         if (jwtService.isEnabled()) {
-            token = jwtService.generateToken(user.getId(), user.getName(), user.getRole());
+            // For now, we'll use the role as tenantId until we get tenant context
+            // and activeRole will be the same as role for backward compatibility
+            token = jwtService.generateToken(user.getId(), user.getName(), user.getRole(), 
+                                           user.getTenantId() != null ? user.getTenantId() : "default", 
+                                           user.getRole());
         } else {
             token = UUID.randomUUID().toString();
             sessionsByToken.put(token, new Session(token, user.getId(), user.getName(), user.getRole()));
@@ -299,7 +303,7 @@ public class AuthService {
     }
 
     private User fromEntity(UserEntity e) {
-        return new User(e.getId(), e.getName(), e.getEmail(), e.getPhone(), normalizeRole(e.getRole()));
+        return new User(e.getId(), e.getName(), e.getEmail(), e.getPhone(), normalizeRole(e.getRole()), e.getTenantId());
     }
 
     /**

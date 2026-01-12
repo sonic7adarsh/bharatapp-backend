@@ -73,17 +73,3 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui
-
-notifications:
-  provider: log # set 'twilio' or 'msg91' when credentials are set
-  msg91:
-    apiKey: ${MSG91_AUTH_KEY:}
-    templateId: ${MSG91_TEMPLATE_ID:}
-    senderId: ${MSG91_SENDER_ID:}
-  twilio:
-    accountSid: ${TWILIO_ACCOUNT_SID:}
-    authToken: ${TWILIO_AUTH_TOKEN:}
-    fromNumber: ${TWILIO_FROM_NUMBER:}
-    messagingServiceSid: ${TWILIO_MESSAGING_SERVICE_SID:}
-  email:
-    from: ${MAIL_FROM:${MAIL_USERNAME:}}

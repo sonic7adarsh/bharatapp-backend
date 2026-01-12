@@ -14,9 +14,7 @@ public class Order {
     private Address address;
     private String deliverySlot;
     private String deliveryInstructions;
-    private String promo;
-    private String type; // order|room_booking
-    private BookingDetails booking;
+
     private String createdAt;
     private String sellerResponseDeadline;
     private String sellerAcceptedAt;
@@ -47,12 +45,7 @@ public class Order {
     public void setDeliverySlot(String deliverySlot) { this.deliverySlot = deliverySlot; }
     public String getDeliveryInstructions() { return deliveryInstructions; }
     public void setDeliveryInstructions(String deliveryInstructions) { this.deliveryInstructions = deliveryInstructions; }
-    public String getPromo() { return promo; }
-    public void setPromo(String promo) { this.promo = promo; }
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-    public BookingDetails getBooking() { return booking; }
-    public void setBooking(BookingDetails booking) { this.booking = booking; }
+
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
     public String getSellerResponseDeadline() { return sellerResponseDeadline; }
@@ -70,7 +63,6 @@ public class Order {
 
     public static class Totals {
         public Double subtotal;
-        public Double discount;
         public Double deliveryFee;
         public Double tax;
         public Double tip;

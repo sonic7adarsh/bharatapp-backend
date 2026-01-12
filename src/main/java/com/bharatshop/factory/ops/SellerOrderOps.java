@@ -7,5 +7,6 @@ public interface SellerOrderOps {
     List<Order> list(String storeId, String status, String from, String to, Integer page, Integer limit);
     Order get(String orderId);
     Order updateStatus(String orderId, String status, String notes);
+    Order updateItemStatus(String orderId, String itemId, String status);
     java.util.Map<String, Object> refund(String orderId, Double amount, String reason);
 }

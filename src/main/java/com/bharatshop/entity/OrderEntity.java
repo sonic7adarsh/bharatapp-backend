@@ -9,6 +9,7 @@ import java.util.List;
 public class OrderEntity {
     @Id
     private String id;
+    private String tenantId;
     private String reference;
     private String userId;
     private String status;
@@ -41,6 +42,8 @@ public class OrderEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getReference() { return reference; }
     public void setReference(String reference) { this.reference = reference; }
     public String getUserId() { return userId; }

@@ -41,7 +41,6 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(
                                 "/api/storefront/orders",
-                                "/api/storefront/bookings",
                                 "/api/storefront/checkout",
                                 "/api/storefront/payments/**"
                         ).authenticated()

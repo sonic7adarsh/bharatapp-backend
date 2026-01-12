@@ -70,31 +70,29 @@ public class StoreLegacyController {
         if (up == null) throw new UnauthorizedException("Unauthorized");
         log.info("Legacy checkout: tenant={} userId={} items={} paymentMethod={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId(),
                 req.getItems() != null ? req.getItems().size() : 0, req.getPaymentMethod());
-        // Enforce store availability
+        // Enforce store availability including zone serviceability (lat/lng) and inventory
         if (req.getStoreId() != null && !req.getStoreId().isBlank()) {
             com.bharatshop.domain.Store store = factory(tenant).stores().get(req.getStoreId());
             if (store == null) throw new BadRequestException("Invalid storeId");
-            java.util.Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store);
+
+            Double deliveryLat = req.getDeliveryLat();
+            Double deliveryLng = req.getDeliveryLng();
+            if (req.getAddress() != null && (deliveryLat == null || deliveryLng == null)) {
+                throw new com.bharatshop.error.ApiException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "delivery coordinates (lat,lng) are required", Map.of());
+            }
+
+            java.util.Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store, req.getItems(), deliveryLat, deliveryLng);
             if (availabilityError != null) {
                 String code = String.valueOf(availabilityError.getOrDefault("code", "CONFLICT"));
                 String message = String.valueOf(availabilityError.getOrDefault("message", "Conflict"));
                 throw new com.bharatshop.error.ApiException(HttpStatus.CONFLICT, code, message, availabilityError);
             }
         }
-        Order order;
-        String type = req.getType() == null ? "order" : req.getType();
-        if ("room_booking".equalsIgnoreCase(type)) {
-            order = factory(tenant).orders()
-                    .placeBooking(up.getUserId(), req.getBooking(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), req.getStoreId(), req.getNotes());
-        } else {
-            order = factory(tenant).orders()
-                    .placeOrder(up.getUserId(), req.getItems(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), req.getType(), req.getStoreId(), req.getNotes());
-        }
+        Order order = factory(tenant).orders()
+                .placeOrder(up.getUserId(), req.getItems(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), "order", req.getStoreId(), req.getNotes());
         order.setAddress(req.getAddress());
         order.setDeliverySlot(req.getDeliverySlot());
         order.setDeliveryInstructions(req.getDeliveryInstructions());
-        order.setPromo(req.getPromo());
-        order.setBooking(req.getBooking());
         log.info("Legacy checkout success: orderId={} reference={} userId={}", order.getId(), order.getReference(), up.getUserId());
         return ResponseEntity.ok(Map.of("order", order, "reference", order.getReference()));
     }

@@ -39,42 +39,48 @@ public class OrdersController {
         if (up == null) throw new UnauthorizedException("Unauthorized");
         String tenant = TenantContext.getTenant();
         log.info("Order detail: tenant={} userId={} id={}", tenant, up.getUserId(), id);
-        List<Order> orders = factoryProvider.getFactory().orders().listOrders(up.getUserId());
-        Order match = null;
-        if (orders != null) {
-            for (Order o : orders) {
-                if (id.equals(o.getId())) { match = o; break; }
+        
+        // Use tenant-scoped order lookup if tenant is available
+        if (tenant != null) {
+            // Try to find order directly with tenant scoping
+            // This would require a new method in OrderService - for now use existing approach
+            List<Order> orders = factoryProvider.getFactory().orders().listOrders(up.getUserId());
+            Order match = null;
+            if (orders != null) {
+                for (Order o : orders) {
+                    if (id.equals(o.getId())) { match = o; break; }
+                }
             }
+            if (match == null) throw new NotFoundException("Order not found");
+            log.info("Order detail success: id={} status={}", match.getId(), match.getStatus());
+            return ResponseEntity.ok(match);
+        } else {
+            // Fallback to existing behavior
+            List<Order> orders = factoryProvider.getFactory().orders().listOrders(up.getUserId());
+            Order match = null;
+            if (orders != null) {
+                for (Order o : orders) {
+                    if (id.equals(o.getId())) { match = o; break; }
+                }
+            }
+            if (match == null) throw new NotFoundException("Order not found");
+            log.info("Order detail success: id={} status={}", match.getId(), match.getStatus());
+            return ResponseEntity.ok(match);
         }
-        if (match == null) throw new NotFoundException("Order not found");
-        log.info("Order detail success: id={} status={}", match.getId(), match.getStatus());
-        return ResponseEntity.ok(match);
     }
 
-    @GetMapping("/bookings")
-    public ResponseEntity<?> bookings() {
+
+
+    @PostMapping("/orders/{orderId}/cancel")
+    public ResponseEntity<?> cancelOrder(@PathVariable String orderId,
+                                         @RequestBody(required = false) Map<String, Object> body) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) throw new UnauthorizedException("Unauthorized");
         String tenant = TenantContext.getTenant();
-        log.info("List bookings: tenant={} userId={}", tenant, up.getUserId());
-        return ResponseEntity.ok(factoryProvider.getFactory().orders().listBookings(up.getUserId()));
-    }
-
-    @GetMapping("/bookings/{id}")
-    public ResponseEntity<?> bookingDetail(@PathVariable String id) {
-        UserPrincipal up = UserPrincipal.current();
-        if (up == null) throw new UnauthorizedException("Unauthorized");
-        String tenant = TenantContext.getTenant();
-        log.info("Booking detail: tenant={} userId={} id={}", tenant, up.getUserId(), id);
-        List<Order> bookings = factoryProvider.getFactory().orders().listBookings(up.getUserId());
-        Order match = null;
-        if (bookings != null) {
-            for (Order o : bookings) {
-                if (id.equals(o.getId())) { match = o; break; }
-            }
-        }
-        if (match == null) throw new NotFoundException("Booking not found");
-        log.info("Booking detail success: id={} status={}", match.getId(), match.getStatus());
-        return ResponseEntity.ok(match);
+        String reason = body != null ? (String) body.getOrDefault("reason", null) : null;
+        log.info("Buyer cancel order: tenant={} userId={} orderId={} reason={}", tenant, up.getUserId(), orderId, reason);
+        Order o = factoryProvider.getFactory().orders().cancelOrder(up.getUserId(), orderId, reason);
+        if (o == null) throw new NotFoundException("Order not found");
+        return ResponseEntity.ok(Map.of("status", o.getStatus(), "reason", o.getCancellationReason()));
     }
 }

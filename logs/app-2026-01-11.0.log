@@ -1,0 +1,434 @@
+2026-01-11 07:30:19.618 [31mWARN [0;39m [] [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=10h22m53s361ms131µs200ns).
+2026-01-11 21:17:58.475 [31mWARN [0;39m [] [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=13h47m43s199ms335µs800ns).
+2026-01-11 22:33:18.735 [34mINFO [0;39m [dc1f4b32-3df7-43b4-94bd-7ca29b260317] [http-nio-8080-exec-9] c.b.config.logging.HttpLoggingFilter - GET /api/storefront/checkout/config -> 400 (4 ms)
+2026-01-11 22:33:18.735 [34mINFO [0;39m [dc1f4b32-3df7-43b4-94bd-7ca29b260317] [http-nio-8080-exec-9] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 22:33:18.735 [34mINFO [0;39m [dc1f4b32-3df7-43b4-94bd-7ca29b260317] [http-nio-8080-exec-9] c.b.config.logging.HttpLoggingFilter - Response payload: {"code":"VALIDATION_ERROR","message":"Missing X-Tenant-Domain header","details":{"header":"X-Tenant-Domain"}}
+2026-01-11 22:33:31.583 [39mDEBUG[0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontConfigController.checkoutConfig(..) args=[test.com]
+2026-01-11 22:33:31.583 [34mINFO [0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.web.StorefrontConfigController - Checkout config requested: tenant=test.com
+2026-01-11 22:33:31.597 [34mINFO [0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontConfigController.checkoutConfig(..) -> status=200 (16 ms)
+2026-01-11 22:33:31.597 [39mDEBUG[0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontConfigController.checkoutConfig(..) => ResponseEntity(status=200)
+2026-01-11 22:33:31.687 [34mINFO [0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.config.logging.HttpLoggingFilter - GET /api/storefront/checkout/config -> 200 (129 ms)
+2026-01-11 22:33:31.687 [34mINFO [0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 22:33:31.687 [34mINFO [0;39m [f331899f-643a-4ed7-b95b-fe0897f016fc] [http-nio-8080-exec-10] c.b.config.logging.HttpLoggingFilter - Response payload: {"tips":{"enabled":false,"ranges":["10","20","50"]},"deliverySlots":{"enabled":true,"start":"08:00","end":"20:00","slotLengthMin":30},"prescriptionFlow":{"categories":["pharmacy"],"enabled":false},"addressFields":{"required":["name","phone","line1","pincode"]}}
+2026-01-11 22:33:58.009 [31mWARN [0;39m [df6d765c-d767-470f-b364-1e1bbd57f66e] [http-nio-8080-exec-2] o.s.b.a.mail.MailHealthIndicator - Mail health check failed
+jakarta.mail.AuthenticationFailedException: failed to connect, no password specified?
+	at jakarta.mail.Service.connect(Service.java:379)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.connectTransport(JavaMailSenderImpl.java:480)
+	at org.springframework.mail.javamail.JavaMailSenderImpl.testConnection(JavaMailSenderImpl.java:360)
+	at org.springframework.boot.actuate.mail.MailHealthIndicator.doHealthCheck(MailHealthIndicator.java:52)
+	at org.springframework.boot.actuate.health.AbstractHealthIndicator.health(AbstractHealthIndicator.java:82)
+	at org.springframework.boot.actuate.health.HealthIndicator.getHealth(HealthIndicator.java:37)
+	at org.springframework.boot.actuate.health.HealthEndpointWebExtension.getHealth(HealthEndpointWebExtension.java:94)
+	at org.springframework.boot.actuate.health.HealthEndpointWebExtension.getHealth(HealthEndpointWebExtension.java:47)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getLoggedHealth(HealthEndpointSupport.java:172)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:145)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getAggregateContribution(HealthEndpointSupport.java:156)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getContribution(HealthEndpointSupport.java:141)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:110)
+	at org.springframework.boot.actuate.health.HealthEndpointSupport.getHealth(HealthEndpointSupport.java:81)
+	at org.springframework.boot.actuate.health.HealthEndpointWebExtension.health(HealthEndpointWebExtension.java:80)
+	at org.springframework.boot.actuate.health.HealthEndpointWebExtension.health(HealthEndpointWebExtension.java:69)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:281)
+	at org.springframework.boot.actuate.endpoint.invoke.reflect.ReflectiveOperationInvoker.invoke(ReflectiveOperationInvoker.java:74)
+	at org.springframework.boot.actuate.endpoint.annotation.AbstractDiscoveredOperation.invoke(AbstractDiscoveredOperation.java:60)
+	at org.springframework.boot.actuate.endpoint.web.servlet.AbstractWebMvcEndpointHandlerMapping$ServletWebOperationAdapter.handle(AbstractWebMvcEndpointHandlerMapping.java:327)
+	at org.springframework.boot.actuate.endpoint.web.servlet.AbstractWebMvcEndpointHandlerMapping$OperationHandler.handle(AbstractWebMvcEndpointHandlerMapping.java:434)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:188)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:926)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:831)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at com.bharatshop.config.TenantFilter.doFilterInternal(TenantFilter.java:35)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at com.bharatshop.config.IdempotencyFilter.doFilterInternal(IdempotencyFilter.java:54)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at com.bharatshop.config.logging.HttpLoggingFilter.doFilterInternal(HttpLoggingFilter.java:32)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at com.bharatshop.config.logging.CorrelationIdFilter.doFilterInternal(CorrelationIdFilter.java:29)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:108)
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:231)
+	at org.springframework.security.web.ObservationFilterChainDecorator$FilterObservation$SimpleFilterObservation.lambda$wrap$1(ObservationFilterChainDecorator.java:479)
+	at org.springframework.security.web.ObservationFilterChainDecorator$AroundFilterObservation$SimpleAroundFilterObservation.lambda$wrap$1(ObservationFilterChainDecorator.java:340)
+	at org.springframework.security.web.ObservationFilterChainDecorator.lambda$wrapSecured$0(ObservationFilterChainDecorator.java:82)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:128)
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:100)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126)
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at com.bharatshop.security.TokenAuthFilter.doFilterInternal(TokenAuthFilter.java:47)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107)
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90)
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82)
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240)
+	at org.springframework.security.web.ObservationFilterChainDecorator$AroundFilterObservation$SimpleAroundFilterObservation.lambda$wrap$0(ObservationFilterChainDecorator.java:323)
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:224)
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137)
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233)
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191)
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113)
+	at org.springframework.web.servlet.handler.HandlerMappingIntrospector.lambda$createCacheFilter$3(HandlerMappingIntrospector.java:195)
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113)
+	at org.springframework.web.filter.CompositeFilter.doFilter(CompositeFilter.java:74)
+	at org.springframework.security.config.annotation.web.configuration.WebMvcSecurityConfiguration$CompositeFilterChainProxy.doFilter(WebMvcSecurityConfiguration.java:230)
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:352)
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:268)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:113)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:663)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:384)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:905)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1741)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1190)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+2026-01-11 22:33:58.098 [34mINFO [0;39m [df6d765c-d767-470f-b364-1e1bbd57f66e] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - GET /actuator/health -> 503 (649 ms)
+2026-01-11 22:33:58.098 [34mINFO [0;39m [df6d765c-d767-470f-b364-1e1bbd57f66e] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 22:33:58.101 [34mINFO [0;39m [df6d765c-d767-470f-b364-1e1bbd57f66e] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - Response payload: {"status":"DOWN","components":{"db":{"status":"UP","details":{"database":"H2","validationQuery":"isValid()"}},"diskSpace":{"status":"UP","details":{"total":511023509504,"free":153730330624,"threshold":10485760,"path":"C:\\Users\\Adarsh\\Downloads\\bharatshop-backend\\.","exists":true}},"mail":{"status":"DOWN","details":{"location":":587","error":"jakarta.mail.AuthenticationFailedException: failed to connect, no password specified?"}},"ping":{"status":"UP"}}}
+2026-01-11 22:34:08.895 [39mDEBUG[0;39m [f5e5efe0-bb85-4e7f-b932-9f2c9a3c8c43] [http-nio-8080-exec-3] c.b.c.logging.MethodLoggingAspect - Controller enter: ZoneController.list(..) args=[null]
+2026-01-11 22:34:09.041 [34mINFO [0;39m [f5e5efe0-bb85-4e7f-b932-9f2c9a3c8c43] [http-nio-8080-exec-3] c.b.c.logging.MethodLoggingAspect - Controller exit: ZoneController.list(..) -> status=200 (146 ms)
+2026-01-11 22:34:09.041 [39mDEBUG[0;39m [f5e5efe0-bb85-4e7f-b932-9f2c9a3c8c43] [http-nio-8080-exec-3] c.b.c.logging.MethodLoggingAspect - Controller result: ZoneController.list(..) => ResponseEntity(status=200)
+2026-01-11 22:34:09.045 [34mINFO [0;39m [f5e5efe0-bb85-4e7f-b932-9f2c9a3c8c43] [http-nio-8080-exec-3] c.b.config.logging.HttpLoggingFilter - GET /api/zones -> 200 (150 ms)
+2026-01-11 22:34:09.045 [34mINFO [0;39m [f5e5efe0-bb85-4e7f-b932-9f2c9a3c8c43] [http-nio-8080-exec-3] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 22:34:09.045 [34mINFO [0;39m [f5e5efe0-bb85-4e7f-b932-9f2c9a3c8c43] [http-nio-8080-exec-3] c.b.config.logging.HttpLoggingFilter - Response payload: []
+2026-01-11 22:37:31.989 [39mDEBUG[0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontConfigController.checkoutConfig(..) args=[test.com]
+2026-01-11 22:37:31.989 [34mINFO [0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.web.StorefrontConfigController - Checkout config requested: tenant=test.com
+2026-01-11 22:37:31.989 [34mINFO [0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontConfigController.checkoutConfig(..) -> status=200 (0 ms)
+2026-01-11 22:37:31.989 [39mDEBUG[0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontConfigController.checkoutConfig(..) => ResponseEntity(status=200)
+2026-01-11 22:37:31.991 [34mINFO [0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.config.logging.HttpLoggingFilter - GET /api/storefront/checkout/config -> 200 (4 ms)
+2026-01-11 22:37:31.993 [34mINFO [0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 22:37:31.993 [34mINFO [0;39m [e00bef09-47d4-4d99-8cc9-5b263fb314b8] [http-nio-8080-exec-5] c.b.config.logging.HttpLoggingFilter - Response payload: {"tips":{"enabled":false,"ranges":["10","20","50"]},"deliverySlots":{"enabled":true,"start":"08:00","end":"20:00","slotLengthMin":30},"prescriptionFlow":{"categories":["pharmacy"],"enabled":false},"addressFields":{"required":["name","phone","line1","pincode"]}}
+2026-01-11 22:37:43.036 [39mDEBUG[0;39m [0dddef9f-6165-4261-a212-cbad4170c7c3] [http-nio-8080-exec-6] c.b.c.logging.MethodLoggingAspect - Controller enter: ZoneController.list(..) args=[null]
+2026-01-11 22:37:43.043 [34mINFO [0;39m [0dddef9f-6165-4261-a212-cbad4170c7c3] [http-nio-8080-exec-6] c.b.c.logging.MethodLoggingAspect - Controller exit: ZoneController.list(..) -> status=200 (7 ms)
+2026-01-11 22:37:43.043 [39mDEBUG[0;39m [0dddef9f-6165-4261-a212-cbad4170c7c3] [http-nio-8080-exec-6] c.b.c.logging.MethodLoggingAspect - Controller result: ZoneController.list(..) => ResponseEntity(status=200)
+2026-01-11 22:37:43.045 [34mINFO [0;39m [0dddef9f-6165-4261-a212-cbad4170c7c3] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - GET /api/zones -> 200 (9 ms)
+2026-01-11 22:37:43.045 [34mINFO [0;39m [0dddef9f-6165-4261-a212-cbad4170c7c3] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 22:37:43.045 [34mINFO [0;39m [0dddef9f-6165-4261-a212-cbad4170c7c3] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - Response payload: []
+2026-01-11 23:18:54.179 [34mINFO [0;39m [] [main] c.bharatshop.BharatshopApplication - Starting BharatshopApplication using Java 17.0.12 with PID 47920 (C:\Users\Adarsh\Downloads\bharatshop-backend\target\classes started by Adarsh in C:\Users\Adarsh\Downloads\bharatshop-backend)
+2026-01-11 23:18:54.185 [39mDEBUG[0;39m [] [main] c.bharatshop.BharatshopApplication - Running with Spring Boot v3.3.4, Spring v6.1.13
+2026-01-11 23:18:54.185 [34mINFO [0;39m [] [main] c.bharatshop.BharatshopApplication - No active profile set, falling back to 1 default profile: "default"
+2026-01-11 23:18:57.102 [34mINFO [0;39m [] [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-11 23:18:57.405 [34mINFO [0;39m [] [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 278 ms. Found 14 JPA repository interfaces.
+2026-01-11 23:18:59.518 [34mINFO [0;39m [] [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8081 (http)
+2026-01-11 23:18:59.553 [34mINFO [0;39m [] [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8081"]
+2026-01-11 23:18:59.561 [34mINFO [0;39m [] [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-01-11 23:18:59.562 [34mINFO [0;39m [] [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.30]
+2026-01-11 23:18:59.805 [34mINFO [0;39m [] [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-01-11 23:18:59.806 [34mINFO [0;39m [] [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 5524 ms
+2026-01-11 23:19:00.212 [34mINFO [0;39m [] [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-01-11 23:19:00.752 [34mINFO [0;39m [] [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:bharatshop user=SA
+2026-01-11 23:19:00.757 [34mINFO [0;39m [] [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-01-11 23:19:00.779 [34mINFO [0;39m [] [main] o.s.b.a.h.H2ConsoleAutoConfiguration - H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:bharatshop'
+2026-01-11 23:19:02.334 [34mINFO [0;39m [] [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-11 23:19:05.510 [34mINFO [0;39m [] [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-11 23:19:06.312 [34mINFO [0;39m [] [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-01-11 23:19:07.302 [39mDEBUG[0;39m [] [main] c.b.c.logging.CorrelationIdFilter - Filter 'correlationIdFilter' configured for use
+2026-01-11 23:19:07.303 [39mDEBUG[0;39m [] [main] c.b.config.logging.HttpLoggingFilter - Filter 'httpLoggingFilter' configured for use
+2026-01-11 23:19:07.305 [39mDEBUG[0;39m [] [main] com.bharatshop.config.TenantFilter - Filter 'tenantFilter' configured for use
+2026-01-11 23:19:07.308 [39mDEBUG[0;39m [] [main] c.b.security.TokenAuthFilter - Filter 'tokenAuthFilter' configured for use
+2026-01-11 23:19:07.312 [39mDEBUG[0;39m [] [main] c.b.config.IdempotencyFilter - Filter 'idempotencyFilter' configured for use
+2026-01-11 23:19:08.587 [31mWARN [0;39m [] [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-11 23:19:08.685 [31mWARN [0;39m [] [main] o.s.b.a.s.s.UserDetailsServiceAutoConfiguration - 
+
+Using generated security password: 5c724c74-d465-4fdb-baf0-710c1f46638c
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-01-11 23:19:08.710 [34mINFO [0;39m [] [main] o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-01-11 23:19:09.849 [34mINFO [0;39m [] [main] o.s.b.a.e.web.EndpointLinksResolver - Exposing 4 endpoints beneath base path '/actuator'
+2026-01-11 23:19:11.105 [34mINFO [0;39m [] [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8081"]
+2026-01-11 23:19:11.181 [34mINFO [0;39m [] [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8081 (http) with context path '/'
+2026-01-11 23:19:11.219 [34mINFO [0;39m [] [main] c.bharatshop.BharatshopApplication - Started BharatshopApplication in 18.436 seconds (process running for 19.512)
+2026-01-11 23:19:11.317 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.add(..) args=[Store(com.bharatshop.domain.Store@7b83476f)]
+2026-01-11 23:19:11.550 [34mINFO [0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.add(..) (233 ms)
+2026-01-11 23:19:11.550 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.add(..) => Store(com.bharatshop.domain.Store@5aa943c5)
+2026-01-11 23:19:11.550 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.add(..) args=[Store(com.bharatshop.domain.Store@a1c87e6)]
+2026-01-11 23:19:11.552 [34mINFO [0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.add(..) (2 ms)
+2026-01-11 23:19:11.552 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.add(..) => Store(com.bharatshop.domain.Store@22c5a7fd)
+2026-01-11 23:19:11.552 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service enter: ProductService.add(..) args=[Product(com.bharatshop.domain.Product@38f57609)]
+2026-01-11 23:19:11.566 [34mINFO [0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service exit: ProductService.add(..) (14 ms)
+2026-01-11 23:19:11.566 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service result: ProductService.add(..) => null
+2026-01-11 23:19:11.566 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service enter: ProductService.add(..) args=[Product(com.bharatshop.domain.Product@4a595315)]
+2026-01-11 23:19:11.570 [34mINFO [0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service exit: ProductService.add(..) (4 ms)
+2026-01-11 23:19:11.572 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service result: ProductService.add(..) => null
+2026-01-11 23:19:11.572 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service enter: ProductService.add(..) args=[Product(com.bharatshop.domain.Product@385dae6a)]
+2026-01-11 23:19:11.576 [34mINFO [0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service exit: ProductService.add(..) (4 ms)
+2026-01-11 23:19:11.576 [39mDEBUG[0;39m [] [main] c.b.c.logging.MethodLoggingAspect - Service result: ProductService.add(..) => null
+2026-01-11 23:42:25.509 [34mINFO [0;39m [] [http-nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-11 23:42:25.511 [34mINFO [0;39m [] [http-nio-8081-exec-1] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-01-11 23:42:25.513 [34mINFO [0;39m [] [http-nio-8081-exec-1] o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-01-11 23:42:25.638 [34mINFO [0;39m [d260055b-9830-4067-a97a-731e8dd9ac98] [http-nio-8081-exec-1] c.b.config.logging.HttpLoggingFilter - GET /stores -> 404 (33 ms)
+2026-01-11 23:42:25.638 [34mINFO [0;39m [d260055b-9830-4067-a97a-731e8dd9ac98] [http-nio-8081-exec-1] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 23:42:54.137 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Controller enter: StoreDiscoveryController.validateStore(..) args=[store1, null, null]
+2026-01-11 23:42:54.139 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.web.StoreDiscoveryController - Validate store: tenant=null storeId=store1 lat=null lng=null
+2026-01-11 23:42:54.139 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Factory enter: FactoryProvider.getFactory(..) args=[null]
+2026-01-11 23:42:54.139 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Factory exit: FactoryProvider.getFactory(..) (0 ms)
+2026-01-11 23:42:54.139 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Factory result: FactoryProvider.getFactory(..) => DefaultStorefrontFactory$$SpringCGLIB$$0(com.bharatshop.factory.impl.DefaultStorefrontFactory@2c9542eb)
+2026-01-11 23:42:54.139 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Factory enter: DefaultStorefrontFactory.stores() args=[]
+2026-01-11 23:42:54.142 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Factory exit: DefaultStorefrontFactory.stores() (3 ms)
+2026-01-11 23:42:54.142 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Factory result: DefaultStorefrontFactory.stores() => (com.bharatshop.factory.impl.DefaultStorefrontFactory$2@22f2a38a)
+2026-01-11 23:42:54.142 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.get(..) args=[store1]
+2026-01-11 23:42:54.156 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.get(..) (14 ms)
+2026-01-11 23:42:54.156 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.get(..) => null
+2026-01-11 23:42:54.159 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Controller exit: StoreDiscoveryController.validateStore(..) -> status=400 (22 ms)
+2026-01-11 23:42:54.159 [39mDEBUG[0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Controller result: StoreDiscoveryController.validateStore(..) => ResponseEntity(status=400)
+2026-01-11 23:42:54.166 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - POST /api/stores/store1/validate -> 400 (57 ms)
+2026-01-11 23:42:54.166 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:42:54.166 [34mINFO [0;39m [fdcc7c9a-7b29-456a-b85a-eab8631f86ce] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - Response payload: {"code":"STORE_NOT_FOUND","message":"Store not found","storeId":"store1"}
+2026-01-11 23:43:06.920 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Controller enter: StoreDiscoveryController.stores(..) args=[null, null]
+2026-01-11 23:43:06.922 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.web.StoreDiscoveryController - Discover stores: tenant=null search=null category=null
+2026-01-11 23:43:06.922 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Factory enter: FactoryProvider.getFactory() args=[]
+2026-01-11 23:43:06.923 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Factory exit: FactoryProvider.getFactory() (1 ms)
+2026-01-11 23:43:06.923 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Factory result: FactoryProvider.getFactory() => DefaultStorefrontFactory$$SpringCGLIB$$0(com.bharatshop.factory.impl.DefaultStorefrontFactory@2c9542eb)
+2026-01-11 23:43:06.923 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Factory enter: DefaultStorefrontFactory.stores() args=[]
+2026-01-11 23:43:06.925 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Factory exit: DefaultStorefrontFactory.stores() (2 ms)
+2026-01-11 23:43:06.925 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Factory result: DefaultStorefrontFactory.stores() => (com.bharatshop.factory.impl.DefaultStorefrontFactory$2@722e1d30)
+2026-01-11 23:43:06.925 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.list(..) args=[null, null]
+2026-01-11 23:43:07.028 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.list(..) (103 ms)
+2026-01-11 23:43:07.028 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.list(..) => ArrayList[size=2]
+2026-01-11 23:43:07.032 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Controller exit: StoreDiscoveryController.stores(..) -> status=200 (112 ms)
+2026-01-11 23:43:07.032 [39mDEBUG[0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Controller result: StoreDiscoveryController.stores(..) => ResponseEntity(status=200)
+2026-01-11 23:43:07.059 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - GET /api/stores -> 200 (139 ms)
+2026-01-11 23:43:07.059 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 23:43:07.061 [34mINFO [0;39m [0ae3d50a-78d1-4c20-87e9-dc9bd5e4c3b2] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - Response payload: [{"id":"61b2aa23-7c4e-4804-861e-a2376a8ae307","name":"City Pharmacy","area":"Brigade","category":"pharmacy","status":"open","orderingDisabled":false,"updatedAt":"2026-01-11T17:49:11.552401Z"},{"id":"bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21","name":"Fresh Mart","area":"MG Road","category":"grocery","status":"open","orderingDisabled":false,"updatedAt":"2026-01-11T17:49:11.462209Z"}]
+2026-01-11 23:43:19.459 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Controller enter: StoreDiscoveryController.validateStore(..) args=[61b2aa23-7c4e-4804-861e-a2376a8ae307, null, null]
+2026-01-11 23:43:19.459 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.web.StoreDiscoveryController - Validate store: tenant=null storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307 lat=null lng=null
+2026-01-11 23:43:19.459 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory enter: FactoryProvider.getFactory(..) args=[null]
+2026-01-11 23:43:19.459 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory exit: FactoryProvider.getFactory(..) (0 ms)
+2026-01-11 23:43:19.459 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory result: FactoryProvider.getFactory(..) => DefaultStorefrontFactory$$SpringCGLIB$$0(com.bharatshop.factory.impl.DefaultStorefrontFactory@2c9542eb)
+2026-01-11 23:43:19.464 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory enter: DefaultStorefrontFactory.stores() args=[]
+2026-01-11 23:43:19.464 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory exit: DefaultStorefrontFactory.stores() (0 ms)
+2026-01-11 23:43:19.464 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory result: DefaultStorefrontFactory.stores() => (com.bharatshop.factory.impl.DefaultStorefrontFactory$2@152588fd)
+2026-01-11 23:43:19.464 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.get(..) args=[61b2aa23-7c4e-4804-861e-a2376a8ae307]
+2026-01-11 23:43:19.468 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.get(..) (4 ms)
+2026-01-11 23:43:19.469 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.get(..) => Store(com.bharatshop.domain.Store@6586315f)
+2026-01-11 23:43:19.469 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Controller exit: StoreDiscoveryController.validateStore(..) -> status=200 (10 ms)
+2026-01-11 23:43:19.469 [39mDEBUG[0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Controller result: StoreDiscoveryController.validateStore(..) => ResponseEntity(status=200)
+2026-01-11 23:43:19.473 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.config.logging.HttpLoggingFilter - POST /api/stores/61b2aa23-7c4e-4804-861e-a2376a8ae307/validate -> 200 (12 ms)
+2026-01-11 23:43:19.473 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:43:19.473 [34mINFO [0;39m [d06002ed-6307-4b18-b633-23f156141459] [http-nio-8081-exec-4] c.b.config.logging.HttpLoggingFilter - Response payload: {"available":true,"message":"Store is available for ordering"}
+2026-01-11 23:43:31.970 [34mINFO [0;39m [fdce66e3-1759-4b93-b60c-fcb78360e91e] [http-nio-8081-exec-5] c.b.config.logging.HttpLoggingFilter - POST /api/storefront/cart/items -> 400 (0 ms)
+2026-01-11 23:43:31.970 [34mINFO [0;39m [fdce66e3-1759-4b93-b60c-fcb78360e91e] [http-nio-8081-exec-5] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:43:31.970 [34mINFO [0;39m [fdce66e3-1759-4b93-b60c-fcb78360e91e] [http-nio-8081-exec-5] c.b.config.logging.HttpLoggingFilter - Response payload: {"code":"VALIDATION_ERROR","message":"Missing X-Tenant-Domain header","details":{"header":"X-Tenant-Domain"}}
+2026-01-11 23:43:46.359 [39mDEBUG[0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontCartController.addItem(..) args=[tenant1, null, CartItem(com.bharatshop.domain.CartItem@3595b869)]
+2026-01-11 23:43:46.365 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.web.StorefrontCartController - Storefront add cart item: tenant=tenant1 userId=guest itemId=prod1 qty=2
+2026-01-11 23:43:46.365 [39mDEBUG[0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.c.logging.MethodLoggingAspect - Service enter: CartService.addItem(..) args=[guest, CartItem(com.bharatshop.domain.CartItem@3595b869)]
+2026-01-11 23:43:46.365 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.c.logging.MethodLoggingAspect - Service exit: CartService.addItem(..) (0 ms)
+2026-01-11 23:43:46.365 [39mDEBUG[0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.c.logging.MethodLoggingAspect - Service result: CartService.addItem(..) => ArrayList[size=1]
+2026-01-11 23:43:46.368 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontCartController.addItem(..) -> status=200 (9 ms)
+2026-01-11 23:43:46.368 [39mDEBUG[0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontCartController.addItem(..) => ResponseEntity(status=200)
+2026-01-11 23:43:46.376 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.config.logging.HttpLoggingFilter - POST /api/storefront/cart/items -> 200 (100 ms)
+2026-01-11 23:43:46.376 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:43:46.376 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.config.logging.HttpLoggingFilter - Request payload: {"id":"prod1","name":"Test Product","price":100,"quantity":2}
+2026-01-11 23:43:46.379 [34mINFO [0;39m [27974c70-75ec-485e-bd18-aab27e5c6457] [http-nio-8081-exec-6] c.b.config.logging.HttpLoggingFilter - Response payload: {"totals":{"subtotal":200.0,"itemsCount":2},"items":[{"id":"prod1","name":"Test Product","price":100.0,"quantity":2}]}
+2026-01-11 23:43:57.219 [31mWARN [0;39m [dbce794c-fdae-4d8f-9a95-17e7d162174d] [http-nio-8081-exec-7] c.b.config.GlobalExceptionHandler - Missing parameter: storeId
+2026-01-11 23:43:57.221 [34mINFO [0;39m [dbce794c-fdae-4d8f-9a95-17e7d162174d] [http-nio-8081-exec-7] c.b.config.logging.HttpLoggingFilter - POST /api/storefront/cart/validate -> 400 (5 ms)
+2026-01-11 23:43:57.221 [34mINFO [0;39m [dbce794c-fdae-4d8f-9a95-17e7d162174d] [http-nio-8081-exec-7] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/x-www-form-urlencoded accept=null
+2026-01-11 23:43:57.221 [34mINFO [0;39m [dbce794c-fdae-4d8f-9a95-17e7d162174d] [http-nio-8081-exec-7] c.b.config.logging.HttpLoggingFilter - Response payload: {"code":"BAD_REQUEST","message":"Missing parameter: storeId"}
+2026-01-11 23:44:10.892 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontCartController.validateCart(..) args=[tenant1, null, 61b2aa23-7c4e-4804-861e-a2376a8ae307]
+2026-01-11 23:44:10.892 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.web.StorefrontCartController - Validate cart: tenant=tenant1 userId=guest storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307
+2026-01-11 23:44:10.892 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service enter: CartService.getCart(..) args=[guest]
+2026-01-11 23:44:10.894 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service exit: CartService.getCart(..) (2 ms)
+2026-01-11 23:44:10.894 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service result: CartService.getCart(..) => ArrayList[size=1]
+2026-01-11 23:44:10.894 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service enter: InventoryService.canReserve(..) args=[tenant1, prod1, Integer(2)]
+2026-01-11 23:44:10.934 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service exit: InventoryService.canReserve(..) (40 ms)
+2026-01-11 23:44:10.934 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service result: InventoryService.canReserve(..) => Boolean(false)
+2026-01-11 23:44:10.934 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service enter: InventoryService.getAvailable(..) args=[tenant1, prod1]
+2026-01-11 23:44:10.941 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service exit: InventoryService.getAvailable(..) (7 ms)
+2026-01-11 23:44:10.941 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Service result: InventoryService.getAvailable(..) => Integer(0)
+2026-01-11 23:44:10.941 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontCartController.validateCart(..) -> status=200 (51 ms)
+2026-01-11 23:44:10.943 [39mDEBUG[0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontCartController.validateCart(..) => ResponseEntity(status=200)
+2026-01-11 23:44:10.945 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.config.logging.HttpLoggingFilter - POST /api/storefront/cart/validate?storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307 -> 200 (57 ms)
+2026-01-11 23:44:10.945 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/x-www-form-urlencoded accept=null
+2026-01-11 23:44:10.945 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.config.logging.HttpLoggingFilter - Request payload: storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307
+2026-01-11 23:44:10.945 [34mINFO [0;39m [629cdaec-dbae-419e-b02c-b59e2bdf3d62] [http-nio-8081-exec-8] c.b.config.logging.HttpLoggingFilter - Response payload: {"reason":{"code":"INSUFFICIENT_INVENTORY","message":"Some items are no longer available","items":[{"name":"Test Product","productId":"prod1","available":0,"requested":2}]},"valid":false}
+2026-01-11 23:44:26.893 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontProductController.list(..) args=[null, null]
+2026-01-11 23:44:26.893 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.web.StorefrontProductController - Storefront list products: tenant=tenant1 category=null search=null 
+2026-01-11 23:44:26.893 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Factory enter: FactoryProvider.getFactory() args=[]
+2026-01-11 23:44:26.893 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Factory exit: FactoryProvider.getFactory() (0 ms)
+2026-01-11 23:44:26.899 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Factory result: FactoryProvider.getFactory() => DefaultStorefrontFactory$$SpringCGLIB$$0(com.bharatshop.factory.impl.DefaultStorefrontFactory@2c9542eb)
+2026-01-11 23:44:26.900 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Factory enter: DefaultStorefrontFactory.products() args=[]
+2026-01-11 23:44:26.901 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Factory exit: DefaultStorefrontFactory.products() (1 ms)
+2026-01-11 23:44:26.901 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Factory result: DefaultStorefrontFactory.products() => (com.bharatshop.factory.impl.DefaultStorefrontFactory$1@5bb786ec)
+2026-01-11 23:44:26.904 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Service enter: ProductService.getAll(..) args=[null, null]
+2026-01-11 23:44:26.909 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Service exit: ProductService.getAll(..) (5 ms)
+2026-01-11 23:44:26.911 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Service result: ProductService.getAll(..) => ArrayList[size=3]
+2026-01-11 23:44:26.911 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontProductController.list(..) -> status=200 (18 ms)
+2026-01-11 23:44:26.911 [39mDEBUG[0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontProductController.list(..) => ResponseEntity(status=200)
+2026-01-11 23:44:26.917 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.config.logging.HttpLoggingFilter - GET /api/storefront/products -> 200 (24 ms)
+2026-01-11 23:44:26.917 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 23:44:26.919 [34mINFO [0;39m [c572aa5b-2d33-4b4a-9d2b-cd7999a6f824] [http-nio-8081-exec-9] c.b.config.logging.HttpLoggingFilter - Response payload: [{"id":"6a8d7b60-8e8e-4957-bd85-1694d1811635","name":"Apples","price":120.0,"category":"fruits","storeId":"bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21","active":true},{"id":"eda43bc2-4622-4158-8725-37dd346a126f","name":"Milk","price":60.0,"category":"dairy","storeId":"bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21","active":true},{"id":"d4c9472e-c763-47d4-aad1-4cf52d73c3bf","name":"Paracetamol","price":35.0,"category":"medicine","storeId":"61b2aa23-7c4e-4804-861e-a2376a8ae307","active":true}]
+2026-01-11 23:54:18.294 [31mWARN [0;39m [43a84a2c-2bd9-4cd8-971c-0cd72b83bdc4] [http-nio-8081-exec-1] c.b.config.GlobalExceptionHandler - Method not allowed: DELETE
+2026-01-11 23:54:18.295 [34mINFO [0;39m [43a84a2c-2bd9-4cd8-971c-0cd72b83bdc4] [http-nio-8081-exec-1] c.b.config.logging.HttpLoggingFilter - DELETE /api/storefront/cart/items -> 405 (1 ms)
+2026-01-11 23:54:18.295 [34mINFO [0;39m [43a84a2c-2bd9-4cd8-971c-0cd72b83bdc4] [http-nio-8081-exec-1] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=null accept=null
+2026-01-11 23:54:18.297 [34mINFO [0;39m [43a84a2c-2bd9-4cd8-971c-0cd72b83bdc4] [http-nio-8081-exec-1] c.b.config.logging.HttpLoggingFilter - Response payload: {"code":"METHOD_NOT_ALLOWED","message":"Method not allowed"}
+2026-01-11 23:54:31.427 [39mDEBUG[0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontCartController.addItem(..) args=[tenant1, null, CartItem(com.bharatshop.domain.CartItem@74a7da56)]
+2026-01-11 23:54:31.427 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.web.StorefrontCartController - Storefront add cart item: tenant=tenant1 userId=guest itemId=d4c9472e-c763-47d4-aad1-4cf52d73c3bf qty=1
+2026-01-11 23:54:31.427 [39mDEBUG[0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Service enter: CartService.addItem(..) args=[guest, CartItem(com.bharatshop.domain.CartItem@74a7da56)]
+2026-01-11 23:54:31.427 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Service exit: CartService.addItem(..) (0 ms)
+2026-01-11 23:54:31.427 [39mDEBUG[0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Service result: CartService.addItem(..) => ArrayList[size=2]
+2026-01-11 23:54:31.427 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontCartController.addItem(..) -> status=200 (0 ms)
+2026-01-11 23:54:31.427 [39mDEBUG[0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontCartController.addItem(..) => ResponseEntity(status=200)
+2026-01-11 23:54:31.431 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - POST /api/storefront/cart/items -> 200 (5 ms)
+2026-01-11 23:54:31.431 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:54:31.431 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - Request payload: {"id":"d4c9472e-c763-47d4-aad1-4cf52d73c3bf","name":"Paracetamol","price":35,"quantity":1}
+2026-01-11 23:54:31.433 [34mINFO [0;39m [0e1465f9-bcb4-47df-b1ee-aa71ff77a10b] [http-nio-8081-exec-2] c.b.config.logging.HttpLoggingFilter - Response payload: {"totals":{"subtotal":235.0,"itemsCount":3},"items":[{"id":"prod1","name":"Test Product","price":100.0,"quantity":2},{"id":"d4c9472e-c763-47d4-aad1-4cf52d73c3bf","name":"Paracetamol","price":35.0,"quantity":1}]}
+2026-01-11 23:54:41.786 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Controller enter: StorefrontCartController.validateCart(..) args=[tenant1, null, 61b2aa23-7c4e-4804-861e-a2376a8ae307]
+2026-01-11 23:54:41.786 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.web.StorefrontCartController - Validate cart: tenant=tenant1 userId=guest storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307
+2026-01-11 23:54:41.786 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service enter: CartService.getCart(..) args=[guest]
+2026-01-11 23:54:41.786 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service exit: CartService.getCart(..) (0 ms)
+2026-01-11 23:54:41.786 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service result: CartService.getCart(..) => ArrayList[size=2]
+2026-01-11 23:54:41.792 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service enter: InventoryService.canReserve(..) args=[tenant1, prod1, Integer(2)]
+2026-01-11 23:54:41.795 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service exit: InventoryService.canReserve(..) (3 ms)
+2026-01-11 23:54:41.795 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service result: InventoryService.canReserve(..) => Boolean(false)
+2026-01-11 23:54:41.795 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service enter: InventoryService.getAvailable(..) args=[tenant1, prod1]
+2026-01-11 23:54:41.801 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service exit: InventoryService.getAvailable(..) (6 ms)
+2026-01-11 23:54:41.801 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service result: InventoryService.getAvailable(..) => Integer(0)
+2026-01-11 23:54:41.803 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service enter: InventoryService.canReserve(..) args=[tenant1, d4c9472e-c763-47d4-aad1-4cf52d73c3bf, Integer(1)]
+2026-01-11 23:54:41.805 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service exit: InventoryService.canReserve(..) (2 ms)
+2026-01-11 23:54:41.807 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service result: InventoryService.canReserve(..) => Boolean(false)
+2026-01-11 23:54:41.807 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service enter: InventoryService.getAvailable(..) args=[tenant1, d4c9472e-c763-47d4-aad1-4cf52d73c3bf]
+2026-01-11 23:54:41.812 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service exit: InventoryService.getAvailable(..) (5 ms)
+2026-01-11 23:54:41.812 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Service result: InventoryService.getAvailable(..) => Integer(0)
+2026-01-11 23:54:41.812 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Controller exit: StorefrontCartController.validateCart(..) -> status=200 (26 ms)
+2026-01-11 23:54:41.812 [39mDEBUG[0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.c.logging.MethodLoggingAspect - Controller result: StorefrontCartController.validateCart(..) => ResponseEntity(status=200)
+2026-01-11 23:54:41.814 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - POST /api/storefront/cart/validate?storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307 -> 200 (28 ms)
+2026-01-11 23:54:41.814 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/x-www-form-urlencoded accept=null
+2026-01-11 23:54:41.816 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - Request payload: storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307
+2026-01-11 23:54:41.816 [34mINFO [0;39m [266ca1b9-7786-4180-91c8-ddfe708646de] [http-nio-8081-exec-3] c.b.config.logging.HttpLoggingFilter - Response payload: {"reason":{"code":"INSUFFICIENT_INVENTORY","message":"Some items are no longer available","items":[{"name":"Test Product","productId":"prod1","available":0,"requested":2},{"name":"Paracetamol","productId":"d4c9472e-c763-47d4-aad1-4cf52d73c3bf","available":0,"requested":1}]},"valid":false}
+2026-01-11 23:54:53.644 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Controller enter: StoreDiscoveryController.validateStore(..) args=[61b2aa23-7c4e-4804-861e-a2376a8ae307, null, null]
+2026-01-11 23:54:53.646 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.web.StoreDiscoveryController - Validate store: tenant=null storeId=61b2aa23-7c4e-4804-861e-a2376a8ae307 lat=null lng=null
+2026-01-11 23:54:53.646 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory enter: FactoryProvider.getFactory(..) args=[null]
+2026-01-11 23:54:53.646 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory exit: FactoryProvider.getFactory(..) (0 ms)
+2026-01-11 23:54:53.646 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory result: FactoryProvider.getFactory(..) => DefaultStorefrontFactory$$SpringCGLIB$$0(com.bharatshop.factory.impl.DefaultStorefrontFactory@2c9542eb)
+2026-01-11 23:54:53.648 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory enter: DefaultStorefrontFactory.stores() args=[]
+2026-01-11 23:54:53.648 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory exit: DefaultStorefrontFactory.stores() (0 ms)
+2026-01-11 23:54:53.648 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Factory result: DefaultStorefrontFactory.stores() => (com.bharatshop.factory.impl.DefaultStorefrontFactory$2@2429c578)
+2026-01-11 23:54:53.648 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.get(..) args=[61b2aa23-7c4e-4804-861e-a2376a8ae307]
+2026-01-11 23:54:53.651 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.get(..) (3 ms)
+2026-01-11 23:54:53.653 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.get(..) => Store(com.bharatshop.domain.Store@3f2dcc46)
+2026-01-11 23:54:53.653 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Controller exit: StoreDiscoveryController.validateStore(..) -> status=200 (9 ms)
+2026-01-11 23:54:53.653 [39mDEBUG[0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.c.logging.MethodLoggingAspect - Controller result: StoreDiscoveryController.validateStore(..) => ResponseEntity(status=200)
+2026-01-11 23:54:53.653 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.config.logging.HttpLoggingFilter - POST /api/stores/61b2aa23-7c4e-4804-861e-a2376a8ae307/validate -> 200 (9 ms)
+2026-01-11 23:54:53.653 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:54:53.656 [34mINFO [0;39m [6c33917c-c2d1-4e5b-9457-04b8fe934a40] [http-nio-8081-exec-4] c.b.config.logging.HttpLoggingFilter - Response payload: {"available":true,"message":"Store is available for ordering"}
+2026-01-11 23:55:05.722 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Controller enter: StoreDiscoveryController.validateStore(..) args=[bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21, null, null]
+2026-01-11 23:55:05.724 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.web.StoreDiscoveryController - Validate store: tenant=null storeId=bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21 lat=null lng=null
+2026-01-11 23:55:05.724 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Factory enter: FactoryProvider.getFactory(..) args=[null]
+2026-01-11 23:55:05.724 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Factory exit: FactoryProvider.getFactory(..) (0 ms)
+2026-01-11 23:55:05.724 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Factory result: FactoryProvider.getFactory(..) => DefaultStorefrontFactory$$SpringCGLIB$$0(com.bharatshop.factory.impl.DefaultStorefrontFactory@2c9542eb)
+2026-01-11 23:55:05.724 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Factory enter: DefaultStorefrontFactory.stores() args=[]
+2026-01-11 23:55:05.725 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Factory exit: DefaultStorefrontFactory.stores() (1 ms)
+2026-01-11 23:55:05.725 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Factory result: DefaultStorefrontFactory.stores() => (com.bharatshop.factory.impl.DefaultStorefrontFactory$2@7c38a90d)
+2026-01-11 23:55:05.725 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Service enter: StoreService.get(..) args=[bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21]
+2026-01-11 23:55:05.725 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Service exit: StoreService.get(..) (0 ms)
+2026-01-11 23:55:05.725 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Service result: StoreService.get(..) => Store(com.bharatshop.domain.Store@1f28a90a)
+2026-01-11 23:55:05.725 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Controller exit: StoreDiscoveryController.validateStore(..) -> status=200 (3 ms)
+2026-01-11 23:55:05.725 [39mDEBUG[0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.c.logging.MethodLoggingAspect - Controller result: StoreDiscoveryController.validateStore(..) => ResponseEntity(status=200)
+2026-01-11 23:55:05.725 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.config.logging.HttpLoggingFilter - POST /api/stores/bc871fbc-c3a1-4cc9-8a8b-a35f0336ca21/validate -> 200 (5 ms)
+2026-01-11 23:55:05.725 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=null
+2026-01-11 23:55:05.725 [34mINFO [0;39m [021401e2-ade5-455b-a5c1-7574459b51ee] [http-nio-8081-exec-5] c.b.config.logging.HttpLoggingFilter - Response payload: {"available":true,"message":"Store is available for ordering"}

@@ -15,7 +15,7 @@ public class JwtService {
     private final long expSeconds;
     private final Algorithm algorithm;
 
-    public record Payload(String userId, String name, String role) {}
+    public record Payload(String userId, String name, String role, String tenantId, String activeRole) {}
 
     public JwtService(
             @Value("${app.jwt.enabled:false}") boolean enabled,
@@ -30,12 +30,14 @@ public class JwtService {
 
     public boolean isEnabled() { return enabled; }
 
-    public String generateToken(String userId, String name, String role) {
+    public String generateToken(String userId, String name, String role, String tenantId, String activeRole) {
         Instant now = Instant.now();
         return JWT.create()
                 .withSubject(userId)
                 .withClaim("name", name)
                 .withClaim("role", role == null ? "USER" : role)
+                .withClaim("tenantId", tenantId)
+                .withClaim("activeRole", activeRole)
                 .withIssuedAt(java.util.Date.from(now))
                 .withExpiresAt(java.util.Date.from(now.plusSeconds(expSeconds)))
                 .sign(algorithm);
@@ -47,7 +49,9 @@ public class JwtService {
             String userId = jwt.getSubject();
             String name = jwt.getClaim("name").asString();
             String role = jwt.getClaim("role").asString();
-            return new Payload(userId, name, role);
+            String tenantId = jwt.getClaim("tenantId").asString();
+            String activeRole = jwt.getClaim("activeRole").asString();
+            return new Payload(userId, name, role, tenantId, activeRole);
         } catch (Exception e) {
             return null;
         }

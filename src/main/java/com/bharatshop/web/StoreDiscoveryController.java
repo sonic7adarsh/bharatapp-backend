@@ -5,6 +5,8 @@ import com.bharatshop.domain.Store;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.tenant.TenantContext;
 import com.bharatshop.error.NotFoundException;
+import com.bharatshop.error.ErrorCode;
+import com.bharatshop.policy.StoreAvailabilityPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +20,12 @@ import java.util.Map;
 public class StoreDiscoveryController {
     private static final Logger log = LoggerFactory.getLogger(StoreDiscoveryController.class);
     private final FactoryProvider factoryProvider;
+    private final StoreAvailabilityPolicy storeAvailabilityPolicy;
 
-    public StoreDiscoveryController(FactoryProvider factoryProvider) { this.factoryProvider = factoryProvider; }
+    public StoreDiscoveryController(FactoryProvider factoryProvider, StoreAvailabilityPolicy storeAvailabilityPolicy) { 
+        this.factoryProvider = factoryProvider; 
+        this.storeAvailabilityPolicy = storeAvailabilityPolicy;
+    }
 
     @GetMapping("/stores")
     public ResponseEntity<List<Store>> stores(@RequestParam(required = false) String search,
@@ -58,6 +64,48 @@ public class StoreDiscoveryController {
         String tenant = TenantContext.getTenant();
         log.info("Global categories requested: tenant={}", tenant);
         return ResponseEntity.ok(factoryProvider.getFactory().products().categories());
+    }
+
+    @PostMapping("/stores/{storeId}/validate")
+    public ResponseEntity<?> validateStore(@PathVariable String storeId,
+                                         @RequestParam(required = false) Double lat,
+                                         @RequestParam(required = false) Double lng) {
+        String tenant = TenantContext.getTenant();
+        log.info("Validate store: tenant={} storeId={} lat={} lng={}", tenant, storeId, lat, lng);
+        
+        Store store = factoryProvider.getFactory(tenant).stores().get(storeId);
+        if (store == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "code", ErrorCode.STORE_NOT_FOUND.name(),
+                "message", ErrorCode.STORE_NOT_FOUND.getDefaultMessage(),
+                "storeId", storeId
+            ));
+        }
+        
+        // Basic store availability check
+        Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store);
+        if (availabilityError != null) {
+            return ResponseEntity.ok(Map.of(
+                "available", false,
+                "reason", availabilityError
+            ));
+        }
+        
+        // Zone serviceability check if coordinates provided
+        if (lat != null && lng != null) {
+            Map<String, Object> zoneError = storeAvailabilityPolicy.availabilityError(store, lat, lng);
+            if (zoneError != null) {
+                return ResponseEntity.ok(Map.of(
+                    "available", false,
+                    "reason", zoneError
+                ));
+            }
+        }
+        
+        return ResponseEntity.ok(Map.of(
+            "available", true,
+            "message", "Store is available for ordering"
+        ));
     }
 
     @PostMapping("/stores")

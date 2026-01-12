@@ -3,7 +3,10 @@ package com.bharatshop.web;
 import com.bharatshop.domain.CartItem;
 import com.bharatshop.security.UserPrincipal;
 import com.bharatshop.service.CartService;
+import com.bharatshop.service.InventoryService;
+import com.bharatshop.tenant.TenantContext;
 import com.bharatshop.error.BadRequestException;
+import com.bharatshop.error.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -12,14 +15,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/storefront/cart")
 public class StorefrontCartController {
     private static final Logger log = LoggerFactory.getLogger(StorefrontCartController.class);
     private final CartService cartService;
+    private final InventoryService inventoryService;
 
-    public StorefrontCartController(CartService cartService) { this.cartService = cartService; }
+    public StorefrontCartController(CartService cartService, InventoryService inventoryService) { 
+        this.cartService = cartService; 
+        this.inventoryService = inventoryService;
+    }
 
     private String resolveUserId(String guestId) {
         UserPrincipal up = UserPrincipal.current();
@@ -121,12 +129,59 @@ public class StorefrontCartController {
         return ResponseEntity.ok(toResponse(items));
     }
 
-    @DeleteMapping
+    @DeleteMapping("/clear")
     public ResponseEntity<?> clearCart(@RequestHeader(value = "X-Tenant-Domain") String tenant,
                                        @RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
         String userId = resolveUserId(guestId);
         log.info("Storefront clear cart: tenant={} userId={} ", tenant, userId);
         List<CartItem> items = cartService.clearCart(userId);
         return ResponseEntity.ok(toResponse(items));
+    }
+
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateCart(@RequestHeader(value = "X-Tenant-Domain") String tenant,
+                                          @RequestHeader(value = "X-Guest-Id", required = false) String guestId,
+                                          @RequestParam String storeId) {
+        String resolvedUserId = resolveUserId(guestId);
+        log.info("Validate cart: tenant={} userId={} storeId={}", tenant, resolvedUserId, storeId);
+        
+        List<CartItem> items = cartService.getCart(resolvedUserId);
+        if (items == null || items.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                "valid", false,
+                "reason", Map.of(
+                    "code", ErrorCode.EMPTY_CART.name(),
+                    "message", ErrorCode.EMPTY_CART.getDefaultMessage()
+                )
+            ));
+        }
+        
+        // Check inventory availability for all cart items
+        List<Map<String, Object>> unavailableItems = items.stream()
+            .filter(item -> !inventoryService.canReserve(tenant, item.getId(), item.getQuantity()))
+            .map(item -> Map.<String, Object>of(
+                "productId", item.getId(),
+                "name", item.getName(),
+                "requested", item.getQuantity(),
+                "available", inventoryService.getAvailable(tenant, item.getId())
+            ))
+            .collect(Collectors.toList());
+            
+        if (!unavailableItems.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                "valid", false,
+                "reason", Map.of(
+                    "code", ErrorCode.INSUFFICIENT_INVENTORY.name(),
+                    "message", ErrorCode.INSUFFICIENT_INVENTORY.getDefaultMessage(),
+                    "items", unavailableItems
+                )
+            ));
+        }
+        
+        return ResponseEntity.ok(Map.of(
+            "valid", true,
+            "message", "Cart is valid for checkout",
+            "items", items.size()
+        ));
     }
 }

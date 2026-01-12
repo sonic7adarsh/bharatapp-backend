@@ -34,17 +34,10 @@ public class CheckoutService {
         if (up == null) throw new UnauthorizedException("Unauthorized");
 
         String tenant = TenantContext.getTenant();
-        log.info("CheckoutService: tenant={} userId={} type={} storeId={}", tenant, up.getUserId(), req.getType(), req.getStoreId());
+        log.info("CheckoutService: tenant={} userId={} storeId={}", tenant, up.getUserId(), req.getStoreId());
 
-        String type = req.getType() == null ? "order" : req.getType();
-        if ("room_booking".equalsIgnoreCase(type)) {
-            if (req.getBooking() == null) {
-                throw new BadRequestException("booking details required for hospitality");
-            }
-        } else {
-            if (req.getItems() == null || req.getItems().isEmpty()) {
-                throw new BadRequestException("items must not be null or empty for non-hospitality orders");
-            }
+        if (req.getItems() == null || req.getItems().isEmpty()) {
+            throw new BadRequestException("items must not be null or empty");
         }
 
         if (req.getStoreId() != null && !req.getStoreId().isBlank()) {
@@ -52,7 +45,16 @@ public class CheckoutService {
             if (store == null) {
                 throw new BadRequestException("Invalid storeId");
             }
-            Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store);
+            
+            // Require delivery coordinates when address is provided for zone validation
+            Double deliveryLat = req.getDeliveryLat();
+            Double deliveryLng = req.getDeliveryLng();
+            if (req.getAddress() != null && (deliveryLat == null || deliveryLng == null)) {
+                throw new BadRequestException("delivery coordinates (lat,lng) are required");
+            }
+            
+            // Enhanced availability check with inventory and zone validation
+            Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store, req.getItems(), deliveryLat, deliveryLng);
             if (availabilityError != null) {
                 String code = String.valueOf(availabilityError.getOrDefault("code", "CONFLICT"));
                 String message = String.valueOf(availabilityError.getOrDefault("message", "Conflict"));
@@ -60,20 +62,12 @@ public class CheckoutService {
             }
         }
 
-        Order order;
-        if ("room_booking".equalsIgnoreCase(type)) {
-            order = factoryProvider.getFactory(tenant).orders()
-                    .placeBooking(up.getUserId(), req.getBooking(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), req.getStoreId(), req.getNotes());
-        } else {
-            order = factoryProvider.getFactory(tenant).orders()
-                    .placeOrder(up.getUserId(), req.getItems(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), req.getType(), req.getStoreId(), req.getNotes());
-        }
+        Order order = factoryProvider.getFactory(tenant).orders()
+                .placeOrder(up.getUserId(), req.getItems(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), "order", req.getStoreId(), req.getNotes());
 
         order.setAddress(req.getAddress());
         order.setDeliverySlot(req.getDeliverySlot());
         order.setDeliveryInstructions(req.getDeliveryInstructions());
-        order.setPromo(req.getPromo());
-        order.setBooking(req.getBooking());
         log.info("CheckoutService: success orderId={} reference={} userId={}", order.getId(), order.getReference(), up.getUserId());
         return ResponseEntity.ok(Map.of("order", order, "reference", order.getReference()));
     }

@@ -13,10 +13,12 @@ public class OrderItemEntity {
     @Id
     private String id;
     private String orderId;
+    private String productId;
     private String name;
     private double price;
     private int quantity;
     private Boolean requiresPrescription;
+    private String status; // optional item-level status: pending|preparing|ready|cancelled
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -36,6 +38,8 @@ public class OrderItemEntity {
     public void setId(String id) { this.id = id; }
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
+    public String getProductId() { return productId; }
+    public void setProductId(String productId) { this.productId = productId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public double getPrice() { return price; }
@@ -44,6 +48,8 @@ public class OrderItemEntity {
     public void setQuantity(int quantity) { this.quantity = quantity; }
     public Boolean getRequiresPrescription() { return requiresPrescription; }
     public void setRequiresPrescription(Boolean requiresPrescription) { this.requiresPrescription = requiresPrescription; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

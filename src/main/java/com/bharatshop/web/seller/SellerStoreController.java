@@ -86,8 +86,6 @@ public class SellerStoreController {
                 m.put("orderingDisabled", s.getOrderingDisabled() != null ? s.getOrderingDisabled() : Boolean.FALSE);
                 Map<String, Object> caps = new HashMap<>();
                 caps.put("orders", Boolean.TRUE);
-                boolean bookings = s.getCategory() != null && s.getCategory().trim().equalsIgnoreCase("hospitality");
-                caps.put("bookings", bookings);
                 m.put("capabilities", caps);
                 m.put("closedReason", s.getClosedReason());
                 m.put("closedUntil", s.getClosedUntil());

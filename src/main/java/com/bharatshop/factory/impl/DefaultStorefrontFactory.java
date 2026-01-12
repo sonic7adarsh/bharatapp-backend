@@ -1,12 +1,15 @@
 package com.bharatshop.factory.impl;
 
 import com.bharatshop.domain.Product;
+import com.bharatshop.domain.Store;
 import com.bharatshop.factory.StorefrontFactory;
 import com.bharatshop.factory.ops.*;
 import com.bharatshop.service.*;
+import com.bharatshop.policy.StoreAvailabilityPolicy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class DefaultStorefrontFactory implements StorefrontFactory {
@@ -15,23 +18,23 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
     private final OrderService orderService;
     private final CartService cartService;
     private final PaymentService paymentService;
-    private final AvailabilityService availabilityService;
-    private final BookingService bookingService;
-
+    private final StoreAvailabilityPolicy storeAvailabilityPolicy;
+    private final InventoryService inventoryService;
+    
     public DefaultStorefrontFactory(ProductService productService,
                                     StoreService storeService,
                                     OrderService orderService,
                                     CartService cartService,
                                     PaymentService paymentService,
-                                    AvailabilityService availabilityService,
-                                    BookingService bookingService) {
+                                    StoreAvailabilityPolicy storeAvailabilityPolicy,
+                                    InventoryService inventoryService) {
         this.productService = productService;
         this.storeService = storeService;
         this.orderService = orderService;
         this.cartService = cartService;
         this.paymentService = paymentService;
-        this.availabilityService = availabilityService;
-        this.bookingService = bookingService;
+        this.storeAvailabilityPolicy = storeAvailabilityPolicy;
+        this.inventoryService = inventoryService;
     }
 
     @Override public ProductOps products() {
@@ -60,9 +63,9 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
                 return orderService.placeOrder(userId, items, totals, paymentMethod, paymentInfo, type, storeId, notes);
             }
             @Override public List<com.bharatshop.domain.Order> listOrders(String userId) { return orderService.listOrders(userId); }
-            @Override public List<com.bharatshop.domain.Order> listBookings(String userId) { return orderService.listBookings(userId); }
-            @Override public com.bharatshop.domain.Order placeBooking(String userId, com.bharatshop.domain.BookingDetails booking, com.bharatshop.domain.Order.Totals totals, String paymentMethod, com.bharatshop.domain.Order.PaymentInfo paymentInfo, String storeId, String notes) {
-                return bookingService.placeBooking(userId, booking, totals, paymentMethod, paymentInfo, storeId, notes);
+
+            @Override public com.bharatshop.domain.Order cancelOrder(String userId, String orderId, String reason) {
+                return orderService.cancelOrderByUser(userId, orderId, reason);
             }
         };
     }
@@ -84,9 +87,36 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
 
     @Override public AvailabilityOps availability() {
         return new AvailabilityOps() {
-            @Override public com.bharatshop.domain.AvailabilityResponse check(String storeId, String roomId, String checkIn, String checkOut, int guests) {
-                return availabilityService.check(storeId, roomId, checkIn, checkOut, guests);
+            @Override
+            public Map<String, Object> checkStoreAvailability(String storeId, Double lat, Double lng) {
+                Store store = storeService.get(storeId);
+                return storeAvailabilityPolicy.availabilityError(store, lat, lng);
+            }
+            
+            @Override
+            public Map<String, Object> checkInventoryAvailability(String storeId, String productId, int quantity) {
+                String tenant = com.bharatshop.tenant.TenantContext.getTenant();
+                boolean canReserve = inventoryService.canReserve(tenant, productId, quantity);
+                if (!canReserve) {
+                    int available = inventoryService.getAvailable(tenant, productId);
+                    return Map.of(
+                        "code", "INSUFFICIENT_INVENTORY",
+                        "message", "Insufficient inventory",
+                        "productId", productId,
+                        "requested", quantity,
+                        "available", available
+                    );
+                }
+                return null;
+            }
+            
+            @Override
+            public Map<String, Object> checkDeliveryAvailability(String storeId, Double lat, Double lng) {
+                Store store = storeService.get(storeId);
+                return storeAvailabilityPolicy.checkZoneServiceability(store, lat, lng);
             }
         };
     }
+
+
 }

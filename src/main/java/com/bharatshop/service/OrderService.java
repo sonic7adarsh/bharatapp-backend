@@ -6,6 +6,10 @@ import com.bharatshop.entity.OrderEntity;
 import com.bharatshop.entity.OrderItemEntity;
 import com.bharatshop.repository.OrderItemRepository;
 import com.bharatshop.repository.OrderRepository;
+import com.bharatshop.service.InventoryService;
+import com.bharatshop.service.NotificationService;
+import com.bharatshop.error.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,30 +20,24 @@ import java.util.stream.Collectors;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final BookingService bookingService;
+    private final InventoryService inventoryService;
+    private final NotificationService notificationService;
     @org.springframework.beans.factory.annotation.Value("${app.orders.acceptanceWindowMinutes:15}")
     private int acceptanceWindowMinutes;
 
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, BookingService bookingService) {
+    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
+                        InventoryService inventoryService, NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
-        this.bookingService = bookingService;
+        this.inventoryService = inventoryService;
+        this.notificationService = notificationService;
     }
 
     public Order placeOrder(String userId, List<CartItem> items, Order.Totals totals, String paymentMethod, Order.PaymentInfo paymentInfo, String type, String storeId, String notes) {
-        // If this is a booking, delegate to BookingService and return a booking-shaped Order DTO
-        if ("room_booking".equalsIgnoreCase(type)) {
-            com.bharatshop.domain.BookingDetails booking = null;
-            // In legacy flows, booking details come via totals or paymentInfo; here we assume controller passes booking via Order object later.
-            // Since OrderService doesn't receive booking directly, callers like StoreLegacyController set booking on DTO after place.
-            // We will create a minimal booking using notes and totals if needed.
-            // For correctness, prefer StoreLegacyController to pass booking via CheckoutRequest; we handle that in factory/controller.
-            // To avoid losing data, return a booking DTO persisted with minimal fields.
-            return bookingService.placeBooking(userId, booking, totals, paymentMethod, paymentInfo, storeId, notes);
-        }
         String id = UUID.randomUUID().toString();
         OrderEntity e = new OrderEntity();
         e.setId(id);
+        e.setTenantId(com.bharatshop.tenant.TenantContext.getTenant());
         e.setReference("REF-" + id.substring(0, 8));
         e.setUserId(userId);
         e.setStatus("placed");
@@ -58,17 +56,49 @@ public class OrderService {
 
         if (items != null) {
             List<OrderItemEntity> persist = new ArrayList<>();
+            List<Map.Entry<String, Integer>> reserved = new ArrayList<>();
+            String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
             for (CartItem ci : items) {
                 OrderItemEntity oi = new OrderItemEntity();
                 oi.setId(UUID.randomUUID().toString());
                 oi.setOrderId(id);
+                oi.setProductId(ci.getId());
                 oi.setName(ci.getName());
                 oi.setPrice(ci.getPrice());
                 oi.setQuantity(ci.getQuantity());
                 oi.setRequiresPrescription(ci.getRequiresPrescription());
                 persist.add(oi);
+
+                // Attempt to reserve inventory atomically per item
+                boolean ok = inventoryService.reserve(tenantId, ci.getId(), ci.getQuantity());
+                if (!ok) {
+                    // Rollback previously reserved items
+                    for (Map.Entry<String, Integer> r : reserved) {
+                        inventoryService.release(tenantId, r.getKey(), r.getValue());
+                    }
+                    // Cancel order and persist cancellation
+                    e.setStatus("cancelled");
+                    e.setCancelledAt(Instant.now());
+                    e.setCancellationReason("inventory_unavailable");
+                    orderRepository.save(e);
+
+                    Map<String, Object> details = new HashMap<>();
+                    details.put("productId", ci.getId());
+                    details.put("requested", ci.getQuantity());
+                    throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_INVENTORY",
+                            "Insufficient stock for one or more items", details);
+                }
+                reserved.add(new AbstractMap.SimpleEntry<>(ci.getId(), ci.getQuantity()));
             }
             orderItemRepository.saveAll(persist);
+        }
+
+        // Send order placed notification
+        try {
+            notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "PLACED",
+                    storeId != null ? Map.of("storeId", storeId) : null);
+        } catch (Exception ex) {
+            // Ignore notification errors to not block order placement
         }
 
         Order dto = toDto(e);
@@ -79,7 +109,10 @@ public class OrderService {
     }
 
     public List<Order> listOrders(String userId) {
-        List<OrderEntity> entities = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
+        List<OrderEntity> entities = tenantId != null ? 
+            orderRepository.findByTenantIdAndUserIdOrderByCreatedAtDesc(tenantId, userId) :
+            orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
         Instant now = Instant.now();
         for (OrderEntity e : entities) {
             if ("placed".equalsIgnoreCase(e.getStatus()) && e.getSellerAcceptedAt() == null && e.getSellerResponseDeadline() != null && now.isAfter(e.getSellerResponseDeadline())) {
@@ -89,14 +122,55 @@ public class OrderService {
                     e.setCancellationReason("auto_cancelled_no_response");
                 }
                 orderRepository.save(e);
+                // Release reserved inventory on auto-cancel
+                List<OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
+                for (OrderItemEntity oi : items) {
+                    if (oi.getProductId() != null) {
+                        inventoryService.release(e.getTenantId(), oi.getProductId(), oi.getQuantity());
+                    }
+                }
+                // Notify buyer
+                try {
+                    notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
+                            Map.of("reason", "auto_cancelled_no_response"));
+                } catch (Exception ex) { }
             }
         }
         return entities.stream().map(this::toDtoWithItems).collect(Collectors.toList());
     }
 
-    public List<Order> listBookings(String userId) {
-        // Decoupled bookings: read from bookings repository/service
-        return bookingService.listBookings(userId);
+
+
+    public Order cancelOrderByUser(String userId, String orderId, String reason) {
+        return orderRepository.findById(orderId)
+                .filter(e -> Objects.equals(e.getUserId(), userId))
+                .map(e -> {
+                    if ("delivered".equalsIgnoreCase(e.getStatus())) {
+                        // Already delivered; cannot cancel
+                        return toDtoWithItems(e);
+                    }
+                    e.setStatus("cancelled");
+                    e.setCancelledAt(Instant.now());
+                    if (reason != null && !reason.isBlank()) { e.setCancellationReason(reason); }
+                    orderRepository.save(e);
+                    // Release reserved inventory on cancellation
+                    String tenantId = e.getTenantId();
+                    List<OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
+                    for (OrderItemEntity oi : items) {
+                        if (oi.getProductId() != null) {
+                            inventoryService.release(tenantId, oi.getProductId(), oi.getQuantity());
+                        }
+                    }
+                    // Send order cancelled notification
+                    try {
+                        notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
+                                reason != null ? Map.of("reason", reason) : null);
+                    } catch (Exception ex) {
+                        // Ignore notification errors
+                    }
+                    return toDtoWithItems(e);
+                })
+                .orElse(null);
     }
 
     private Order toDto(OrderEntity e) {
@@ -130,11 +204,12 @@ public class OrderService {
 
     private CartItem toCartItem(OrderItemEntity oi) {
         CartItem ci = new CartItem();
-        ci.setId(oi.getId());
+        ci.setId(oi.getProductId());
         ci.setName(oi.getName());
         ci.setPrice(oi.getPrice());
         ci.setQuantity(oi.getQuantity());
         ci.setRequiresPrescription(oi.getRequiresPrescription());
+        ci.setStatus(oi.getStatus());
         return ci;
     }
 }

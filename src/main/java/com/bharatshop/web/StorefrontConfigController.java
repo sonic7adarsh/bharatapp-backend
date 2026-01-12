@@ -33,13 +33,7 @@ public class StorefrontConfigController {
     @Value("${checkout.cod.maxTotal:0}")
     private int codMaxTotal;
 
-    // Notifications
-    @Value("${notifications.provider:log}")
-    private String notificationsProvider;
-    @Value("${notifications.whatsapp.provider:}")
-    private String whatsappProvider;
-    @Value("${notifications.email.from:}")
-    private String emailFrom;
+
 
     // Checkout config
     @Value("${checkout.delivery.enabled:true}")
@@ -64,12 +58,6 @@ public class StorefrontConfigController {
     @Value("${checkout.address.required:name,phone,line1,pincode}")
     private String addressRequiredFields;
 
-    // Hospitality config
-    @Value("${hospitality.holdTTL:300}")
-    private int holdTTL;
-    @Value("${hospitality.overbookingPolicy:strict}")
-    private String overbookingPolicy;
-
     @GetMapping("/payments/config")
     public ResponseEntity<?> paymentsConfig(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
         log.info("Payments config requested: tenant={}", tenant);
@@ -92,19 +80,7 @@ public class StorefrontConfigController {
         ));
     }
 
-    @GetMapping("/notifications/config")
-    public ResponseEntity<?> notificationsConfig(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        log.info("Notifications config requested: tenant={}", tenant);
-        Map<String, Object> channels = Map.of(
-                "sms", !"log".equalsIgnoreCase(notificationsProvider),
-                "email", emailFrom != null && !emailFrom.isBlank(),
-                "whatsapp", whatsappProvider != null && !whatsappProvider.isBlank()
-        );
-        return ResponseEntity.ok(Map.of(
-                "channelsEnabled", channels,
-                "whatsappProvider", whatsappProvider
-        ));
-    }
+
 
     @GetMapping("/checkout/config")
     public ResponseEntity<?> checkoutConfig(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
@@ -134,12 +110,5 @@ public class StorefrontConfigController {
         ));
     }
 
-    @GetMapping("/hospitality/config")
-    public ResponseEntity<?> hospitalityConfig(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        log.info("Hospitality config requested: tenant={}", tenant);
-        return ResponseEntity.ok(Map.of(
-                "holdTTL", holdTTL,
-                "overbookingPolicy", overbookingPolicy
-        ));
-    }
+
 }

@@ -12,7 +12,6 @@
     { "key": "STORE_ID", "value": "" },
     { "key": "PRODUCT_ID", "value": "" },
     { "key": "ORDER_ID", "value": "" },
-    { "key": "BOOKING_ID", "value": "" },
     { "key": "ITEM_ID", "value": "" }
   ],
   "item": [
@@ -729,107 +728,6 @@
           }
         }
       ]
-    },
-    {
-      "name": "Seller Bookings",
-      "item": [
-        {
-          "name": "List bookings (seller)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "{{TENANT}}" }
-            ],
-            "url": { "raw": "{{BASE}}/api/seller/bookings?storeId=&status=&from=&to=" }
-          }
-        },
-        {
-          "name": "Update booking status (seller)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "{{TENANT}}" }
-            ],
-            "url": { "raw": "{{BASE}}/api/seller/bookings/{{BOOKING_ID}}/status" },
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"confirmed\"\n}" }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Seller Analytics & Payouts",
-      "item": [
-        {
-          "name": "Analytics overview (seller)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "{{TENANT}}" }
-            ],
-            "url": { "raw": "{{BASE}}/api/seller/analytics/overview?storeId=&from=&to=" }
-          }
-        },
-        {
-          "name": "List payouts (seller)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "{{TENANT}}" }
-            ],
-            "url": { "raw": "{{BASE}}/api/seller/payouts" }
-          }
-        },
-        {
-          "name": "Post announcement (seller)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
-              { "key": "X-Tenant-Domain", "value": "{{TENANT}}" }
-            ],
-            "url": { "raw": "{{BASE}}/api/seller/announcements" },
-            "body": { "mode": "raw", "raw": "{\n  \"storeId\": \"{{STORE_ID}}\",\n  \"message\": \"Store closed on Jan 26\"\n}" }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Platform Products",
-      "item": [
-        {
-          "name": "List products (platform)",
-          "request": {
-            "method": "GET",
-            "url": { "raw": "{{BASE}}/api/platform/products?search=&category=" }
-          },
-          "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [{ \"id\": \"plat_prod_1\", \"name\": \"Platform Item\", \"price\": 299 }]\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Create product (platform JSON)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
-            ],
-            "url": { "raw": "{{BASE}}/api/platform/products" },
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Platform Item\",\n  \"price\": 299,\n  \"description\": \"Desc\",\n  \"category\": \"General\",\n  \"storeId\": \"\"\n}" }
-          }
-        }
-      ]
-    }
+
   ]
 }
