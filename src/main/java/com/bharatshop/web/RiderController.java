@@ -5,6 +5,8 @@ import com.bharatshop.entity.RiderLocationEntity;
 import com.bharatshop.repository.RiderLocationRepository;
 import com.bharatshop.repository.RiderRepository;
 import com.bharatshop.tenant.TenantContext;
+import com.bharatshop.security.JwtService;
+import com.bharatshop.security.UserPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,10 +19,12 @@ import java.util.UUID;
 public class RiderController {
     private final RiderRepository riderRepository;
     private final RiderLocationRepository riderLocationRepository;
+    private final JwtService jwtService;
 
-    public RiderController(RiderRepository riderRepository, RiderLocationRepository riderLocationRepository) {
+    public RiderController(RiderRepository riderRepository, RiderLocationRepository riderLocationRepository, JwtService jwtService) {
         this.riderRepository = riderRepository;
         this.riderLocationRepository = riderLocationRepository;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -39,16 +43,33 @@ public class RiderController {
         }
         rider.setStatus("ONLINE");
         riderRepository.save(rider);
-        return ResponseEntity.ok(Map.of("status","ok","riderId", rider.getId()));
+        // Issue JWT for rider with role=RIDER and activeRole=RIDER, include roles array
+        String token = jwtService.generateTokenWithRoles(
+                rider.getId(),
+                rider.getName() == null ? "Rider" : rider.getName(),
+                "RIDER",
+                rider.getTenantId(),
+                "RIDER",
+                java.util.List.of("RIDER")
+        );
+        return ResponseEntity.ok(Map.of(
+                "status","ok",
+                "riderId", rider.getId(),
+                "token", token
+        ));
     }
 
     @PostMapping("/status")
     public ResponseEntity<?> status(@RequestBody Map<String, String> req) {
-        String riderId = req.get("riderId");
+        UserPrincipal up = UserPrincipal.current();
+        if (up == null || up.getRole() == null || !"RIDER".equalsIgnoreCase(up.getRole())) {
+            return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
+        }
+        String riderId = up.getUserId();
         String status = req.get("status");
         RiderEntity rider = riderRepository.findById(riderId).orElse(null);
         if (rider == null || status == null) {
-            return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid riderId or status"));
+            return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid status"));
         }
         rider.setStatus(status);
         riderRepository.save(rider);
@@ -57,12 +78,16 @@ public class RiderController {
 
     @PostMapping("/location")
     public ResponseEntity<?> location(@RequestBody Map<String, Object> req) {
+        UserPrincipal up = UserPrincipal.current();
+        if (up == null || up.getRole() == null || !"RIDER".equalsIgnoreCase(up.getRole())) {
+            return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
+        }
         String tenant = TenantContext.getTenant();
-        String riderId = (String) req.get("riderId");
+        String riderId = up.getUserId();
         Number lat = (Number) req.get("lat");
         Number lng = (Number) req.get("lng");
-        if (riderId == null || lat == null || lng == null) {
-            return ResponseEntity.badRequest().body(Map.of("status","error","message","riderId, lat, lng required"));
+        if (lat == null || lng == null) {
+            return ResponseEntity.badRequest().body(Map.of("status","error","message","lat, lng required"));
         }
         RiderLocationEntity loc = new RiderLocationEntity();
         loc.setId(UUID.randomUUID().toString());

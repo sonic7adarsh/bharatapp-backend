@@ -17,9 +17,10 @@ public class CheckoutController {
     public CheckoutController(CheckoutService checkoutService) { this.checkoutService = checkoutService; }
 
     @PostMapping("/checkout")
-    public ResponseEntity<?> checkout(@Valid @RequestBody CheckoutRequest req) {
+    public ResponseEntity<?> checkout(@Valid @RequestBody CheckoutRequest req,
+                                      @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
         log.info("Checkout requested: items={} paymentMethod={}",
                 req.getItems() != null ? req.getItems().size() : 0, req.getPaymentMethod());
-        return checkoutService.checkout(req);
+        return checkoutService.checkout(req, idempotencyKey);
     }
 }

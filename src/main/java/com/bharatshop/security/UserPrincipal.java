@@ -47,6 +47,20 @@ public class UserPrincipal implements Authentication {
 
     public String getRole() { return role; }
 
+    // Minimal multi-role helpers
+    public boolean hasRole(String expected) {
+        if (expected == null || expected.isBlank()) return false;
+        return this.role != null && this.role.equalsIgnoreCase(expected);
+    }
+
+    public boolean hasAnyRole(String... roles) {
+        if (roles == null || roles.length == 0) return false;
+        for (String r : roles) {
+            if (hasRole(r)) return true;
+        }
+        return false;
+    }
+
     public static UserPrincipal current() {
         org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth instanceof UserPrincipal) {

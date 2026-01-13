@@ -22,8 +22,15 @@ public class ZoneController {
         this.riderZoneRepository = riderZoneRepository;
     }
 
+    private boolean ensureAdmin() {
+        com.bharatshop.security.UserPrincipal up = com.bharatshop.security.UserPrincipal.current();
+        if (up == null || up.getRole() == null) return false;
+        return "admin".equalsIgnoreCase(up.getRole());
+    }
+
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> req) {
+        if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
         ZoneEntity z = new ZoneEntity();
         z.setId(UUID.randomUUID().toString());
         z.setTenantId((String) req.getOrDefault("tenantId", "default"));
@@ -41,11 +48,13 @@ public class ZoneController {
 
     @GetMapping
     public ResponseEntity<?> list(@RequestParam(required = false) String tenantId) {
+        if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
         return ResponseEntity.ok(zoneRepository.findByTenantId(tenantId == null ? "default" : tenantId));
     }
 
     @PostMapping("/attach-store")
     public ResponseEntity<?> attachStore(@RequestBody Map<String, String> req) {
+        if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
         String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String storeId = req.get("storeId");
         String zoneId = req.get("zoneId");
@@ -63,6 +72,7 @@ public class ZoneController {
 
     @PostMapping("/attach-rider")
     public ResponseEntity<?> attachRider(@RequestBody Map<String, String> req) {
+        if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
         String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String riderId = req.get("riderId");
         String zoneId = req.get("zoneId");

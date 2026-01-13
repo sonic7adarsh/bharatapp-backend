@@ -14,6 +14,7 @@ public class Order {
     private Address address;
     private String deliverySlot;
     private String deliveryInstructions;
+    private String type;
 
     private String createdAt;
     private String sellerResponseDeadline;
@@ -45,6 +46,8 @@ public class Order {
     public void setDeliverySlot(String deliverySlot) { this.deliverySlot = deliverySlot; }
     public String getDeliveryInstructions() { return deliveryInstructions; }
     public void setDeliveryInstructions(String deliveryInstructions) { this.deliveryInstructions = deliveryInstructions; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

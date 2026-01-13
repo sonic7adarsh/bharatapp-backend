@@ -2,6 +2,7 @@ package com.bharatshop.service;
 
 import com.bharatshop.domain.User;
 import com.bharatshop.entity.UserEntity;
+import com.bharatshop.entity.UserRoleEntity;
 import com.bharatshop.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -52,8 +53,8 @@ public class AuthService {
         entity.setId(UUID.randomUUID().toString());
         entity.setName(name);
         entity.setEmail(email);
-        entity.setRole("USER");
-        entity.setPassword(passwordEncoder.encode(password));
+        // Stop using legacy role field; rely on user_roles
+        entity.setPasswordHash(passwordEncoder.encode(password));
         userRepository.save(entity);
         
         // Initialize multi-role system
@@ -61,6 +62,29 @@ public class AuthService {
         
         var session = createSession(fromEntity(entity));
         log.info("User registered: id={}, token={}", entity.getId(), session.token());
+        return session;
+    }
+
+    // Tenant-aware registration for admin/tenant scoped auth
+    public Session registerWithTenant(String tenant, String name, String email, String password) {
+        String tenantId = (tenant == null || tenant.isBlank()) ? "default" : tenant.trim();
+        log.info("Registering user (tenant-aware): tenant={} email={}", tenantId, email);
+        Optional<UserEntity> existing = userRepository.findByEmailAndTenantId(email, tenantId);
+        if (existing.isPresent()) {
+            log.warn("Registration failed (tenant-aware): email already registered: {}", email);
+            throw new IllegalArgumentException("Email already registered");
+        }
+        UserEntity entity = new UserEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setName(name);
+        entity.setEmail(email);
+        entity.setTenantId(tenantId);
+        entity.setPasswordHash(passwordEncoder.encode(password));
+        userRepository.save(entity);
+
+        userRoleService.initializeCustomerRole(entity.getId());
+        var session = createSession(fromEntity(entity));
+        log.info("User registered (tenant-aware): userId={} token={}", entity.getId(), session.token());
         return session;
     }
 
@@ -75,8 +99,8 @@ public class AuthService {
         entity.setId(UUID.randomUUID().toString());
         entity.setName(name);
         entity.setEmail(email);
-        entity.setRole("SELLER");
-        entity.setPassword(passwordEncoder.encode(password));
+        // Stop using legacy role field; rely on user_roles
+        entity.setPasswordHash(passwordEncoder.encode(password));
         userRepository.save(entity);
         
         // Initialize multi-role system with SELLER role
@@ -96,16 +120,42 @@ public class AuthService {
             e.setId(UUID.randomUUID().toString());
             e.setName(email.split("@")[0]);
             e.setEmail(email);
-            e.setRole("USER");
-            e.setPassword(passwordEncoder.encode(password));
-            return userRepository.save(e);
+            e.setPasswordHash(passwordEncoder.encode(password));
+            UserEntity saved = userRepository.save(e);
+            // Ensure roles exist
+            userRoleService.initializeCustomerRole(saved.getId());
+            return saved;
         });
-        if (entity.getPassword() != null && password != null && !passwordEncoder.matches(password, entity.getPassword())) {
+        if (entity.getPasswordHash() != null && password != null && !passwordEncoder.matches(password, entity.getPasswordHash())) {
             log.warn("Login (storefront) failed: invalid credentials for email={}", email);
             throw new IllegalArgumentException("Invalid credentials");
         }
         var session = createSession(fromEntity(entity));
-        log.info("Login (storefront) success: userId={} token={} role={}", entity.getId(), session.token(), entity.getRole());
+        log.info("Login (storefront) success: userId={} token={} activeRole={}", entity.getId(), session.token(), session.role());
+        return session;
+    }
+
+    // Tenant-aware email login
+    public Session loginEmailWithTenant(String tenant, String email, String password) {
+        String tenantId = (tenant == null || tenant.isBlank()) ? "default" : tenant.trim();
+        log.info("Login (tenant-aware) attempt: tenant={} email={}", tenantId, email);
+        UserEntity entity = userRepository.findByEmailAndTenantId(email, tenantId).orElseGet(() -> {
+            UserEntity e = new UserEntity();
+            e.setId(UUID.randomUUID().toString());
+            e.setName(email.split("@")[0]);
+            e.setEmail(email);
+            e.setTenantId(tenantId);
+            e.setPasswordHash(passwordEncoder.encode(password));
+            UserEntity saved = userRepository.save(e);
+            userRoleService.initializeCustomerRole(saved.getId());
+            return saved;
+        });
+        if (entity.getPasswordHash() != null && password != null && !passwordEncoder.matches(password, entity.getPasswordHash())) {
+            log.warn("Login (tenant-aware) failed: invalid credentials for email={} tenant={}", email, tenantId);
+            throw new IllegalArgumentException("Invalid credentials");
+        }
+        var session = createSession(fromEntity(entity));
+        log.info("Login (tenant-aware) success: userId={} token={} activeRole={}", entity.getId(), session.token(), session.role());
         return session;
     }
 
@@ -116,16 +166,19 @@ public class AuthService {
             e.setId(UUID.randomUUID().toString());
             e.setName(email.split("@")[0]);
             e.setEmail(email);
-            e.setRole("SELLER");
-            e.setPassword(passwordEncoder.encode(password));
-            return userRepository.save(e);
+            e.setPasswordHash(passwordEncoder.encode(password));
+            UserEntity saved = userRepository.save(e);
+            userRoleService.addRoleToUser(saved.getId(), "CUSTOMER");
+            userRoleService.addRoleToUser(saved.getId(), "SELLER");
+            userRoleService.switchUserRole(saved.getId(), "SELLER");
+            return saved;
         });
-        if (entity.getPassword() != null && password != null && !passwordEncoder.matches(password, entity.getPassword())) {
+        if (entity.getPasswordHash() != null && password != null && !passwordEncoder.matches(password, entity.getPasswordHash())) {
             log.warn("Login (seller) failed: invalid credentials for email={}", email);
             throw new IllegalArgumentException("Invalid credentials");
         }
         var session = createSession(fromEntity(entity));
-        log.info("Login (seller) success: userId={} token={} role={} ", entity.getId(), session.token(), entity.getRole());
+        log.info("Login (seller) success: userId={} token={} activeRole={} ", entity.getId(), session.token(), session.role());
         return session;
     }
 
@@ -151,11 +204,9 @@ public class AuthService {
             Optional<UserEntity> byEmail = userRepository.findByEmail(trimmedEmail);
             if (byEmail.isPresent()) {
                 UserEntity e = byEmail.get();
-                if (!"SELLER".equalsIgnoreCase(e.getRole())) {
-                    e.setRole("SELLER");
-                    userRepository.save(e);
-                    log.info("Upgraded existing user to SELLER via email: userId={}", e.getId());
-                }
+                userRoleService.addRoleToUser(e.getId(), "SELLER");
+                userRoleService.switchUserRole(e.getId(), "SELLER");
+                log.info("Upgraded existing user to SELLER via email: userId={}", e.getId());
                 return createSession(fromEntity(e));
             }
         }
@@ -165,11 +216,9 @@ public class AuthService {
             Optional<UserEntity> byPhone = userRepository.findByPhone(trimmedPhone);
             if (byPhone.isPresent()) {
                 UserEntity e = byPhone.get();
-                if (!"SELLER".equalsIgnoreCase(e.getRole())) {
-                    e.setRole("SELLER");
-                    userRepository.save(e);
-                    log.info("Upgraded existing user to SELLER via phone: userId={}", e.getId());
-                }
+                userRoleService.addRoleToUser(e.getId(), "SELLER");
+                userRoleService.switchUserRole(e.getId(), "SELLER");
+                log.info("Upgraded existing user to SELLER via phone: userId={}", e.getId());
                 return createSession(fromEntity(e));
             }
         }
@@ -180,9 +229,12 @@ public class AuthService {
         entity.setName(trimmedName != null ? trimmedName : (trimmedEmail != null ? trimmedEmail.split("@")[0] : trimmedPhone));
         entity.setEmail(trimmedEmail);
         entity.setPhone(trimmedPhone);
-        entity.setRole("SELLER");
-        entity.setPassword(password != null && !password.isBlank() ? passwordEncoder.encode(password) : null);
+        // Stop using legacy role field; rely on user_roles
+        entity.setPasswordHash(password != null && !password.isBlank() ? passwordEncoder.encode(password) : null);
         userRepository.save(entity);
+        userRoleService.addRoleToUser(entity.getId(), "CUSTOMER");
+        userRoleService.addRoleToUser(entity.getId(), "SELLER");
+        userRoleService.switchUserRole(entity.getId(), "SELLER");
         var session = createSession(fromEntity(entity));
         log.info("Created new SELLER: userId={} email={} phone={} tokenPresent=true", entity.getId(), entity.getEmail(), entity.getPhone());
         return session;
@@ -195,11 +247,12 @@ public class AuthService {
             e.setId(UUID.randomUUID().toString());
             e.setName("User" + phone.substring(Math.max(0, phone.length()-4)));
             e.setPhone(phone);
-            e.setRole("USER");
-            return userRepository.save(e);
+            UserEntity saved = userRepository.save(e);
+            userRoleService.initializeCustomerRole(saved.getId());
+            return saved;
         });
         var session = createSession(fromEntity(entity));
-        log.info("Login (phone) success: userId={} token={} role={} ", entity.getId(), session.token(), entity.getRole());
+        log.info("Login (phone) success: userId={} token={} activeRole={} ", entity.getId(), session.token(), session.role());
         return session;
     }
 
@@ -258,7 +311,8 @@ public class AuthService {
         if (jwtService.isEnabled()) {
             var payload = jwtService.parse(token);
             if (payload == null) return null;
-            return new Session(token, payload.userId(), payload.name(), payload.role());
+            String role = (payload.activeRole() != null && !payload.activeRole().isBlank()) ? payload.activeRole() : payload.role();
+            return new Session(token, payload.userId(), payload.name(), role);
         }
         var s = sessionsByToken.get(token);
         if (s == null) {
@@ -277,33 +331,56 @@ public class AuthService {
 
     private Session createSession(User user) {
         String token;
+        // Determine active role from user_roles
+        String activeRole = userRoleService.getActiveRole(user.getId())
+                .map(UserRoleEntity::getRole)
+                .orElseGet(() -> {
+                    // Ensure at least CUSTOMER; then read it
+                    userRoleService.initializeCustomerRole(user.getId());
+                    return userRoleService.getActiveRole(user.getId())
+                            .map(UserRoleEntity::getRole)
+                            .orElse("CUSTOMER");
+                });
+        // Collect allowed roles for JWT roles claim
+        java.util.List<String> roles = userRoleService.getUserRoles(user.getId());
+        if (roles == null || roles.isEmpty()) {
+            roles = java.util.List.of("CUSTOMER");
+        }
         if (jwtService.isEnabled()) {
-            // For now, we'll use the role as tenantId until we get tenant context
-            // and activeRole will be the same as role for backward compatibility
-            token = jwtService.generateToken(user.getId(), user.getName(), user.getRole(), 
-                                           user.getTenantId() != null ? user.getTenantId() : "default", 
-                                           user.getRole());
+            token = jwtService.generateTokenWithRoles(
+                    user.getId(),
+                    user.getName(),
+                    activeRole, // role claim aligns with active role
+                    user.getTenantId() != null ? user.getTenantId() : "default",
+                    activeRole, // activeRole claim
+                    roles
+            );
         } else {
             token = UUID.randomUUID().toString();
-            sessionsByToken.put(token, new Session(token, user.getId(), user.getName(), user.getRole()));
+            sessionsByToken.put(token, new Session(token, user.getId(), user.getName(), activeRole));
         }
-        log.info("Session created: userId={} role={}", user.getId(), user.getRole());
-        return new Session(token, user.getId(), user.getName(), user.getRole());
+        log.info("Session created: userId={} activeRole={}", user.getId(), activeRole);
+        return new Session(token, user.getId(), user.getName(), activeRole);
     }
 
-    private String normalizeRole(String role) {
-        if (role == null || role.isBlank()) return "consumer";
+    private String canonicalRole(String role) {
+        if (role == null || role.isBlank()) return "CUSTOMER";
         String r = role.trim().toUpperCase();
         return switch (r) {
-            case "SELLER" -> "seller";
-            case "VENDOR" -> "vendor";
-            case "MERCHANT", "PARTNER" -> "seller";
-            default -> "consumer";
+            case "SELLER", "MERCHANT", "PARTNER" -> "SELLER";
+            case "VENDOR" -> "VENDOR";
+            case "ADMIN" -> "ADMIN";
+            case "RIDER" -> "RIDER";
+            default -> "CUSTOMER";
         };
     }
 
     private User fromEntity(UserEntity e) {
-        return new User(e.getId(), e.getName(), e.getEmail(), e.getPhone(), normalizeRole(e.getRole()), e.getTenantId());
+        // Prefer active role from user_roles; fallback to CUSTOMER
+        String activeRole = userRoleService.getActiveRole(e.getId())
+                .map(UserRoleEntity::getRole)
+                .orElse("CUSTOMER");
+        return new User(e.getId(), e.getName(), e.getEmail(), e.getPhone(), canonicalRole(activeRole), e.getTenantId());
     }
 
     /**
@@ -313,30 +390,23 @@ public class AuthService {
      */
     public User upgradeRoleForUser(String userId, String newRole) {
         if (userId == null || newRole == null || newRole.isBlank()) return null;
-        String storeRole = newRole.trim().toUpperCase();
+        String storeRole = canonicalRole(newRole);
         Optional<UserEntity> opt = userRepository.findById(userId);
         if (opt.isEmpty()) return null;
         UserEntity e = opt.get();
-        String current = e.getRole();
-        String currentNorm = normalizeRole(current);
-        String desiredNorm = normalizeRole(storeRole);
-        // If already seller/vendor, skip
-        if ("seller".equals(currentNorm) || "vendor".equals(currentNorm)) {
-            return fromEntity(e);
-        }
-        e.setRole(storeRole);
-        userRepository.save(e);
+        // Activate SELLER/VENDOR via user_roles
+        userRoleService.addRoleToUser(userId, storeRole);
+        userRoleService.switchUserRole(userId, storeRole);
         // Update in-memory sessions so profile reflects change immediately when JWT is disabled
         if (!jwtService.isEnabled()) {
-            String normalized = normalizeRole(storeRole);
             sessionsByToken.replaceAll((token, sess) -> {
                 if (sess != null && userId.equals(sess.userId())) {
-                    return new Session(sess.token(), sess.userId(), sess.name(), normalized);
+                    return new Session(sess.token(), sess.userId(), sess.name(), storeRole);
                 }
                 return sess;
             });
         }
-        log.info("User role upgraded: userId={} role={}", userId, storeRole);
+        log.info("User role upgraded via user_roles: userId={} activeRole={}", userId, storeRole);
         return fromEntity(e);
     }
 }

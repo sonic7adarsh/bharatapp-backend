@@ -19,7 +19,13 @@ public class TenantFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/storefront")) {
+        boolean isApi = path.startsWith("/api/");
+        boolean isTenantExempt = path.startsWith("/api/storefront/auth/")
+                || path.equals("/api/riders/login")
+                || path.equals("/health")
+                || path.equals("/");
+
+        if (isApi && !isTenantExempt) {
             String tenant = request.getHeader(tenantHeader);
             if (tenant == null || tenant.isBlank()) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

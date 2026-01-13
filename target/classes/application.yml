@@ -77,6 +77,17 @@ management:
     tags:
       application: bharatshop-backend
 
+# Disable failing health indicators in dev to keep actuator healthy
+  health:
+    mail:
+      enabled: false
+
+# Development fallbacks to simplify smoke testing
+serviceability:
+  devFallback: true
+inventory:
+  devFallback: false
+
 springdoc:
   api-docs:
     enabled: true

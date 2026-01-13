@@ -61,11 +61,10 @@ public class UserRoleService {
         // Activate target role
         targetUserRole.setIsActive(true);
         user.setActiveRoleId(targetUserRole.getId());
-        user.setRole(targetRole); // Keep legacy field updated
-        
+
         userRoleRepository.save(targetUserRole);
         userRepository.save(user);
-        
+
         return targetUserRole;
     }
     

@@ -24,8 +24,8 @@ public class MediaController {
     private String region;
 
     @PostMapping("/sign-upload")
-    public ResponseEntity<?> presign(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                     @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> presign(@RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String folder = body != null ? (String) body.getOrDefault("folder", "uploads") : "uploads";
         String contentType = body != null ? (String) body.getOrDefault("contentType", "application/octet-stream") : "application/octet-stream";
         log.info("Media presign requested: tenant={} folder={} contentType={} bucket={} region={}", tenant, folder, contentType, bucket, region);
@@ -34,8 +34,8 @@ public class MediaController {
     }
 
     @PostMapping
-    public ResponseEntity<?> finalizeUpload(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                            @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> finalizeUpload(@RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String key = (String) body.getOrDefault("key", "");
         long size = body.get("size") instanceof Number ? ((Number) body.get("size")).longValue() : 0L;
         String contentType = (String) body.getOrDefault("contentType", "application/octet-stream");
@@ -45,8 +45,8 @@ public class MediaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable String id,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Media delete requested: tenant={} id={} ", tenant, id);
         boolean ok = mediaService.delete(id);
         if (ok) return ResponseEntity.ok(Map.of("ok", true));

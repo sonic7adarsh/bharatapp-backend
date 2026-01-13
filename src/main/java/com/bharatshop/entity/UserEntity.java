@@ -22,23 +22,41 @@ public class UserEntity {
     private String name;
     private String email;
     private String phone;
+    // Legacy single role (kept for backward compatibility where referenced)
     private String role;
     private String tenantId;
-    
+
+    // MVP v1: store multiple roles directly on User via CSV to avoid extra tables
+    @Column(name = "roles", length = 1024)
+    private String rolesCsv; // e.g., "CUSTOMER,SELLER"
+
+    @Column(name = "status")
+    private String status; // ACTIVE / DISABLED
+
+    // Derived flag for MVP: avoid schema change
+    @jakarta.persistence.Transient
+    private Boolean isActive;
+
     @OneToMany(mappedBy = "userId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<UserRoleEntity> userRoles = new ArrayList<>();
-    
+
     @Column(name = "active_role_id")
     private String activeRoleId;
-    private String password;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     private Instant createdAt;
     private Instant updatedAt;
 
+    // Lifecycle hooks
     @PrePersist
     public void onCreate() {
         Instant now = Instant.now();
         if (createdAt == null) createdAt = now;
         updatedAt = now;
+        if (status == null || status.isBlank()) status = "ACTIVE";
+        if (isActive == null) isActive = true;
     }
 
     @PreUpdate
@@ -65,8 +83,29 @@ public class UserEntity {
     
     public String getActiveRoleId() { return activeRoleId; }
     public void setActiveRoleId(String activeRoleId) { this.activeRoleId = activeRoleId; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    // Backward-compatible accessors used across existing services
+    public String getPassword() { return passwordHash; }
+    public void setPassword(String password) { this.passwordHash = password; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getRolesCsv() { return rolesCsv; }
+    public void setRolesCsv(String rolesCsv) { this.rolesCsv = rolesCsv; }
+
+    public Boolean getIsActive() {
+        // If explicit flag set, prefer it; otherwise derive from status
+        if (isActive != null) return isActive;
+        return status == null || status.equalsIgnoreCase("ACTIVE");
+    }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    // Keep backward-compatible password alias
+    // Already defined above: setPassword(String) maps to passwordHash
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

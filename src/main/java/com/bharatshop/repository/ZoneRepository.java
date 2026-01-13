@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface ZoneRepository extends JpaRepository<ZoneEntity, String> {
     List<ZoneEntity> findByTenantId(String tenantId);
+    java.util.Optional<ZoneEntity> findByTenantIdAndId(String tenantId, String id);
 }

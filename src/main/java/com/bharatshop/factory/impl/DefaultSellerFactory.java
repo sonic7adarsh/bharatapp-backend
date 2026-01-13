@@ -55,6 +55,20 @@ public class DefaultSellerFactory implements SellerFactory {
         this.notificationService = notificationService;
     }
 
+    private Instant parseDayStart(String value) {
+        try {
+            if (value == null || value.isBlank()) return null;
+            String v = value.trim();
+            if (v.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                java.time.LocalDate d = java.time.LocalDate.parse(v);
+                return d.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+            }
+            return Instant.parse(v);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     @Override
     public SellerProductOps products() {
         return new SellerProductOps() {
@@ -125,6 +139,17 @@ public class DefaultSellerFactory implements SellerFactory {
             @Override
             public List<Order> list(String storeId, String status, String from, String to, Integer page, Integer limit) {
                 List<com.bharatshop.entity.OrderEntity> entities = orderRepository.findAll();
+                // Scope to tenant and seller-owned stores
+                String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
+                var principal = com.bharatshop.security.UserPrincipal.current();
+                java.util.Set<String> ownedStoreIds = new java.util.HashSet<>();
+                if (principal != null) {
+                    String ownerId = principal.getUserId();
+                    List<com.bharatshop.entity.StoreEntity> ownedStores = storeRepository.findByOwnerId(ownerId);
+                    for (com.bharatshop.entity.StoreEntity se : ownedStores) {
+                        if (se.getId() != null) ownedStoreIds.add(se.getId());
+                    }
+                }
                 // Auto-cancel expired placed orders
                 Instant now = Instant.now();
                 for (com.bharatshop.entity.OrderEntity e : entities) {
@@ -136,11 +161,11 @@ public class DefaultSellerFactory implements SellerFactory {
                         }
                         orderRepository.save(e);
                         // Release reserved inventory on auto-cancel
-                        String tenantId = e.getTenantId();
+                        String eTenantId = e.getTenantId();
                         List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
                         for (com.bharatshop.entity.OrderItemEntity oi : items) {
                             if (oi.getProductId() != null) {
-                                inventoryService.release(tenantId, oi.getProductId(), oi.getQuantity());
+                                inventoryService.release(eTenantId, oi.getProductId(), oi.getQuantity());
                             }
                         }
                         // Notify buyer about auto-cancel
@@ -150,6 +175,20 @@ public class DefaultSellerFactory implements SellerFactory {
                         } catch (Exception ex) { }
                     }
                 }
+                // Filter by tenant and owned stores
+                if (tenantId != null && !tenantId.isBlank()) {
+                    String t = tenantId;
+                    entities = entities.stream().filter(o -> t.equals(o.getTenantId())).collect(Collectors.toList());
+                }
+                if (!ownedStoreIds.isEmpty()) {
+                    java.util.Set<String> ids = ownedStoreIds;
+                    entities = entities.stream().filter(o -> o.getStoreId() != null && ids.contains(o.getStoreId())).collect(Collectors.toList());
+                }
+                if (storeId != null && !storeId.isBlank()) {
+                    String sid = storeId;
+                    entities = entities.stream().filter(o -> sid.equals(o.getStoreId())).collect(Collectors.toList());
+                }
+
                 Instant fromTs = parseDayStart(from);
                 Instant toTs = parseDayStart(to);
                 if (status != null && !status.isBlank()) {
@@ -201,6 +240,18 @@ public class DefaultSellerFactory implements SellerFactory {
                                             Map.of("reason", "auto_cancelled_no_response"));
                                 } catch (Exception ex) { }
                             }
+                            // Enforce tenant/store ownership scoping
+                            String t = com.bharatshop.tenant.TenantContext.getTenant();
+                            if (t != null && !t.isBlank() && !t.equals(e.getTenantId())) {
+                                return null;
+                            }
+                            var principal = com.bharatshop.security.UserPrincipal.current();
+                            if (principal != null) {
+                                String ownerId = principal.getUserId();
+                                List<com.bharatshop.entity.StoreEntity> ownedStores = storeRepository.findByOwnerId(ownerId);
+                                boolean owns = ownedStores.stream().anyMatch(se -> se.getId() != null && se.getId().equals(e.getStoreId()));
+                                if (!owns) return null;
+                            }
                             return DefaultSellerFactory.this.toDto(e);
                         })
                         .orElse(null);
@@ -209,6 +260,21 @@ public class DefaultSellerFactory implements SellerFactory {
             @Override
             public Order updateStatus(String orderId, String status, String notes) {
                 return orderRepository.findById(orderId).map(entity -> {
+                    // Enforce tenant scoping
+                    String t = com.bharatshop.tenant.TenantContext.getTenant();
+                    if (t != null && !t.isBlank() && !t.equals(entity.getTenantId())) {
+                        throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.FORBIDDEN, "TENANT_MISMATCH", "Wrong tenant context", java.util.Map.of("orderId", entity.getId()));
+                    }
+                    // Enforce store ownership for current seller
+                    var principal = com.bharatshop.security.UserPrincipal.current();
+                    if (principal != null) {
+                        String ownerId = principal.getUserId();
+                        java.util.List<com.bharatshop.entity.StoreEntity> ownedStores = storeRepository.findByOwnerId(ownerId);
+                        boolean owns = ownedStores.stream().anyMatch(se -> se.getId() != null && se.getId().equals(entity.getStoreId()));
+                        if (!owns) {
+                            throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.FORBIDDEN, "NOT_STORE_OWNER", "Seller does not own this store", java.util.Map.of("storeId", entity.getStoreId()));
+                        }
+                    }
                     String cur = entity.getStatus() != null ? entity.getStatus().toLowerCase() : "";
                     String desired = status != null ? status.toLowerCase() : "";
 
@@ -216,10 +282,23 @@ public class DefaultSellerFactory implements SellerFactory {
                     switch (desired) {
                         case "accepted":
                             valid = "placed".equals(cur);
-                            if (valid) { entity.setSellerAcceptedAt(java.time.Instant.now()); }
+                            if (valid) {
+                                // Reject acceptance if past seller response deadline
+                                java.time.Instant now = java.time.Instant.now();
+                                if (entity.getSellerResponseDeadline() != null && now.isAfter(entity.getSellerResponseDeadline())) {
+                                    throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.GONE, "ACCEPTANCE_WINDOW_EXPIRED",
+                                            "Seller response deadline has passed", java.util.Map.of("orderId", entity.getId()));
+                                }
+                                entity.setSellerAcceptedAt(java.time.Instant.now());
+                                // Inventory hook (placeholder)
+                                try { inventoryService.reserveForOrder(entity.getTenantId(), entity.getId()); } catch (Exception ex) { }
+                            }
+                            break;
+                        case "preparing":
+                            valid = "accepted".equals(cur);
                             break;
                         case "ready":
-                            valid = "accepted".equals(cur);
+                            valid = "preparing".equals(cur);
                             break;
                         case "shipped":
                             valid = "ready".equals(cur);
@@ -228,13 +307,35 @@ public class DefaultSellerFactory implements SellerFactory {
                             valid = "shipped".equals(cur);
                             break;
                         case "rejected":
+                            valid = "placed".equals(cur);
+                            entity.setCancelledAt(java.time.Instant.now());
+                            if (notes != null && !notes.isBlank()) entity.setCancellationReason(notes);
+                            // Enforce SLA for reject as well
+                            java.time.Instant now = java.time.Instant.now();
+                            if (entity.getSellerResponseDeadline() != null && now.isAfter(entity.getSellerResponseDeadline())) {
+                                throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.GONE, "ACCEPTANCE_WINDOW_EXPIRED",
+                                        "Seller response deadline has passed", java.util.Map.of("orderId", entity.getId()));
+                            }
+                            entity.setSellerRejectedAt(java.time.Instant.now());
+                            break;
                         case "cancelled":
-                            valid = true;
+                            // Guard: cancellation not allowed once READY/SHIPPED/DELIVERED
+                            if ("ready".equalsIgnoreCase(cur) || "shipped".equalsIgnoreCase(cur) || "delivered".equalsIgnoreCase(cur)) {
+                                throw new com.bharatshop.error.ApiException(
+                                        org.springframework.http.HttpStatus.CONFLICT,
+                                        "CANCEL_NOT_ALLOWED",
+                                        "Order cannot be cancelled after it is READY",
+                                        null
+                                );
+                            }
+                            // allow seller cancel only before shipment lifecycle
+                            valid = "placed".equals(cur) || "accepted".equals(cur) || "preparing".equals(cur);
                             entity.setCancelledAt(java.time.Instant.now());
                             if (notes != null && !notes.isBlank()) entity.setCancellationReason(notes);
                             break;
                         default:
-                            valid = true; // allow other statuses for backward compatibility
+                            // disallow unknown transitions to prevent legacy drift
+                            valid = false;
                     }
 
                     if (valid) {

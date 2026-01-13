@@ -1,6 +1,6 @@
 package com.bharatshop.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

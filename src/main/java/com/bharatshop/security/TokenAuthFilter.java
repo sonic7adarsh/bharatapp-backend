@@ -31,7 +31,11 @@ public class TokenAuthFilter extends OncePerRequestFilter {
             if (jwtService.isEnabled()) {
                 var payload = jwtService.parse(token);
                 if (payload != null) {
-                    var principal = new UserPrincipal(payload.userId(), payload.name(), payload.role());
+                    // Prefer activeRole when available; fall back to legacy role
+                    String effectiveRole = payload.activeRole() != null && !payload.activeRole().isBlank()
+                            ? payload.activeRole()
+                            : payload.role();
+                    var principal = new UserPrincipal(payload.userId(), payload.name(), effectiveRole);
                     var ctx = SecurityContextHolder.getContext();
                     ctx.setAuthentication(principal);
                 }

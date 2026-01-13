@@ -56,8 +56,8 @@ public class StorefrontCartController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getCart(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                     @RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
+    public ResponseEntity<?> getCart(@RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
+        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
         log.info("Storefront get cart: tenant={} userId={} ", tenant, userId);
         List<CartItem> items = cartService.getCart(userId);
@@ -65,9 +65,9 @@ public class StorefrontCartController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<?> addItem(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                     @RequestHeader(value = "X-Guest-Id", required = false) String guestId,
+    public ResponseEntity<?> addItem(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                      @RequestBody CartItem item) {
+        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
         log.info("Storefront add cart item: tenant={} userId={} itemId={} qty={}", tenant, userId, item.getId(), item.getQuantity());
         List<CartItem> items = cartService.addItem(userId, item);
@@ -81,10 +81,10 @@ public class StorefrontCartController {
     }
 
     @PatchMapping("/items/{id}")
-    public ResponseEntity<?> updateItem(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                        @RequestHeader(value = "X-Guest-Id", required = false) String guestId,
+    public ResponseEntity<?> updateItem(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                         @PathVariable String id,
                                         @RequestBody UpdateCartItemRequest req) {
+        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
         log.info("Storefront update cart item: tenant={} userId={} id={} quantity={} ", tenant, userId, id, req != null ? req.getQuantity() : null);
         List<CartItem> items = cartService.getCart(userId);
@@ -120,9 +120,9 @@ public class StorefrontCartController {
     }
 
     @DeleteMapping("/items/{id}")
-    public ResponseEntity<?> removeItem(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                        @RequestHeader(value = "X-Guest-Id", required = false) String guestId,
+    public ResponseEntity<?> removeItem(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                         @PathVariable String id) {
+        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
         log.info("Storefront remove cart item: tenant={} userId={} id={} ", tenant, userId, id);
         List<CartItem> items = cartService.removeItem(userId, id);
@@ -130,8 +130,8 @@ public class StorefrontCartController {
     }
 
     @DeleteMapping("/clear")
-    public ResponseEntity<?> clearCart(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                       @RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
+    public ResponseEntity<?> clearCart(@RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
+        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
         log.info("Storefront clear cart: tenant={} userId={} ", tenant, userId);
         List<CartItem> items = cartService.clearCart(userId);
@@ -139,9 +139,9 @@ public class StorefrontCartController {
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<?> validateCart(@RequestHeader(value = "X-Tenant-Domain") String tenant,
-                                          @RequestHeader(value = "X-Guest-Id", required = false) String guestId,
+    public ResponseEntity<?> validateCart(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                           @RequestParam String storeId) {
+        String tenant = TenantContext.getTenant();
         String resolvedUserId = resolveUserId(guestId);
         log.info("Validate cart: tenant={} userId={} storeId={}", tenant, resolvedUserId, storeId);
         

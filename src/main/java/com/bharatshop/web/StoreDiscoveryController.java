@@ -109,8 +109,8 @@ public class StoreDiscoveryController {
     }
 
     @PostMapping("/stores")
-    public ResponseEntity<?> addStore(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                      @RequestBody Store store) {
+    public ResponseEntity<?> addStore(@RequestBody Store store) {
+        String tenant = TenantContext.getTenant();
         log.info("Add store: tenant={} name={} area={} category={} ", tenant, store.getName(), store.getArea(), store.getCategory());
         if (store.getId() == null || store.getId().isBlank()) {
             store.setId(java.util.UUID.randomUUID().toString());

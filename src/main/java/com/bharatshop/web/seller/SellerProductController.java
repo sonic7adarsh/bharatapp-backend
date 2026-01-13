@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/seller")
+@PreAuthorize("hasRole('SELLER')")
 public class SellerProductController {
     private static final Logger log = LoggerFactory.getLogger(SellerProductController.class);
     private final FactoryProvider factoryProvider;
@@ -25,7 +27,7 @@ public class SellerProductController {
         this.factoryProvider = factoryProvider;
     }
 
-    private boolean ensureAuth() { return UserPrincipal.current() != null; }
+    // RBAC via @PreAuthorize; avoid manual checks
 
     @GetMapping("/stores/{storeId}/products")
     public ResponseEntity<?> listByStore(@PathVariable String storeId,
@@ -33,9 +35,8 @@ public class SellerProductController {
                                          @RequestParam(required = false) String category,
                                          @RequestParam(required = false) Boolean active,
                                          @RequestParam(required = false) Integer page,
-                                         @RequestParam(required = false) Integer limit,
-                                         @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                         @RequestParam(required = false) Integer limit) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller list products: storeId={} search={} category={} active={} page={} limit={} tenant={}", storeId, search, category, active, page, limit, tenant);
         List<Product> all = factoryProvider.getSellerFactory(tenant).products()
                 .listByStore(storeId, search, category, active, page, limit);
@@ -45,9 +46,8 @@ public class SellerProductController {
 
     @PostMapping(value = "/stores/{storeId}/products", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> createJson(@PathVariable String storeId,
-                                        @RequestBody Map<String, Object> body,
-                                        @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                        @RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
 
         String name = (String) body.get("name");
         Double price = null;
@@ -103,9 +103,8 @@ public class SellerProductController {
                                             @RequestPart(value = "sku", required = false) String sku,
                                             @RequestPart(value = "stock", required = false) String stockStr,
                                             @RequestPart(value = "active", required = false) String activeStr,
-                                            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile,
-                                            @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
 
         Double price = null;
         try { if (priceStr != null && !priceStr.isBlank()) price = Double.parseDouble(priceStr); } catch (Exception ignored) {}
@@ -144,9 +143,8 @@ public class SellerProductController {
     }
 
     @PatchMapping("/products/{productId}")
-    public ResponseEntity<?> update(@PathVariable String productId, @RequestBody Map<String, Object> changes,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> update(@PathVariable String productId, @RequestBody Map<String, Object> changes) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller update product: productId={} changesKeys={}", productId, changes != null ? changes.keySet() : java.util.Collections.emptySet());
         Product updated = factoryProvider.getSellerFactory(tenant).products().updatePartial(productId, changes);
         if (updated == null) throw new NotFoundException("Product not found");
@@ -156,9 +154,8 @@ public class SellerProductController {
 
     @DeleteMapping("/products/{productId}")
     public ResponseEntity<?> delete(@PathVariable String productId,
-                                    @RequestParam(required = false, defaultValue = "true") boolean archive,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                    @RequestParam(required = false, defaultValue = "true") boolean archive) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller delete product requested: productId={} archive={}", productId, archive);
         boolean ok = factoryProvider.getSellerFactory(tenant).products().delete(productId, archive);
         if (!ok) throw new NotFoundException("Product not found");
@@ -168,9 +165,8 @@ public class SellerProductController {
 
     @PostMapping(value = "/products/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadImage(@PathVariable String productId,
-                                         @RequestPart("file") MultipartFile file,
-                                         @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                         @RequestPart("file") MultipartFile file) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller upload product image: productId={} filename={}", productId, file != null ? file.getOriginalFilename() : null);
         Product updated = factoryProvider.getSellerFactory(tenant).products().updateImage(productId, file.getOriginalFilename());
         if (updated == null) throw new NotFoundException("Product not found");
@@ -179,9 +175,8 @@ public class SellerProductController {
     }
 
     @PatchMapping("/products/{productId}/inventory")
-    public ResponseEntity<?> adjustInventory(@PathVariable String productId, @RequestBody Map<String, Object> body,
-                                             @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> adjustInventory(@PathVariable String productId, @RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         Integer stockDelta = body.get("stockDelta") instanceof Number ? ((Number) body.get("stockDelta")).intValue() : null;
         Integer stockSet = body.get("stockSet") instanceof Number ? ((Number) body.get("stockSet")).intValue() : null;
         Double price = body.get("price") instanceof Number ? ((Number) body.get("price")).doubleValue() : null;

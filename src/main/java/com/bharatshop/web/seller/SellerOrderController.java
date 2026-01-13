@@ -9,6 +9,7 @@ import com.bharatshop.error.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.bharatshop.error.BadRequestException;
 
@@ -20,24 +21,21 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/seller")
+@PreAuthorize("hasRole('SELLER')")
 public class SellerOrderController {
     private static final Logger log = LoggerFactory.getLogger(SellerOrderController.class);
     private final FactoryProvider factoryProvider;
     private final com.bharatshop.service.LogisticsService logisticsService;
+    private final com.bharatshop.service.SellerOrderService sellerOrderService;
 
-    public SellerOrderController(FactoryProvider factoryProvider, com.bharatshop.service.LogisticsService logisticsService) {
+    public SellerOrderController(FactoryProvider factoryProvider, com.bharatshop.service.LogisticsService logisticsService,
+                                 com.bharatshop.service.SellerOrderService sellerOrderService) {
         this.factoryProvider = factoryProvider;
         this.logisticsService = logisticsService;
+        this.sellerOrderService = sellerOrderService;
     }
 
-    private boolean ensureAuth() {
-        com.bharatshop.security.UserPrincipal up = com.bharatshop.security.UserPrincipal.current();
-        if (up == null) return false;
-        String role = up.getRole();
-        if (role == null) return false;
-        role = role.toLowerCase();
-        return role.equals("seller") || role.equals("vendor") || role.equals("admin");
-    }
+    // RBAC is enforced via @PreAuthorize and SecurityConfig; no manual checks
 
     @GetMapping("/orders")
     public ResponseEntity<?> list(@RequestParam(required = false) String storeId,
@@ -45,9 +43,8 @@ public class SellerOrderController {
                                   @RequestParam(required = false) String from,
                                   @RequestParam(required = false) String to,
                                   @RequestParam(required = false) Integer page,
-                                  @RequestParam(required = false) Integer limit,
-                                  @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                  @RequestParam(required = false) Integer limit) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller list orders: storeId={} status={} from={} to={} page={} limit={} tenant={}", storeId, status, from, to, page, limit, tenant);
         List<Order> dto = factoryProvider.getSellerFactory(tenant).orders().list(storeId, status, from, to, page, limit);
         log.info("Seller list orders success: count={}", dto != null ? dto.size() : 0);
@@ -55,9 +52,8 @@ public class SellerOrderController {
     }
 
     @GetMapping("/orders/{orderId}")
-    public ResponseEntity<?> get(@PathVariable String orderId,
-                                 @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> get(@PathVariable String orderId) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller get order: orderId={} tenant={}", orderId, tenant);
         Order o = factoryProvider.getSellerFactory(tenant).orders().get(orderId);
         if (o == null) throw new NotFoundException("Order not found");
@@ -66,9 +62,8 @@ public class SellerOrderController {
     }
 
     @PatchMapping("/orders/{orderId}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable String orderId, @RequestBody Map<String, Object> body,
-                                          @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> updateStatus(@PathVariable String orderId, @RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String status = (String) body.get("status");
         if (status == null) throw new BadRequestException("status is required");
         String notes = (String) body.get("notes");
@@ -80,31 +75,30 @@ public class SellerOrderController {
     }
 
     @PostMapping("/orders/{orderId}/accept")
-    public ResponseEntity<?> accept(@PathVariable String orderId,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> accept(@PathVariable String orderId) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller accept order: orderId={} tenant={}", orderId, tenant);
-        Order o = factoryProvider.getSellerFactory(tenant).orders().updateStatus(orderId, "accepted", null);
-        if (o == null) throw new NotFoundException("Order not found");
-        return ResponseEntity.ok(Map.of("status", o.getStatus()));
+        var principal = com.bharatshop.security.UserPrincipal.current();
+        var e = sellerOrderService.acceptOrder(orderId, principal != null ? principal.getUserId() : null);
+        if (e == null) throw new NotFoundException("Order not found");
+        return ResponseEntity.ok(Map.of("status", e.getStatus()));
     }
 
     @PostMapping("/orders/{orderId}/reject")
     public ResponseEntity<?> reject(@PathVariable String orderId,
-                                    @RequestBody(required = false) Map<String, Object> body,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                    @RequestBody(required = false) Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String reason = body != null ? (String) body.get("reason") : null;
         log.info("Seller reject order: orderId={} tenant={} reason={}", orderId, tenant, reason);
-        Order o = factoryProvider.getSellerFactory(tenant).orders().updateStatus(orderId, "rejected", reason);
-        if (o == null) throw new NotFoundException("Order not found");
-        return ResponseEntity.ok(Map.of("status", o.getStatus(), "reason", reason));
+        var principal = com.bharatshop.security.UserPrincipal.current();
+        var e = sellerOrderService.rejectOrder(orderId, principal != null ? principal.getUserId() : null, reason);
+        if (e == null) throw new NotFoundException("Order not found");
+        return ResponseEntity.ok(Map.of("status", e.getStatus(), "reason", reason));
     }
 
     @PostMapping("/orders/{orderId}/ship")
-    public ResponseEntity<?> ship(@PathVariable String orderId,
-                                  @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> ship(@PathVariable String orderId) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller ship order: orderId={} tenant={}", orderId, tenant);
         Order o = factoryProvider.getSellerFactory(tenant).orders().updateStatus(orderId, "shipped", null);
         if (o == null) throw new NotFoundException("Order not found");
@@ -112,20 +106,33 @@ public class SellerOrderController {
     }
 
     @PostMapping("/orders/{orderId}/deliver")
-    public ResponseEntity<?> deliver(@PathVariable String orderId,
-                                     @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> deliver(@PathVariable String orderId) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller deliver order: orderId={} tenant={}", orderId, tenant);
         Order o = factoryProvider.getSellerFactory(tenant).orders().updateStatus(orderId, "delivered", null);
         if (o == null) throw new NotFoundException("Order not found");
         return ResponseEntity.ok(Map.of("status", o.getStatus()));
     }
 
+    @PostMapping("/orders/{orderId}/prepare")
+    public ResponseEntity<?> prepare(@PathVariable String orderId) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
+        log.info("Seller prepare order: orderId={} tenant={}", orderId, tenant);
+        var principal = com.bharatshop.security.UserPrincipal.current();
+        var e = sellerOrderService.markPreparing(orderId, principal != null ? principal.getUserId() : null);
+        if (e == null) throw new NotFoundException("Order not found");
+        return ResponseEntity.ok(Map.of("status", e.getStatus()));
+    }
+
+    @PostMapping("/orders/{orderId}/preparing")
+    public ResponseEntity<?> preparingAlias(@PathVariable String orderId) {
+        return prepare(orderId);
+    }
+
     @PatchMapping("/orders/{orderId}/items/{itemId}/status")
     public ResponseEntity<?> updateItemStatus(@PathVariable String orderId, @PathVariable String itemId,
-                                              @RequestBody Map<String, Object> body,
-                                              @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                              @RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String status = body.get("status") != null ? String.valueOf(body.get("status")) : null;
         if (status == null || status.isBlank()) throw new BadRequestException("status is required");
         log.info("Seller update order item status: orderId={} itemId={} status={} tenant={} ", orderId, itemId, status, tenant);
@@ -141,9 +148,8 @@ public class SellerOrderController {
 
     @PostMapping("/orders/{orderId}/cancel")
     public ResponseEntity<?> cancel(@PathVariable String orderId,
-                                    @RequestBody(required = false) Map<String, Object> body,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                    @RequestBody(required = false) Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String reason = body != null ? (String) body.get("reason") : null;
         log.info("Seller cancel order: orderId={} tenant={} reason={}", orderId, tenant, reason);
         Order o = factoryProvider.getSellerFactory(tenant).orders().updateStatus(orderId, "cancelled", reason);
@@ -152,9 +158,8 @@ public class SellerOrderController {
     }
 
     @PostMapping("/orders/{orderId}/refunds")
-    public ResponseEntity<?> refund(@PathVariable String orderId, @RequestBody Map<String, Object> body,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> refund(@PathVariable String orderId, @RequestBody Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         Number amount = (Number) body.get("amount");
         String reason = (String) body.get("reason");
         if (amount == null) throw new BadRequestException("amount is required");
@@ -166,19 +171,19 @@ public class SellerOrderController {
     }
 
     @PostMapping("/orders/{orderId}/ready")
-    public ResponseEntity<?> markReady(@PathVariable String orderId,
-                                       @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
-        Order o = factoryProvider.getSellerFactory(tenant).orders().updateStatus(orderId, "ready", null);
-        if (o == null) throw new NotFoundException("Order not found");
+    public ResponseEntity<?> markReady(@PathVariable String orderId) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
+        var principal = com.bharatshop.security.UserPrincipal.current();
+        var e = sellerOrderService.markReady(orderId, principal != null ? principal.getUserId() : null);
+        if (e == null) throw new NotFoundException("Order not found");
         // Attempt rider assignment when ready
         try {
-            com.bharatshop.entity.OrderDeliveryEntity d = logisticsService.assignRider(tenant != null ? tenant : com.bharatshop.tenant.TenantContext.getTenant(), orderId, o.getStoreId());
+            com.bharatshop.entity.OrderDeliveryEntity d = logisticsService.assignRider(tenant, orderId, e.getStoreId());
             log.info("Rider assignment upon ready: orderId={} deliveryId={} riderId={}", orderId, d != null ? d.getId() : null, d != null ? d.getRiderId() : null);
         } catch (Exception ex) {
             log.warn("Rider assignment failed: orderId={} error={}", orderId, ex.getMessage());
         }
-        return ResponseEntity.ok(Map.of("status", o.getStatus()));
+        return ResponseEntity.ok(Map.of("status", e.getStatus()));
     }
 
     private Instant parseDate(String d) {

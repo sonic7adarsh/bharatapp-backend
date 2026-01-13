@@ -59,19 +59,25 @@ public class UserController {
             // Switch role
             UserRoleEntity newRole = userRoleService.switchUserRole(payload.userId(), targetRole);
             
-            // Generate new token with updated role
-            String newToken = jwtService.generateToken(
+            // Generate new token with updated role and full allowed roles
+            java.util.List<String> allowedRoles = userRoleService.getUserRoles(payload.userId());
+            if (allowedRoles == null || allowedRoles.isEmpty()) {
+                allowedRoles = java.util.List.of("CUSTOMER");
+            }
+            String newToken = jwtService.generateTokenWithRoles(
                 payload.userId(),
                 payload.name(),
                 targetRole,
                 payload.tenantId(),
-                targetRole
+                targetRole,
+                allowedRoles
             );
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("token", newToken);
             response.put("active_role", targetRole);
+            response.put("allowed_roles", allowedRoles);
             response.put("message", "Role switched successfully");
             
             return ResponseEntity.ok(response);
@@ -97,8 +103,8 @@ public class UserController {
                     .body(Map.of("error", "Invalid token"));
             }
             
-            // Get user details
-            UserEntity user = userRepository.findById(payload.userId())
+            // Get user details (tenant-scoped)
+            UserEntity user = userRepository.findByIdAndTenantId(payload.userId(), payload.tenantId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
             
             // Get user roles - ensure we always return valid roles
@@ -106,17 +112,9 @@ public class UserController {
             List<String> allowedRoles;
             
             if (userRoles.isEmpty()) {
-                // Fallback: if no roles in user_roles table, check legacy role field
-                String legacyRole = user.getRole();
-                if (legacyRole != null && !legacyRole.isBlank()) {
-                    // Initialize the legacy role in the new system
-                    userRoleService.initializeCustomerRole(payload.userId());
-                    allowedRoles = List.of(legacyRole);
-                } else {
-                    // Default to CUSTOMER role for existing users without roles
-                    userRoleService.initializeCustomerRole(payload.userId());
-                    allowedRoles = List.of("CUSTOMER");
-                }
+                // Ensure at least CUSTOMER role exists and is active
+                userRoleService.initializeCustomerRole(payload.userId());
+                allowedRoles = List.of("CUSTOMER");
             } else {
                 allowedRoles = userRoles.stream()
                     .map(UserRoleEntity::getRole)
@@ -125,9 +123,6 @@ public class UserController {
             
             // Get active role - ensure consistency
             String activeRole = payload.activeRole();
-            if (activeRole == null) {
-                activeRole = payload.role(); // Fallback to legacy role
-            }
             if (activeRole == null || activeRole.isBlank()) {
                 // If still no active role, use the first available role
                 activeRole = allowedRoles.isEmpty() ? "CUSTOMER" : allowedRoles.get(0);
@@ -149,6 +144,43 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to get user info: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/roles/assign")
+    public ResponseEntity<Map<String, Object>> assignRole(@RequestHeader("Authorization") String authHeader,
+                                                          @RequestBody Map<String, String> request) {
+        String token = extractToken(authHeader);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Invalid token"));
+        }
+        JwtService.Payload payload = jwtService.parse(token);
+        if (payload == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Invalid token"));
+        }
+
+        String role = request.get("role");
+        if (role == null || role.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Role is required"));
+        }
+        String normalized = role.trim().toUpperCase();
+        if (!("SELLER".equals(normalized) || "RIDER".equals(normalized))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Only SELLER or RIDER can be assigned"));
+        }
+
+        // Assign role to current user
+        userRoleService.addRoleToUser(payload.userId(), normalized);
+        java.util.List<String> allowedRoles = userRoleService.getUserRoles(payload.userId());
+        if (allowedRoles == null || allowedRoles.isEmpty()) {
+            allowedRoles = java.util.List.of("CUSTOMER");
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "assigned_role", normalized,
+                "allowed_roles", allowedRoles
+        ));
     }
     
     private String extractToken(String authHeader) {

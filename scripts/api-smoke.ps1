@@ -101,14 +101,33 @@ if ($storeId) {
 }
 
 # Legacy catalog (unauth) and secured legacy/storefront flows (with token)
-$resp = Invoke-Api -Name 'Legacy products' -Method 'GET' -Path '/store/products' -Session $session; if ($resp) { $ok++ } else { $fail++ }
+$legacyProducts = Invoke-Api -Name 'Legacy products' -Method 'GET' -Path '/store/products' -Session $session; if ($legacyProducts) { $ok++ } else { $fail++ }
 $resp = Invoke-Api -Name 'Legacy categories' -Method 'GET' -Path '/store/categories' -Session $session; if ($resp) { $ok++ } else { $fail++ }
 $resp = Invoke-Api -Name 'Legacy orders list' -Method 'GET' -Path '/store/orders' -Headers $sfHeaders -Session $session; if ($resp) { $ok++ } else { $fail++ }
-$resp = Invoke-Api -Name 'Legacy order detail' -Method 'GET' -Path '/store/order/1' -Headers $sfHeaders -Session $session; if ($resp) { $ok++ } else { $fail++ }
+
+# Extract a valid product and store for legacy checkout
+$legacyProductId = $null; $legacyStoreId = $null
+try {
+  $plist = ($legacyProducts.Content | ConvertFrom-Json)
+  if ($plist -and $plist.Count -gt 0) {
+    $legacyProductId = $plist[0].id
+    $legacyStoreId = $plist[0].storeId
+  }
+} catch {}
 
 # Legacy checkout (address object)
 $address = @{ line1='Smoke Address'; city='City'; area='Area'; pin='000000' }
-$resp = Invoke-Api -Name 'Legacy checkout' -Method 'POST' -Path '/store/checkout' -Headers $sfHeaders -Body @{ items=@(@{ productId=1; qty=1 }); address=$address; paymentMethod='COD' } -Session $session; if ($resp) { $ok++ } else { $fail++ }
+$legacyCheckoutBody = @{ items=@(@{ id=$legacyProductId; quantity=1 }); address=$address; paymentMethod='cod'; storeId=$legacyStoreId; deliveryLat=12.9716; deliveryLng=77.5946 }
+$legacyCheckout = Invoke-Api -Name 'Legacy checkout' -Method 'POST' -Path '/store/checkout' -Headers $sfHeaders -Body $legacyCheckoutBody -Session $session; if ($legacyCheckout) { $ok++ } else { $fail++ }
+
+# Legacy order detail using newly created order id
+$legacyOrderId = $null
+try { $legacyOrderId = ($legacyCheckout.Content | ConvertFrom-Json).order.id } catch {}
+if ($legacyOrderId) {
+  $resp = Invoke-Api -Name 'Legacy order detail' -Method 'GET' -Path "/store/order/$legacyOrderId" -Headers $sfHeaders -Session $session; if ($resp) { $ok++ } else { $fail++ }
+} else {
+  Write-Host "[WARN] No legacyOrderId captured; skipping Legacy order detail"
+}
 
 # Payments (legacy and storefront) after auth fallback
 $resp = Invoke-Api -Name 'Legacy payments initiate' -Method 'POST' -Path '/store/payments/initiate' -Headers $sfHeaders -Body @{ amount=100; currency='INR' } -Session $session; if ($resp) { $ok++ } else { $fail++ }

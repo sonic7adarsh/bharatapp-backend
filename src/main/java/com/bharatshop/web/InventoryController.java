@@ -15,8 +15,14 @@ public class InventoryController {
     private final InventoryService inventoryService;
     public InventoryController(InventoryService inventoryService) { this.inventoryService = inventoryService; }
 
+    private boolean ensureAdmin() {
+        com.bharatshop.security.UserPrincipal up = com.bharatshop.security.UserPrincipal.current();
+        return up != null && up.hasRole("ADMIN");
+    }
+
     @PostMapping("/reserve")
     public ResponseEntity<?> reserve(@RequestBody Map<String, Object> req) {
+        if (!ensureAdmin()) return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
         String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         String productId = (String) req.get("productId");
         int quantity = ((Number) req.getOrDefault("quantity", 0)).intValue();
@@ -29,6 +35,7 @@ public class InventoryController {
 
     @PostMapping("/release")
     public ResponseEntity<?> release(@RequestBody Map<String, Object> req) {
+        if (!ensureAdmin()) return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
         String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         String productId = (String) req.get("productId");
         int quantity = ((Number) req.getOrDefault("quantity", 0)).intValue();

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,13 +18,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/seller/products/bulk-upload")
+@PreAuthorize("hasRole('SELLER')")
 public class SellerBulkUploadController {
     private static final Logger log = LoggerFactory.getLogger(SellerBulkUploadController.class);
     private final BulkUploadService bulkUploadService;
 
     public SellerBulkUploadController(BulkUploadService bulkUploadService) { this.bulkUploadService = bulkUploadService; }
 
-    private boolean ensureAuth() { return UserPrincipal.current() != null; }
+    // RBAC via @PreAuthorize; avoid manual auth checks
 
     // POST /api/seller/products/bulk-upload (multipart or JSON)
     @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_JSON_VALUE })
@@ -32,9 +34,8 @@ public class SellerBulkUploadController {
                                     @RequestParam(required = false) String defaultCurrency,
                                     @RequestParam(required = false) Double defaultTaxRate,
                                     @RequestPart(required = false, name = "file") MultipartFile file,
-                                    @RequestBody(required = false) Map<String, Object> body,
-                                    @RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                    @RequestBody(required = false) Map<String, Object> body) {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         boolean isDry = dryRun != null && dryRun;
         String effectiveMode = StringUtils.hasText(mode) ? mode : "upsert";
         String source;
@@ -65,7 +66,6 @@ public class SellerBulkUploadController {
     // GET /api/seller/products/bulk-upload/{jobId}
     @GetMapping("/{jobId}")
     public ResponseEntity<?> status(@PathVariable String jobId) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         var js = bulkUploadService.getStatus(jobId);
         if (js == null) throw new NotFoundException("Job not found");
         return ResponseEntity.ok(Map.of(
@@ -80,7 +80,6 @@ public class SellerBulkUploadController {
     // GET /api/seller/products/bulk-upload/{jobId}/errors
     @GetMapping("/{jobId}/errors")
     public ResponseEntity<?> errors(@PathVariable String jobId) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         List<BulkUploadService.JobError> errs = bulkUploadService.getErrors(jobId);
         if (errs == null) throw new NotFoundException("Job not found");
         return ResponseEntity.ok(errs);
@@ -89,7 +88,6 @@ public class SellerBulkUploadController {
     // Optional cancel: behaves consistently with pipeline semantics
     @DeleteMapping("/{jobId}")
     public ResponseEntity<?> cancel(@PathVariable String jobId) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
         var js = bulkUploadService.cancel(jobId);
         if (js == null) throw new NotFoundException("Job not found");
         return ResponseEntity.ok(Map.of(

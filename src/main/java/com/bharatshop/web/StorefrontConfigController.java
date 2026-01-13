@@ -59,7 +59,8 @@ public class StorefrontConfigController {
     private String addressRequiredFields;
 
     @GetMapping("/payments/config")
-    public ResponseEntity<?> paymentsConfig(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
+    public ResponseEntity<?> paymentsConfig() {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Payments config requested: tenant={}", tenant);
         Map<String, Object> methods = Map.of(
                 "online", onlineEnabled,
@@ -83,7 +84,8 @@ public class StorefrontConfigController {
 
 
     @GetMapping("/checkout/config")
-    public ResponseEntity<?> checkoutConfig(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
+    public ResponseEntity<?> checkoutConfig() {
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Checkout config requested: tenant={}", tenant);
         Map<String, Object> deliverySlots = Map.of(
                 "enabled", deliverySlotsEnabled,

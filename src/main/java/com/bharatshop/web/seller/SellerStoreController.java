@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +23,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/seller")
+@PreAuthorize("hasRole('SELLER')")
 public class SellerStoreController {
     private static final Logger log = LoggerFactory.getLogger(SellerStoreController.class);
     private final FactoryProvider factoryProvider;
@@ -35,9 +37,7 @@ public class SellerStoreController {
         this.userRepository = userRepository;
     }
 
-    private boolean ensureAuth() {
-        return UserPrincipal.current() != null;
-    }
+    // RBAC via @PreAuthorize; avoid manual auth checks
 
     @GetMapping("/stores")
     public ResponseEntity<Map<String, Object>> listStores(@RequestParam(required = false) String search,
@@ -45,10 +45,9 @@ public class SellerStoreController {
             @RequestParam(required = false, name = "limit") Integer limit,
             @RequestParam(required = false, name = "pageSize") Integer pageSize,
             @RequestParam(required = false, name = "ownerPhone") String ownerPhone,
-            @RequestParam(required = false, name = "status") String status,
-            @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
+            @RequestParam(required = false, name = "status") String status) {
+        String tenantDomain = com.bharatshop.tenant.TenantContext.getTenant();
         UserPrincipal up = UserPrincipal.current();
-        if (up == null) throw new UnauthorizedException("Unauthorized");
         log.info(
                 "Seller list stores: search={} page={} limit={} pageSize={} ownerPhone={} status={} tenant={} userId={}",
                 search, page, limit, pageSize, ownerPhone, status, tenantDomain, up.getUserId());
@@ -106,8 +105,7 @@ public class SellerStoreController {
             @RequestPart(value = "category", required = false) String category,
             @RequestPart(value = "image", required = false) MultipartFile image,
             @RequestBody(required = false) Map<String, Object> body) {
-        if (!ensureAuth())
-            throw new UnauthorizedException("Unauthorized");
+        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller create store requested: name={} city={} area={} category={} imagePresent={}", name, city, area,
                 category, image != null);
         // Prefer multipart parts, fallback to JSON body if provided
@@ -133,7 +131,7 @@ public class SellerStoreController {
                 String phone = resolvePhone(principal.getUserId());
                 s.setOwnerPhone(phone);
             }
-            Store created = factoryProvider.getSellerFactory(null).stores().create(s);
+            Store created = factoryProvider.getSellerFactory(tenant).stores().create(s);
             log.info("Seller create store success: id={} name={} ", created.getId(), created.getName());
 
             // Upgrade role immediately for pre-seller users without forcing re-login
@@ -184,9 +182,8 @@ public class SellerStoreController {
 
     @PatchMapping("/stores/{storeId}")
     public ResponseEntity<?> updateStore(@PathVariable String storeId,
-                                         @RequestBody Map<String, Object> changes,
-                                         @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                         @RequestBody Map<String, Object> changes) {
+        String tenantDomain = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller update store: storeId={} changesKeys={} tenant={} ", storeId,
                 changes != null ? changes.keySet() : java.util.Collections.emptySet(), tenantDomain);
 
@@ -256,9 +253,8 @@ public class SellerStoreController {
                                                   @RequestPart(value = "orderingDisabled", required = false) String orderingDisabled,
                                                   @RequestPart(value = "closedReason", required = false) String closedReason,
                                                   @RequestPart(value = "closedUntil", required = false) String closedUntil,
-                                                  @RequestPart(value = "logoFile", required = false) org.springframework.web.multipart.MultipartFile logoFile,
-                                                  @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+                                                  @RequestPart(value = "logoFile", required = false) org.springframework.web.multipart.MultipartFile logoFile) {
+        String tenantDomain = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller update store (multipart): storeId={} name={} area={} category={} status={} logoPresent={} tenant={}", storeId, name, area, category, status, logoFile != null, tenantDomain);
 
         Store existing = factoryProvider.getSellerFactory(tenantDomain).stores().get(storeId);
@@ -318,9 +314,8 @@ public class SellerStoreController {
     }
 
     @GetMapping("/stores/{storeId}")
-    public ResponseEntity<?> getStore(@PathVariable String storeId,
-                                      @RequestHeader(value = "X-Tenant-Domain", required = false) String tenantDomain) {
-        if (!ensureAuth()) throw new UnauthorizedException("Unauthorized");
+    public ResponseEntity<?> getStore(@PathVariable String storeId) {
+        String tenantDomain = com.bharatshop.tenant.TenantContext.getTenant();
         var principal = UserPrincipal.current();
         Store s = factoryProvider.getSellerFactory(tenantDomain).stores().get(storeId);
         if (s == null || principal == null || s.getOwnerId() == null || !s.getOwnerId().equals(principal.getUserId())) {

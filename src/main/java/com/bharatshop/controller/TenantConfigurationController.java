@@ -2,7 +2,6 @@ package com.bharatshop.controller;
 
 import com.bharatshop.entity.TenantConfiguration;
 import com.bharatshop.service.TenantConfigurationService;
-import com.bharatshop.service.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +25,8 @@ public class TenantConfigurationController {
     
     @GetMapping("/config/{configKey}")
     public ResponseEntity<Map<String, Object>> getConfiguration(
-            @PathVariable String configKey,
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+            @PathVariable String configKey) {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             Optional<TenantConfiguration> config = tenantConfigurationService.getConfiguration(tenantId, configKey);
             
@@ -54,8 +53,8 @@ public class TenantConfigurationController {
     }
     
     @GetMapping("/config")
-    public ResponseEntity<Map<String, Object>> getAllConfigurations(
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+    public ResponseEntity<Map<String, Object>> getAllConfigurations() {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             List<TenantConfiguration> configurations = tenantConfigurationService.getAllConfigurations(tenantId);
             
@@ -73,8 +72,8 @@ public class TenantConfigurationController {
     }
     
     @GetMapping("/features")
-    public ResponseEntity<Map<String, Object>> getAllFeatures(
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+    public ResponseEntity<Map<String, Object>> getAllFeatures() {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             Map<String, Boolean> features = tenantConfigurationService.getAllFeatures(tenantId);
             
@@ -93,8 +92,8 @@ public class TenantConfigurationController {
     
     @GetMapping("/features/{featureKey}")
     public ResponseEntity<Map<String, Object>> isFeatureEnabled(
-            @PathVariable String featureKey,
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+            @PathVariable String featureKey) {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             boolean enabled = tenantConfigurationService.isFeatureEnabled(tenantId, featureKey);
             
@@ -113,8 +112,8 @@ public class TenantConfigurationController {
     
     @PostMapping("/config")
     public ResponseEntity<Map<String, Object>> createConfiguration(
-            @RequestBody Map<String, Object> configRequest,
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+            @RequestBody Map<String, Object> configRequest) {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             String configKey = (String) configRequest.get("key");
             String configValue = (String) configRequest.get("value");
@@ -145,8 +144,8 @@ public class TenantConfigurationController {
     @PutMapping("/config/{configKey}")
     public ResponseEntity<Map<String, Object>> updateConfiguration(
             @PathVariable String configKey,
-            @RequestBody Map<String, Object> configRequest,
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+            @RequestBody Map<String, Object> configRequest) {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             Optional<TenantConfiguration> existingConfig = tenantConfigurationService.getConfiguration(tenantId, configKey);
             if (existingConfig.isEmpty()) {
@@ -184,8 +183,8 @@ public class TenantConfigurationController {
     
     @DeleteMapping("/config/{configKey}")
     public ResponseEntity<Map<String, Object>> deleteConfiguration(
-            @PathVariable String configKey,
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+            @PathVariable String configKey) {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             boolean deleted = tenantConfigurationService.deleteConfiguration(tenantId, configKey);
             
@@ -203,8 +202,8 @@ public class TenantConfigurationController {
     }
     
     @PostMapping("/cache/clear")
-    public ResponseEntity<Map<String, Object>> clearCache(
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+    public ResponseEntity<Map<String, Object>> clearCache() {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         try {
             tenantConfigurationService.clearCache(tenantId);
             return ResponseEntity.ok(Map.of("message", "Cache cleared successfully"));

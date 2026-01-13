@@ -20,6 +20,7 @@ public class OrderEntity {
     private String type;
     private Instant sellerResponseDeadline;
     private Instant sellerAcceptedAt;
+    private Instant sellerRejectedAt;
     private Instant cancelledAt;
     private String cancellationReason;
     private String storeId;
@@ -66,6 +67,8 @@ public class OrderEntity {
     public void setSellerResponseDeadline(Instant sellerResponseDeadline) { this.sellerResponseDeadline = sellerResponseDeadline; }
     public Instant getSellerAcceptedAt() { return sellerAcceptedAt; }
     public void setSellerAcceptedAt(Instant sellerAcceptedAt) { this.sellerAcceptedAt = sellerAcceptedAt; }
+    public Instant getSellerRejectedAt() { return sellerRejectedAt; }
+    public void setSellerRejectedAt(Instant sellerRejectedAt) { this.sellerRejectedAt = sellerRejectedAt; }
     public Instant getCancelledAt() { return cancelledAt; }
     public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
     public String getCancellationReason() { return cancellationReason; }

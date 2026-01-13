@@ -7,6 +7,7 @@ import com.bharatshop.entity.StoreZoneEntity;
 import com.bharatshop.entity.RiderZoneEntity;
 import com.bharatshop.entity.RiderLocationEntity;
 import com.bharatshop.repository.OrderDeliveryRepository;
+import com.bharatshop.repository.OrderItemRepository;
 import com.bharatshop.repository.OrderRepository;
 import com.bharatshop.repository.RiderRepository;
 import com.bharatshop.repository.DeliveryAttemptRepository;
@@ -15,7 +16,9 @@ import com.bharatshop.repository.RiderZoneRepository;
 import com.bharatshop.repository.RiderLocationRepository;
 import com.bharatshop.service.GeoService;
 import com.bharatshop.service.NotificationService;
+import com.bharatshop.error.ApiException;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +38,8 @@ public class LogisticsService {
     private final GeoService geoService;
     private final OrderRepository orderRepository;
     private final NotificationService notificationService;
+    private final InventoryService inventoryService;
+    private final OrderItemRepository orderItemRepository;
 
     public LogisticsService(RiderRepository riderRepository,
                             OrderDeliveryRepository orderDeliveryRepository,
@@ -44,7 +49,9 @@ public class LogisticsService {
                             RiderLocationRepository riderLocationRepository,
                             GeoService geoService,
                             OrderRepository orderRepository,
-                            NotificationService notificationService) {
+                            NotificationService notificationService,
+                            InventoryService inventoryService,
+                            OrderItemRepository orderItemRepository) {
         this.riderRepository = riderRepository;
         this.orderDeliveryRepository = orderDeliveryRepository;
         this.storeZoneRepository = storeZoneRepository;
@@ -54,9 +61,20 @@ public class LogisticsService {
         this.geoService = geoService;
         this.orderRepository = orderRepository;
         this.notificationService = notificationService;
+        this.inventoryService = inventoryService;
+        this.orderItemRepository = orderItemRepository;
     }
 
     public OrderDeliveryEntity assignRider(String tenantId, String orderId, String storeId) {
+        // Guard: Order must be READY
+        var orderOpt = orderRepository.findByTenantIdAndId(tenantId, orderId);
+        if (orderOpt.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
+        }
+        String curStatus = orderOpt.get().getStatus() == null ? "" : orderOpt.get().getStatus().toUpperCase();
+        if (!"READY".equals(curStatus)) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
+        }
         List<RiderEntity> available = riderRepository.findByTenantIdAndStatus(tenantId, "ONLINE");
         if (available.isEmpty()) { return null; }
 
@@ -147,8 +165,85 @@ public class LogisticsService {
         return orderDeliveryRepository.save(delivery);
     }
 
+    /**
+     * Admin override: assign rider optionally explicitly. Enforces order READY and tenant scoping.
+     */
+    public OrderDeliveryEntity assignRiderAdmin(String tenantId, String orderId, String storeId, String riderId) {
+        var orderOpt = orderRepository.findByTenantIdAndId(tenantId, orderId);
+        if (orderOpt.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
+        }
+        String curStatus = orderOpt.get().getStatus() == null ? "" : orderOpt.get().getStatus().toUpperCase();
+        if (!"READY".equals(curStatus)) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
+        }
+        if (riderId == null || riderId.isBlank()) {
+            // Fallback to existing auto-assignment logic
+            return assignRider(tenantId, orderId, storeId);
+        }
+        RiderEntity rider = riderRepository.findById(riderId).orElse(null);
+        if (rider == null || rider.getTenantId() == null || !tenantId.equals(rider.getTenantId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "CROSS_TENANT_RIDER", "Rider not in current tenant");
+        }
+        if (!"ONLINE".equalsIgnoreCase(rider.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "RIDER_NOT_AVAILABLE", "Rider not available for assignment");
+        }
+        rider.setStatus("ASSIGNED");
+        riderRepository.save(rider);
+
+        OrderDeliveryEntity delivery = new OrderDeliveryEntity();
+        delivery.setId(UUID.randomUUID().toString());
+        delivery.setTenantId(tenantId);
+        delivery.setOrderId(orderId);
+        delivery.setStoreId(storeId);
+        delivery.setRiderId(rider.getId());
+        delivery.setStatus("RIDER_ASSIGNED");
+        delivery.setAssignedAt(Instant.now());
+        delivery.setOtp(String.valueOf((int)(Math.random()*9000)+1000));
+        return orderDeliveryRepository.save(delivery);
+    }
+
+    /**
+     * Admin override: unassign rider from a delivery if not yet picked up.
+     */
+    public OrderDeliveryEntity unassignRiderAdmin(String tenantId, String deliveryId) {
+        OrderDeliveryEntity d = orderDeliveryRepository.findByTenantIdAndId(tenantId, deliveryId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "DELIVERY_NOT_FOUND", "Delivery not found"));
+        String status = d.getStatus() == null ? "" : d.getStatus().toUpperCase();
+        if (!"RIDER_ASSIGNED".equals(status)) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Can only unassign when RIDER_ASSIGNED");
+        }
+        var orderOpt = orderRepository.findByTenantIdAndId(tenantId, d.getOrderId());
+        if (orderOpt.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
+        }
+        String orderStatus = orderOpt.get().getStatus() == null ? "" : orderOpt.get().getStatus().toUpperCase();
+        if (!"READY".equals(orderStatus)) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Order must be READY to unassign rider");
+        }
+        // Reset rider status to ONLINE
+        if (d.getRiderId() != null) {
+            riderRepository.findById(d.getRiderId()).ifPresent(r -> {
+                if (tenantId.equals(r.getTenantId())) {
+                    r.setStatus("ONLINE");
+                    riderRepository.save(r);
+                }
+            });
+        }
+        // Reset delivery to pending assignment
+        d.setRiderId(null);
+        d.setStatus("PENDING");
+        d.setAssignedAt(null);
+        d.setOtp(null);
+        return orderDeliveryRepository.save(d);
+    }
+
     public OrderDeliveryEntity markPickedUp(String deliveryId) {
         return orderDeliveryRepository.findById(deliveryId).map(d -> {
+            String cur = d.getStatus() == null ? "" : d.getStatus();
+            if (!"RIDER_ASSIGNED".equalsIgnoreCase(cur)) {
+                throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
+            }
             d.setStatus("PICKED_UP");
             d.setPickedUpAt(Instant.now());
             return orderDeliveryRepository.save(d);
@@ -157,6 +252,10 @@ public class LogisticsService {
 
     public OrderDeliveryEntity markOutForDelivery(String deliveryId) {
         return orderDeliveryRepository.findById(deliveryId).map(d -> {
+            String cur = d.getStatus() == null ? "" : d.getStatus();
+            if (!"PICKED_UP".equalsIgnoreCase(cur)) {
+                throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
+            }
             d.setStatus("OUT_FOR_DELIVERY");
             return orderDeliveryRepository.save(d);
         }).orElse(null);
@@ -164,22 +263,33 @@ public class LogisticsService {
 
     public OrderDeliveryEntity completeWithOtp(String deliveryId, String otp) {
         return orderDeliveryRepository.findById(deliveryId).map(d -> {
-            if (d.getOtp()!=null && d.getOtp().equals(otp)) {
-                d.setStatus("DELIVERED");
-                d.setCompletedAt(Instant.now());
-                // Sync order status and notify buyer
-                orderRepository.findByTenantIdAndId(d.getTenantId(), d.getOrderId()).ifPresent(order -> {
-                    order.setStatus("delivered");
-                    orderRepository.save(order);
-                    try {
-                        notificationService.sendOrderNotification(order.getTenantId(), order.getUserId(), order.getId(), "DELIVERED",
-                                java.util.Map.of("storeId", d.getStoreId()));
-                    } catch (Exception ignored) {}
-                });
-            } else {
-                d.setStatus("FAILED");
-                d.setFailureReason("Invalid OTP");
+            String cur = d.getStatus() == null ? "" : d.getStatus();
+            if (!"OUT_FOR_DELIVERY".equalsIgnoreCase(cur)) {
+                throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
             }
+            if (d.getOtp() == null || !d.getOtp().equals(otp)) {
+                throw new ApiException(HttpStatus.CONFLICT, "INVALID_OTP", "Incorrect OTP");
+            }
+            d.setStatus("DELIVERED");
+            d.setCompletedAt(Instant.now());
+            // Sync order status and notify buyer
+            orderRepository.findByTenantIdAndId(d.getTenantId(), d.getOrderId()).ifPresent(order -> {
+                order.setStatus("delivered");
+                orderRepository.save(order);
+                // Consume reserved inventory for all order items
+                try {
+                    java.util.List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(order.getId());
+                    for (com.bharatshop.entity.OrderItemEntity oi : items) {
+                        if (oi.getProductId() != null && oi.getQuantity() > 0) {
+                            inventoryService.consume(order.getTenantId(), oi.getProductId(), oi.getQuantity());
+                        }
+                    }
+                } catch (Exception ignore) {}
+                try {
+                    notificationService.sendOrderNotification(order.getTenantId(), order.getUserId(), order.getId(), "DELIVERED",
+                            java.util.Map.of("storeId", d.getStoreId()));
+                } catch (Exception ignored) {}
+            });
             return orderDeliveryRepository.save(d);
         }).orElse(null);
     }
@@ -193,14 +303,6 @@ public class LogisticsService {
         a.setNote(note);
         a.setTs(Instant.now());
         DeliveryAttemptEntity saved = deliveryAttemptRepository.save(a);
-
-        if ("failed".equalsIgnoreCase(status)) {
-            orderDeliveryRepository.findById(deliveryId).ifPresent(d -> {
-                d.setStatus("FAILED");
-                d.setFailureReason(note);
-                orderDeliveryRepository.save(d);
-            });
-        }
         return saved;
     }
 

@@ -36,21 +36,21 @@ public class StoreLegacyController {
     private StorefrontFactory factory(String tenant) { return factoryProvider.getFactory(tenant); }
 
     @GetMapping("/products")
-    public ResponseEntity<List<Product>> listProducts(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                                      @RequestParam(required = false) String category,
+    public ResponseEntity<List<Product>> listProducts(@RequestParam(required = false) String category,
                                                       @RequestParam(required = false) String search,
                                                       @RequestParam(required = false) Integer page,
                                                       @RequestParam(required = false) Integer size,
                                                       @RequestParam(required = false) String sort) {
         // Pagination/sorting are ignored in this mock. Filtering supported.
-        log.info("Legacy list products: tenant={} category={} search={}", tenant != null ? tenant : TenantContext.getTenant(), category, search);
+        String tenant = TenantContext.getTenant();
+        log.info("Legacy list products: tenant={} category={} search={}", tenant, category, search);
         return ResponseEntity.ok(factory(tenant).products().list(category, search));
     }
 
     @GetMapping("/products/{id}")
-    public ResponseEntity<?> getProduct(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                        @PathVariable String id) {
-        log.info("Legacy get product: tenant={} id={} ", tenant != null ? tenant : TenantContext.getTenant(), id);
+    public ResponseEntity<?> getProduct(@PathVariable String id) {
+        String tenant = TenantContext.getTenant();
+        log.info("Legacy get product: tenant={} id={} ", tenant, id);
         Product p = factory(tenant).products().get(id);
         if (p == null) throw new NotFoundException("Product not found");
         log.info("Legacy get product success: id={} name={}", p.getId(), p.getName());
@@ -58,17 +58,18 @@ public class StoreLegacyController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<String>> categories(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant) {
-        log.info("Legacy list categories: tenant={}", tenant != null ? tenant : TenantContext.getTenant());
+    public ResponseEntity<List<String>> categories() {
+        String tenant = TenantContext.getTenant();
+        log.info("Legacy list categories: tenant={}", tenant);
         return ResponseEntity.ok(factory(tenant).products().categories());
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<?> checkout(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                      @Valid @RequestBody CheckoutRequest req) {
+    public ResponseEntity<?> checkout(@Valid @RequestBody CheckoutRequest req) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) throw new UnauthorizedException("Unauthorized");
-        log.info("Legacy checkout: tenant={} userId={} items={} paymentMethod={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId(),
+        String tenant = TenantContext.getTenant();
+        log.info("Legacy checkout: tenant={} userId={} items={} paymentMethod={}", tenant, up.getUserId(),
                 req.getItems() != null ? req.getItems().size() : 0, req.getPaymentMethod());
         // Enforce store availability including zone serviceability (lat/lng) and inventory
         if (req.getStoreId() != null && !req.getStoreId().isBlank()) {
@@ -98,23 +99,23 @@ public class StoreLegacyController {
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<?> orders(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                    @RequestParam(required = false) Integer page,
+    public ResponseEntity<?> orders(@RequestParam(required = false) Integer page,
                                     @RequestParam(required = false) Integer size) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) throw new UnauthorizedException("Unauthorized");
-        log.info("Legacy list orders: tenant={} userId={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId());
+        String tenant = TenantContext.getTenant();
+        log.info("Legacy list orders: tenant={} userId={}", tenant, up.getUserId());
         List<Order> orders = factory(tenant).orders().listOrders(up.getUserId());
         log.info("Legacy orders fetched: count={}", orders != null ? orders.size() : 0);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/orders/{id}")
-    public ResponseEntity<?> orderDetail(@RequestHeader(value = "X-Tenant-Domain", required = false) String tenant,
-                                         @PathVariable String id) {
+    public ResponseEntity<?> orderDetail(@PathVariable String id) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) throw new UnauthorizedException("Unauthorized");
-        log.info("Legacy order detail: tenant={} userId={} id={}", tenant != null ? tenant : TenantContext.getTenant(), up.getUserId(), id);
+        String tenant = TenantContext.getTenant();
+        log.info("Legacy order detail: tenant={} userId={} id={}", tenant, up.getUserId(), id);
         List<Order> orders = factory(tenant).orders().listOrders(up.getUserId());
         Order match = null;
         for (Order o : orders) {
@@ -123,5 +124,11 @@ public class StoreLegacyController {
         if (match == null) throw new NotFoundException("Order not found");
         log.info("Legacy order detail success: id={} status={}", match.getId(), match.getStatus());
         return ResponseEntity.ok(match);
+    }
+
+    // Alias for legacy clients expecting singular path
+    @GetMapping("/order/{id}")
+    public ResponseEntity<?> orderDetailAlias(@PathVariable String id) {
+        return orderDetail(id);
     }
 }
