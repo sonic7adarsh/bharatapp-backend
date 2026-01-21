@@ -30,7 +30,7 @@ public class StoreAvailabilityPolicy {
     private final ZoneRepository zoneRepository;
     @Value("${serviceability.devFallback:true}")
     private boolean devFallback;
-    // In development, optionally bypass inventory availability checks to keep smoke tests stable
+    
     @Value("${inventory.devFallback:false}")
     private boolean inventoryDevFallback;
     
@@ -182,7 +182,7 @@ public class StoreAvailabilityPolicy {
             );
         }
 
-        // In development, optionally bypass zone serviceability checks to simplify smoke tests
+        // In development, optionally bypass zone serviceability checks
         if (devFallback) {
             return null;
         }

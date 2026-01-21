@@ -31,7 +31,7 @@ public class RazorpayAdapter implements PaymentGateway {
             return new PaymentVerificationResponse("error", "missing_fields");
         }
         if (razorpaySecret == null || razorpaySecret.isBlank()) {
-            // Dev fallback: if secret is not configured, treat as verified for MVP smoke
+            // Development fallback: if secret is not configured, treat as verified
             return new PaymentVerificationResponse("ok", "mock_verified");
         }
         try {

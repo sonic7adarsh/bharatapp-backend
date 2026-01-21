@@ -62,9 +62,14 @@ public class UserPrincipal implements Authentication {
     }
 
     public static UserPrincipal current() {
-        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return null;
         if (auth instanceof UserPrincipal) {
             return (UserPrincipal) auth;
+        }
+        Object p = auth.getPrincipal();
+        if (p instanceof UserPrincipal) {
+            return (UserPrincipal) p;
         }
         return null;
     }

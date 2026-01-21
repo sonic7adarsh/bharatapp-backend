@@ -4,6 +4,7 @@ import com.bharatshop.domain.User;
 import com.bharatshop.entity.UserEntity;
 import com.bharatshop.entity.UserRoleEntity;
 import com.bharatshop.repository.UserRepository;
+import com.bharatshop.tenant.TenantContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -115,11 +116,17 @@ public class AuthService {
 
     public Session loginEmail(String email, String password) {
         log.info("Login (storefront) attempt: email={}", email);
-        UserEntity entity = userRepository.findByEmail(email).orElseGet(() -> {
+        String tenant = TenantContext.getTenant();
+        if (tenant == null || tenant.isBlank()) {
+            throw new IllegalStateException("Tenant missing");
+        }
+        String tenantId = tenant.trim();
+        UserEntity entity = userRepository.findByEmailAndTenantId(email, tenantId).orElseGet(() -> {
             UserEntity e = new UserEntity();
             e.setId(UUID.randomUUID().toString());
             e.setName(email.split("@")[0]);
             e.setEmail(email);
+            e.setTenantId(tenantId);
             e.setPasswordHash(passwordEncoder.encode(password));
             UserEntity saved = userRepository.save(e);
             // Ensure roles exist
@@ -242,15 +249,15 @@ public class AuthService {
 
     public Session loginPhone(String phone, String otp) {
         log.info("Login (phone) attempt: phone={}", phone);
-        UserEntity entity = userRepository.findByPhone(phone).orElseGet(() -> {
-            UserEntity e = new UserEntity();
-            e.setId(UUID.randomUUID().toString());
-            e.setName("User" + phone.substring(Math.max(0, phone.length()-4)));
-            e.setPhone(phone);
-            UserEntity saved = userRepository.save(e);
-            userRoleService.initializeCustomerRole(saved.getId());
-            return saved;
-        });
+        String tenant = TenantContext.getTenant();
+        if (tenant == null || tenant.isBlank()) {
+            throw new IllegalStateException("Tenant missing");
+        }
+        String tenantId = tenant.trim();
+        java.util.List<UserEntity> users = userRepository.findByTenantIdAndPhone(tenantId, phone);
+        UserEntity entity = users.isEmpty()
+                ? createTenantUserWithPhone(tenantId, phone)
+                : users.get(0);
         var session = createSession(fromEntity(entity));
         log.info("Login (phone) success: userId={} token={} activeRole={} ", entity.getId(), session.token(), session.role());
         return session;
@@ -287,6 +294,84 @@ public class AuthService {
         }
         log.info("OTP verification success for phone={}", phone);
         return loginPhone(phone, otp);
+    }
+
+    /**
+     * Role-aware OTP verification. Requires frontend to provide desired loginRole (e.g., CUSTOMER | SELLER | RIDER).
+     * Validates OTP and role, ensures the user has the requested role, and issues a JWT with activeRole=loginRole.
+     */
+    public Session verifyOtpWithRole(String phone, String otp, String loginRole) {
+        log.info("Verifying OTP (role-aware) for phone={} role={}", phone, loginRole);
+        OtpInfo info = otpsByPhone.get(phone);
+        if (info == null) {
+            log.warn("OTP verification failed: no OTP for phone={}", phone);
+            return null;
+        }
+        if (System.currentTimeMillis() > info.expiresAt) {
+            log.warn("OTP verification failed: expired otpId={} for phone={}", info.otpId, phone);
+            return null;
+        }
+        if (!info.otp.equals(otp)) {
+            log.warn("OTP verification failed: mismatch for phone={}", phone);
+            return null;
+        }
+
+        // Validate tenant presence
+        String tenant = TenantContext.getTenant();
+        if (tenant == null || tenant.isBlank()) {
+            throw new IllegalStateException("Tenant missing");
+        }
+
+        // Validate and canonicalize requested login role
+        if (loginRole == null || loginRole.isBlank()) {
+            throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "ROLE_REQUIRED", "loginRole is required");
+        }
+        String requested = canonicalRole(loginRole);
+        java.util.List<String> allowed = java.util.List.of("CUSTOMER", "SELLER", "RIDER");
+        if (!allowed.contains(requested)) {
+            throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "ROLE_INVALID", "Unsupported login role");
+        }
+
+        // Get or create tenant-scoped user by phone (initialize CUSTOMER on creation)
+        UserEntity entity = getOrCreateTenantUserByPhone(phone);
+
+        // Check that the user actually has the requested role
+        java.util.List<String> userRoles = userRoleService.getUserRoles(entity.getId());
+        if (userRoles == null || userRoles.isEmpty() || userRoles.stream().noneMatch(r -> requested.equalsIgnoreCase(canonicalRole(r)))) {
+            throw new com.bharatshop.error.ApiException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "ROLE_NOT_ASSIGNED",
+                    "User does not have requested role",
+                    java.util.Map.of("requestedRole", requested)
+            );
+        }
+
+        // Issue a token with activeRole=requested and roles from userRoles
+        var session = createSession(fromEntity(entity), requested);
+        log.info("Login (OTP role-aware) success: userId={} activeRole={} tokenPresent=true", entity.getId(), requested);
+        return session;
+    }
+
+    // Helper: get or create tenant-scoped user by phone without creating session
+    private UserEntity getOrCreateTenantUserByPhone(String phone) {
+        String tenant = TenantContext.getTenant();
+        if (tenant == null || tenant.isBlank()) {
+            throw new IllegalStateException("Tenant missing");
+        }
+        String tenantId = tenant.trim();
+        java.util.List<UserEntity> users = userRepository.findByTenantIdAndPhone(tenantId, phone);
+        return users.isEmpty() ? createTenantUserWithPhone(tenantId, phone) : users.get(0);
+    }
+
+    private UserEntity createTenantUserWithPhone(String tenantId, String phone) {
+        UserEntity e = new UserEntity();
+        e.setId(UUID.randomUUID().toString());
+        e.setName("User" + (phone == null ? "" : phone.substring(Math.max(0, phone.length()-4))));
+        e.setPhone(phone);
+        e.setTenantId(tenantId);
+        UserEntity saved = userRepository.save(e);
+        userRoleService.initializeCustomerRole(saved.getId());
+        return saved;
     }
 
     public Map<String, Object> resendOtp(String phone, String otpId) {
@@ -347,12 +432,16 @@ public class AuthService {
             roles = java.util.List.of("CUSTOMER");
         }
         if (jwtService.isEnabled()) {
+            String tenant = TenantContext.getTenant();
+            if (tenant == null || tenant.isBlank()) {
+                throw new IllegalStateException("Tenant missing");
+            }
             token = jwtService.generateTokenWithRoles(
                     user.getId(),
                     user.getName(),
-                    activeRole, // role claim aligns with active role
-                    user.getTenantId() != null ? user.getTenantId() : "default",
-                    activeRole, // activeRole claim
+                    activeRole,
+                    tenant.trim(),
+                    activeRole,
                     roles
             );
         } else {
@@ -360,6 +449,36 @@ public class AuthService {
             sessionsByToken.put(token, new Session(token, user.getId(), user.getName(), activeRole));
         }
         log.info("Session created: userId={} activeRole={}", user.getId(), activeRole);
+        return new Session(token, user.getId(), user.getName(), activeRole);
+    }
+
+    // Overload: create session with explicit activeRole override
+    private Session createSession(User user, String activeRoleOverride) {
+        String token;
+        String activeRole = canonicalRole(activeRoleOverride);
+        // Collect allowed roles for JWT roles claim
+        java.util.List<String> roles = userRoleService.getUserRoles(user.getId());
+        if (roles == null || roles.isEmpty()) {
+            roles = java.util.List.of("CUSTOMER");
+        }
+        if (jwtService.isEnabled()) {
+            String tenant = TenantContext.getTenant();
+            if (tenant == null || tenant.isBlank()) {
+                throw new IllegalStateException("Tenant missing");
+            }
+            token = jwtService.generateTokenWithRoles(
+                    user.getId(),
+                    user.getName(),
+                    activeRole,
+                    tenant.trim(),
+                    activeRole,
+                    roles
+            );
+        } else {
+            token = UUID.randomUUID().toString();
+            sessionsByToken.put(token, new Session(token, user.getId(), user.getName(), activeRole));
+        }
+        log.info("Session created (override): userId={} activeRole={}", user.getId(), activeRole);
         return new Session(token, user.getId(), user.getName(), activeRole);
     }
 

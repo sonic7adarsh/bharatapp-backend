@@ -44,19 +44,18 @@ public class CustomerOrderController {
         } else if (body instanceof Order) {
             order = (Order) body;
         }
-        if (order == null) {
-            // Fallback: return original body
+        // If we have the Order, return the exact required contract
+        if (order != null) {
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("order", order);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+        // If checkout already produced a compliant payload, preserve it with 201
+        if (body instanceof java.util.Map<?,?> m2 && m2.containsKey("order")) {
             return ResponseEntity.status(HttpStatus.CREATED).body(body);
         }
-        Double total = order.getTotal();
-        if (total == null && order.getTotals() != null) {
-            total = order.getTotals().payable;
-        }
-        java.util.Map<String, Object> resp = new java.util.HashMap<>();
-        resp.put("orderId", order.getId());
-        resp.put("status", order.getStatus() != null ? order.getStatus().toUpperCase() : "PLACED");
-        resp.put("totalAmount", total);
-        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
+        // Otherwise, return the original response (likely an error or alternative format)
+        return r;
     }
 
     @GetMapping("/orders")

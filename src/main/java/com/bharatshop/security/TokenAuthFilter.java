@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
 import java.util.List;
@@ -48,31 +48,55 @@ public class TokenAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
         if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             if (jwtService.isEnabled()) {
-                var payload = jwtService.parse(token);
+                JwtService.Payload payload = jwtService.parse(token);
                 if (payload != null) {
-                    // Prefer activeRole when available; fall back to legacy role
-                    String effectiveRole = payload.activeRole() != null && !payload.activeRole().isBlank()
+                    // Prefer activeRole when available; fall back to role
+                    String effectiveRole = (payload.activeRole() != null && !payload.activeRole().isBlank())
                             ? payload.activeRole()
                             : payload.role();
-                    var principal = new UserPrincipal(payload.userId(), payload.name(), effectiveRole);
-                    var authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_" + effectiveRole));
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(principal, null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+
+                    // Construct required principal
+                    UserPrincipal principal = new UserPrincipal(payload.userId(), payload.name(), effectiveRole);
+
+                    // Map ALL roles from JWT to ROLE_* authorities
+                    List<String> roles = (payload.roles() != null && !payload.roles().isEmpty())
+                            ? payload.roles()
+                            : List.of(effectiveRole);
+                    List<SimpleGrantedAuthority> authorities = roles.stream()
+                            .filter(r -> r != null && !r.isBlank())
+                            .map(r -> new SimpleGrantedAuthority("ROLE_" + r.trim()))
+                            .toList();
+
+                    // ROLE_* authorities and null credentials
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    principal,
+                                    null,
+                                    authorities
+                            );
+
+                    // Store in SecurityContext before controller execution
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } else {
                 var session = authService.getSessionByToken(token);
                 if (session != null) {
-                    var principal = new UserPrincipal(session.userId(), session.name(), session.role());
-                    var authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_" + session.role()));
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(principal, null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    UserPrincipal principal = new UserPrincipal(session.userId(), session.name(), session.role());
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    principal,
+                                    null,
+                                    List.of(new SimpleGrantedAuthority("ROLE_" + session.role()))
+                            );
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         }

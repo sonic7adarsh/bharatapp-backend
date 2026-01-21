@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
     Optional<UserEntity> findByEmailAndTenantId(String email, String tenantId);
     Optional<UserEntity> findByIdAndTenantId(String id, String tenantId);
     boolean existsByEmailAndTenantId(String email, String tenantId);
+    // Added to prevent NonUniqueResultException when same phone exists across tenants
+    java.util.List<UserEntity> findByTenantIdAndPhone(String tenantId, String phone);
 }
