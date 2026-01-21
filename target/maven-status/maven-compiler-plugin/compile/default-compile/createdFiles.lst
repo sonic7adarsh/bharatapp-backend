@@ -16,6 +16,7 @@ com\bharatshop\web\MediaController.class
 com\bharatshop\domain\Order$Totals.class
 com\bharatshop\repository\StoreZoneRepository.class
 com\bharatshop\factory\SellerFactory.class
+com\bharatshop\storefront\StorefrontController.class
 com\bharatshop\devtools\TenantDataNormalizer.class
 com\bharatshop\factory\impl\DefaultSellerFactory$2.class
 com\bharatshop\service\AuthService$OtpInfo.class
@@ -23,6 +24,7 @@ com\bharatshop\entity\TenantConfiguration.class
 com\bharatshop\web\RiderController.class
 com\bharatshop\repository\AuditLogRepository.class
 com\bharatshop\dto\PhoneLoginRequest.class
+com\bharatshop\storefront\StorefrontAuthController.class
 com\bharatshop\dto\OrderDto.class
 com\bharatshop\entity\AuditLog.class
 com\bharatshop\entity\NotificationLog.class
@@ -32,7 +34,6 @@ com\bharatshop\error\ErrorCode.class
 com\bharatshop\factory\impl\DefaultSellerFactory$1.class
 com\bharatshop\entity\AuditLog$ActionType.class
 com\bharatshop\web\ConfigController.class
-com\bharatshop\web\StorefrontAuthController.class
 com\bharatshop\service\MediaService.class
 com\bharatshop\web\SellerAuthController.class
 com\bharatshop\tenant\TenantContext.class
@@ -44,12 +45,12 @@ com\bharatshop\factory\ops\AvailabilityOps.class
 com\bharatshop\domain\Order.class
 com\bharatshop\service\NotificationService.class
 com\bharatshop\web\admin\AdminZoneController.class
+com\bharatshop\customer\CustomerOrderController.class
 com\bharatshop\factory\ops\SellerProductOps.class
 com\bharatshop\service\BulkUploadService$JobStatus.class
 com\bharatshop\config\logging\HttpLoggingFilter.class
 com\bharatshop\error\ConflictException.class
 com\bharatshop\service\BulkUploadService.class
-com\yourapp\web\customer\CustomerOrderController.class
 com\bharatshop\security\JwtService$Payload.class
 com\bharatshop\entity\ProductEntity.class
 com\bharatshop\service\OrderAcceptedEvent.class
@@ -97,6 +98,7 @@ com\bharatshop\repository\InventoryRepository.class
 com\yourapp\dto\CustomerOrderDto.class
 com\bharatshop\domain\Store.class
 com\bharatshop\dto\RegisterRequest.class
+com\bharatshop\auth\AuthController.class
 com\bharatshop\factory\ops\StoreOps.class
 com\bharatshop\web\StorePaymentsController.class
 com\bharatshop\entity\InventoryEntity.class
@@ -107,6 +109,7 @@ com\bharatshop\domain\PaymentVerificationResponse.class
 com\bharatshop\dto\SellerRegisterRequest.class
 com\bharatshop\repository\NotificationEventRepository.class
 com\bharatshop\security\rbac\SellerOnly.class
+com\bharatshop\seller\SellerOrderController.class
 com\bharatshop\service\OrderEvent.class
 com\bharatshop\entity\OrderDeliveryEntity.class
 com\bharatshop\web\StorefrontCartController.class
@@ -121,14 +124,12 @@ com\bharatshop\service\WhatsAppService.class
 com\bharatshop\payment\adapter\RazorpayAdapter.class
 com\bharatshop\service\InventoryService.class
 com\bharatshop\web\InventoryController.class
-com\bharatshop\web\CustomerStorefrontController.class
 com\bharatshop\controller\TenantConfigurationController.class
 com\bharatshop\factory\impl\DefaultStorefrontFactory$2.class
 com\bharatshop\entity\UserEntity.class
 com\bharatshop\logging\RepositoryLoggingAspect.class
 com\bharatshop\service\AuditLoggingService.class
 com\bharatshop\error\BadRequestException.class
-com\bharatshop\web\AuthController.class
 com\bharatshop\dto\OrderDto$Item.class
 com\bharatshop\entity\StoreZoneEntity.class
 com\bharatshop\repository\OrderDeliveryRepository.class
@@ -147,6 +148,7 @@ com\bharatshop\entity\UserRoleEntity.class
 com\bharatshop\service\CheckoutService$CacheEntry.class
 com\bharatshop\factory\ops\SellerStoreOps.class
 com\bharatshop\repository\NotificationTemplateRepository.class
+com\bharatshop\rider\RiderOrderController.class
 com\bharatshop\service\PaymentService.class
 com\bharatshop\entity\RiderZoneEntity.class
 com\bharatshop\policy\StoreAvailabilityPolicy.class
@@ -184,7 +186,6 @@ com\bharatshop\web\AvailabilityController.class
 com\bharatshop\config\IdempotencyFilter.class
 com\bharatshop\service\TenantConfigurationService.class
 com\bharatshop\domain\User.class
-com\bharatshop\web\seller\SellerOrderController.class
 com\bharatshop\logging\LoggingAspect.class
 com\yourapp\dto\CustomerOrderDto$Store.class
 com\bharatshop\factory\ops\OrderOps.class

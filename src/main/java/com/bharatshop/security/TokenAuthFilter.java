@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
@@ -58,15 +60,19 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                             ? payload.activeRole()
                             : payload.role();
                     var principal = new UserPrincipal(payload.userId(), payload.name(), effectiveRole);
-                    var ctx = SecurityContextHolder.getContext();
-                    ctx.setAuthentication(principal);
+                    var authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_" + effectiveRole));
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } else {
                 var session = authService.getSessionByToken(token);
                 if (session != null) {
                     var principal = new UserPrincipal(session.userId(), session.name(), session.role());
-                    var ctx = SecurityContextHolder.getContext();
-                    ctx.setAuthentication(principal);
+                    var authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_" + session.role()));
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             }
         }

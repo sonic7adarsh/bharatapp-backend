@@ -32,7 +32,7 @@ public class UserPrincipal implements Authentication {
     public Object getDetails() { return null; }
 
     @Override
-    public Object getPrincipal() { return userId; }
+    public Object getPrincipal() { return this; }
 
     @Override
     public boolean isAuthenticated() { return authenticated; }
