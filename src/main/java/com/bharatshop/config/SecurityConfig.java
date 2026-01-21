@@ -12,6 +12,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -24,52 +29,57 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, TokenAuthFilter tokenAuthFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenAuthFilter tokenAuthFilter) throws Exception {
+        // Spring Security 6 style: explicit matchers, global OPTIONS, CORS enabled
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
+                .anonymous(Customizer.withDefaults())
+                // Ensure our token filter runs only on secured endpoints (filter itself skips public paths)
                 .addFilterBefore(tokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        // Allow browser preflight requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public endpoints
                         .requestMatchers(
-                                "/", 
-                                "/health",
-                                // Dev/public docs and health endpoints
-                                "/actuator/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
                                 "/api/auth/**",
-                                "/api/storefront/auth/**",
-                                "/api/riders/login",
-                                "/store/**",
-                                "/store/cart/**",
-                                "/api/storefront/cart/**",
-                                "/api/storefront/products/**",
-                                "/api/storefront/categories",
-                                "/api/stores/**",
-                                "/api/products",
-                                "/api/availability"
+                                "/api/storefront/**",
+                                "/error",
+                                "/actuator/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/platform/products", "/api/platform/products/**").permitAll()
-                        .requestMatchers(
-                                "/api/seller/**",
-                                "/api/logistics/**"
-                        ).hasAnyRole("SELLER","VENDOR","ADMIN")
-                        .requestMatchers(
-                                "/api/admin/**"
-                        ).hasRole("ADMIN")
-                        .requestMatchers(
-                                "/api/zones/**"
-                        ).hasRole("ADMIN")
-                        .requestMatchers(
-                                "/api/riders/**"
-                        ).hasRole("RIDER")
-                        .requestMatchers(
-                                "/api/storefront/orders",
-                                "/api/storefront/checkout",
-                                "/api/storefront/payments/**"
-                        ).authenticated()
+                        // API docs / Swagger
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Actuator
+                        // Role-based endpoints
+                        .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/seller/**").hasRole("SELLER")
+                        .requestMatchers("/api/rider/**").hasRole("RIDER")
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 );
         return http.build();
+    }
+
+    // CORS configuration for React frontend (adjust origins as needed for environments)
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+        ));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Tenant-Domain",
+                "X-Correlation-Id",
+                "X-Idempotency-Key"
+        ));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

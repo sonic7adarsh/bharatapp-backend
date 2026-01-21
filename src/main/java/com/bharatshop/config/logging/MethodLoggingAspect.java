@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 @Aspect
-@Component
 public class MethodLoggingAspect {
 
     private static final Logger log = LoggerFactory.getLogger(MethodLoggingAspect.class);

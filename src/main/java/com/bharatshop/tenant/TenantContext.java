@@ -11,6 +11,14 @@ public class TenantContext {
         return CURRENT_TENANT.get();
     }
 
+    public static String getRequiredTenant() {
+        String t = CURRENT_TENANT.get();
+        if (t == null || t.isBlank()) {
+            throw new IllegalStateException("TenantContext missing");
+        }
+        return t;
+    }
+
     public static void clear() {
         CURRENT_TENANT.remove();
     }

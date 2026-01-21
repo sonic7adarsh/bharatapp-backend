@@ -5,6 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Column;
 
 @Entity
 @Table(name = "stores")
@@ -23,6 +24,8 @@ public class StoreEntity {
     private String logo; // filename or URL reference
     private java.time.Instant createdAt;
     private java.time.Instant updatedAt;
+    @Column(name = "tenant_id", nullable = false)
+    private String tenantId = "default";
 
     @PrePersist
     public void onCreate() {
@@ -64,4 +67,6 @@ public class StoreEntity {
     public void setCreatedAt(java.time.Instant createdAt) { this.createdAt = createdAt; }
     public java.time.Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.Instant updatedAt) { this.updatedAt = updatedAt; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 }

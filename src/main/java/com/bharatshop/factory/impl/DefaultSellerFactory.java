@@ -98,8 +98,11 @@ public class DefaultSellerFactory implements SellerFactory {
             @Override
             public Product create(String storeId, Product product) {
                 product.setStoreId(storeId);
-                productService.add(product);
-                return product;
+                Product saved = productService.create(product);
+                if (saved == null || saved.getId() == null) {
+                    throw new IllegalStateException("Returning non-persisted entity");
+                }
+                return saved;
             }
 
             @Override
@@ -434,10 +437,11 @@ public class DefaultSellerFactory implements SellerFactory {
 
             @Override
             public Store create(Store store) {
-                if (store.getId() == null || store.getId().isBlank()) {
-                    store.setId(java.util.UUID.randomUUID().toString());
+                Store saved = storeService.add(store);
+                if (saved == null || saved.getId() == null) {
+                    throw new IllegalStateException("Returning non-persisted entity");
                 }
-                return storeService.add(store);
+                return saved;
             }
 
             @Override

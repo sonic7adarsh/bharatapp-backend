@@ -6,6 +6,11 @@ import com.bharatshop.repository.StoreZoneRepository;
 import com.bharatshop.repository.ZoneRepository;
 import com.bharatshop.service.GeoService;
 import org.springframework.http.ResponseEntity;
+import com.bharatshop.security.rbac.CustomerOnly;
+import com.bharatshop.security.UserPrincipal;
+import com.bharatshop.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,7 +21,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/storefront/serviceability")
+@CustomerOnly
 public class ServiceabilityController {
+    private static final Logger log = LoggerFactory.getLogger(ServiceabilityController.class);
     private final StoreZoneRepository storeZoneRepository;
     private final ZoneRepository zoneRepository;
     private final GeoService geoService;
@@ -30,9 +37,10 @@ public class ServiceabilityController {
     @GetMapping
     public ResponseEntity<?> check(@RequestParam String storeId,
                                    @RequestParam double lat,
-                                   @RequestParam double lng,
-                                   @RequestParam(required = false) String tenantId) {
-        String t = tenantId != null ? tenantId : com.bharatshop.tenant.TenantContext.getTenant();
+                                   @RequestParam double lng) {
+        UserPrincipal up = UserPrincipal.current();
+        String t = TenantContext.getTenant();
+        log.info("Customer storefront: serviceability tenant={} userId={} storeId={} lat={} lng={} ", t, up != null ? up.getUserId() : null, storeId, lat, lng);
         List<StoreZoneEntity> links = storeZoneRepository.findByTenantIdAndStoreId(t, storeId);
         for (StoreZoneEntity link : links) {
             ZoneEntity zone = zoneRepository.findById(link.getZoneId()).orElse(null);

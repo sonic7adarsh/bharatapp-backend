@@ -74,7 +74,7 @@ $sfLogin = Invoke-Api -Name 'SF login' -Method 'POST' -Path '/api/storefront/aut
 if ($sfLogin) { $ok++ } else { $fail++ }
 $sfToken = $null
 try { $sfToken = ($sfLogin.Content | ConvertFrom-Json).token } catch {}
-$sfHeaders = if ($sfToken) { @{ Authorization = "Bearer $sfToken"; 'X-Tenant-Domain'='local' } } else { @{ 'X-Tenant-Domain'='local' } }
+$sfHeaders = if ($sfToken) { @{ Authorization = "Bearer $sfToken"; 'X-Tenant-Domain'='tenantA' } } else { @{ 'X-Tenant-Domain'='tenantA' } }
 
 # Storefront catalog
 $resp = Invoke-Api -Name 'Storefront products' -Method 'GET' -Path '/api/storefront/products' -Headers $sfHeaders -Session $session; if ($resp) { $ok++ } else { $fail++ }

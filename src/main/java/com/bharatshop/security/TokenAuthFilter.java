@@ -9,8 +9,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class TokenAuthFilter extends OncePerRequestFilter {
@@ -21,6 +23,26 @@ public class TokenAuthFilter extends OncePerRequestFilter {
     public TokenAuthFilter(AuthService authService, JwtService jwtService) {
         this.authService = authService;
         this.jwtService = jwtService;
+    }
+
+    // Skip filtering for public endpoints and preflight requests to avoid 401/500 on public APIs
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true;
+        String path = request.getRequestURI();
+        AntPathMatcher matcher = new AntPathMatcher();
+        List<String> publicPatterns = List.of(
+                "/api/storefront/**",
+                "/api/auth/**",
+                "/actuator/**",
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
+        );
+        for (String p : publicPatterns) {
+            if (matcher.match(p, path)) return true;
+        }
+        return false;
     }
 
     @Override

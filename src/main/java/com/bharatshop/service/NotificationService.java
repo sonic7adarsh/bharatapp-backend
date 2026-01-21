@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -60,7 +61,7 @@ public class NotificationService {
             UserNotificationPreferenceRepository preferenceRepository,
             WhatsAppService whatsAppService,
             SmsService smsService,
-            EmailService emailService,
+            @Nullable EmailService emailService,
             ObjectMapper objectMapper) {
         this.eventRepository = eventRepository;
         this.logRepository = logRepository;
@@ -236,7 +237,7 @@ public class NotificationService {
             boolean sent = switch (channel) {
                 case "WHATSAPP" -> whatsappEnabled && whatsAppService.sendMessage(recipient, message);
                 case "SMS" -> smsEnabled && smsService.sendMessage(recipient, message);
-                case "EMAIL" -> emailEnabled && emailService.sendMessage(recipient, subject, message);
+                case "EMAIL" -> emailEnabled && emailService != null && emailService.sendMessage(recipient, subject, message);
                 default -> false;
             };
             

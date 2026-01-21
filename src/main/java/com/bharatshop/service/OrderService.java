@@ -264,6 +264,81 @@ public class OrderService {
                 .orElse(null);
     }
 
+    public java.util.Optional<com.yourapp.dto.CustomerOrderDto> getOrderForCustomer(String orderId, String userId, String tenant) {
+        java.util.Optional<OrderEntity> opt = orderRepository.findByIdAndUserIdAndTenantId(orderId, userId, tenant);
+        return opt.map(this::toCustomerDtoWithItems);
+    }
+
+    public void cancelOrderForCustomer(String orderId, String userId, String tenant) {
+        java.util.Optional<OrderEntity> opt = orderRepository.findByIdAndUserIdAndTenantId(orderId, userId, tenant);
+        if (opt.isEmpty()) {
+            throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
+        }
+        OrderEntity e = opt.get();
+        String cur = e.getStatus() == null ? "" : e.getStatus().toUpperCase();
+        boolean acceptedOrBeyond = e.getSellerAcceptedAt() != null || (!"PLACED".equals(cur));
+        if (acceptedOrBeyond) {
+            throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.CONFLICT, "CANCEL_NOT_ALLOWED", "Cancellation not allowed after ACCEPTED");
+        }
+        // Only allowed when status == PLACED
+        e.setStatus("cancelled");
+        e.setCancelledAt(java.time.Instant.now());
+        e.setCancellationReason("customer_cancelled");
+        orderRepository.save(e);
+        // Release reserved inventory on cancellation
+        java.util.List<OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
+        for (OrderItemEntity oi : items) {
+            if (oi.getProductId() != null) {
+                inventoryService.release(e.getTenantId(), oi.getProductId(), oi.getQuantity());
+            }
+        }
+        // Send order cancelled notification (buyer)
+        try {
+            notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
+                    java.util.Map.of("reason", "customer_cancelled"));
+        } catch (Exception ignore) {}
+    }
+
+    public java.util.List<com.yourapp.dto.CustomerOrderDto> getOrdersForCustomer(String userId, String tenant) {
+        java.util.List<OrderEntity> entities = tenant != null && !tenant.isBlank()
+                ? orderRepository.findByTenantIdAndUserIdOrderByCreatedAtDesc(tenant, userId)
+                : orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return entities.stream().map(this::toCustomerDtoWithItems).collect(java.util.stream.Collectors.toList());
+    }
+
+    private com.yourapp.dto.CustomerOrderDto toCustomerDto(OrderEntity e) {
+        com.yourapp.dto.CustomerOrderDto dto = new com.yourapp.dto.CustomerOrderDto();
+        dto.setId(e.getId());
+        dto.setStatus(e.getStatus());
+        dto.setTotal(e.getTotal());
+        dto.setCreatedAt(e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
+        com.yourapp.dto.CustomerOrderDto.Store store = new com.yourapp.dto.CustomerOrderDto.Store();
+        store.setId(e.getStoreId());
+        try {
+            if (e.getStoreId() != null) {
+                java.util.Optional<com.bharatshop.entity.StoreEntity> s = storeRepository.findById(e.getStoreId());
+                store.setName(s.isPresent() ? s.get().getName() : null);
+            }
+        } catch (Exception ignored) {}
+        dto.setStore(store);
+        return dto;
+    }
+
+    private com.yourapp.dto.CustomerOrderDto toCustomerDtoWithItems(OrderEntity e) {
+        com.yourapp.dto.CustomerOrderDto dto = toCustomerDto(e);
+        java.util.List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
+        java.util.List<com.yourapp.dto.CustomerOrderDto.Item> out = new java.util.ArrayList<>();
+        for (com.bharatshop.entity.OrderItemEntity oi : items) {
+            com.yourapp.dto.CustomerOrderDto.Item mi = new com.yourapp.dto.CustomerOrderDto.Item();
+            mi.setProductId(oi.getProductId());
+            mi.setName(oi.getName());
+            mi.setQuantity(oi.getQuantity());
+            out.add(mi);
+        }
+        dto.setItems(out);
+        return dto;
+    }
+
     public Order toDto(OrderEntity e) {
         Order o = new Order();
         o.setId(e.getId());

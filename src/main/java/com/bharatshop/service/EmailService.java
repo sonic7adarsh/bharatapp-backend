@@ -9,8 +9,10 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Service
+@ConditionalOnProperty(prefix = "notifications.email", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     

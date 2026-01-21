@@ -1,8 +1,11 @@
 package com.bharatshop.service;
 
 import com.bharatshop.domain.Order;
+import com.bharatshop.domain.Product;
+import com.bharatshop.domain.CartItem;
 import com.bharatshop.domain.Store;
 import com.bharatshop.dto.CheckoutRequest;
+import com.bharatshop.dto.CheckoutItem;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.policy.StoreAvailabilityPolicy;
 import com.bharatshop.security.UserPrincipal;
@@ -16,6 +19,7 @@ import com.bharatshop.error.UnauthorizedException;
 import com.bharatshop.error.BadRequestException;
 
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.time.Instant;
 import java.time.Duration;
@@ -51,7 +55,7 @@ public class CheckoutService {
         if (up == null) throw new UnauthorizedException("Unauthorized");
 
         String tenant = TenantContext.getTenant();
-        log.info("CheckoutService: tenant={} userId={} storeId={}", tenant, up.getUserId(), req.getStoreId());
+        log.info("CheckoutService: tenant={} userId={}", tenant, up.getUserId());
 
         // If idempotency key provided and a valid cache exists, return cached result
         String cacheKey = null;
@@ -66,38 +70,76 @@ public class CheckoutService {
             }
         }
 
+        // Log raw request BEFORE validation to expose mapping issues
+        try {
+            int size = req.getItems() != null ? req.getItems().size() : 0;
+            String itemClass = size > 0 && req.getItems().get(0) != null ? req.getItems().get(0).getClass().getName() : "none";
+            String productIds = req.getItems() != null ? req.getItems().stream().map(i -> {
+                try { return i.getProductId(); } catch (Exception e) { return "<error>"; }
+            }).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.joining(",")) : "";
+            log.info("CheckoutRequest: items.size={} itemClass={} productIds={}", size, itemClass, productIds);
+        } catch (Exception e) {
+            log.warn("CheckoutRequest: logging error: {}", e.getMessage());
+        }
+
         if (req.getItems() == null || req.getItems().isEmpty()) {
             throw new BadRequestException("items must not be null or empty");
         }
-
-        if (req.getStoreId() != null && !req.getStoreId().isBlank()) {
-            Store store = factoryProvider.getFactory(tenant).stores().get(req.getStoreId());
-            if (store == null) {
-                throw new BadRequestException("Invalid storeId");
+        // Derive storeId from first item’s product and enforce single-store rule
+        String resolvedStoreId = null;
+        java.util.List<CartItem> normalizedItems = new ArrayList<>();
+        for (CheckoutItem itemReq : req.getItems()) {
+            if (itemReq.getProductId() == null || itemReq.getProductId().isBlank()) {
+                throw new BadRequestException("productId is required");
             }
-            
-            // Require delivery coordinates when address is provided for zone validation
-            Double deliveryLat = req.getDeliveryLat();
-            Double deliveryLng = req.getDeliveryLng();
-            if (req.getAddress() != null && (deliveryLat == null || deliveryLng == null)) {
-                throw new BadRequestException("delivery coordinates (lat,lng) are required");
+            Product p = factoryProvider.getFactory(tenant).products().get(itemReq.getProductId());
+            // HARD PROOF LOGS
+            log.error("[PROOF][CHECKOUT] lookup productId={} found={}", itemReq.getProductId(), p != null);
+            if (p != null) {
+                log.error("[PROOF][CHECKOUT] product.id={} product.storeId={} tenant={}",
+                        p.getId(), p.getStoreId(), tenant);
             }
-            
-            // Enhanced availability check with inventory and zone validation
-            Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store, req.getItems(), deliveryLat, deliveryLng);
-            if (availabilityError != null) {
-                String code = String.valueOf(availabilityError.getOrDefault("code", "CONFLICT"));
-                String message = String.valueOf(availabilityError.getOrDefault("message", "Conflict"));
-                throw new ApiException(HttpStatus.CONFLICT, code, message, availabilityError);
+            if (p == null) {
+                throw new BadRequestException("Invalid productId");
             }
+            String storeIdCandidate = p.getStoreId();
+            if (storeIdCandidate == null) {
+                throw new IllegalStateException("Product has no storeId");
+            }
+            if (resolvedStoreId == null) {
+                resolvedStoreId = storeIdCandidate;
+            } else if (!java.util.Objects.equals(resolvedStoreId, storeIdCandidate)) {
+                throw new BadRequestException("Items must belong to a single store");
+            }
+            CartItem ci = new CartItem();
+            ci.setId(p.getId());
+            ci.setName(p.getName());
+            ci.setPrice(p.getPrice());
+            ci.setQuantity(itemReq.getQuantity());
+            normalizedItems.add(ci);
+        }
+        if (resolvedStoreId == null) {
+            throw new BadRequestException("Order storeId missing");
+        }
+        log.info("CheckoutService: storeId resolved={}", resolvedStoreId);
+        // Enhanced availability check with inventory and zone validation using resolved storeId
+        Store store = factoryProvider.getFactory(tenant).stores().get(resolvedStoreId);
+        Map<String, Object> availabilityError = storeAvailabilityPolicy.availabilityError(store, normalizedItems, null, null);
+        if (availabilityError != null) {
+            String code = String.valueOf(availabilityError.getOrDefault("code", "CONFLICT"));
+            String message = String.valueOf(availabilityError.getOrDefault("message", "Conflict"));
+            throw new ApiException(HttpStatus.CONFLICT, code, message, availabilityError);
         }
 
-        Order order = factoryProvider.getFactory(tenant).orders()
-                .placeOrder(up.getUserId(), req.getItems(), req.getTotals(), req.getPaymentMethod(), req.getPaymentInfo(), "order", req.getStoreId(), req.getNotes());
+        // Compute total from normalized items
+        double computedTotal = normalizedItems.stream().mapToDouble(ci -> ci.getPrice() * ci.getQuantity()).sum();
+        Order.Totals totals = new Order.Totals();
+        totals.payable = computedTotal;
+        log.info("CheckoutService: total computed={}", computedTotal);
 
-        order.setAddress(req.getAddress());
-        order.setDeliverySlot(req.getDeliverySlot());
-        order.setDeliveryInstructions(req.getDeliveryInstructions());
+        Order order = factoryProvider.getFactory(tenant).orders()
+                .placeOrder(up.getUserId(), normalizedItems, totals, req.getPaymentMethod(), null, "order", resolvedStoreId, null);
+
         log.info("CheckoutService: success orderId={} reference={} userId={}", order.getId(), order.getReference(), up.getUserId());
         Map<String, Object> resp = Map.of("order", order, "reference", order.getReference());
         // Store in idempotency cache if key present

@@ -1,3 +1,4 @@
+com\bharatshop\integration\TenantIsolationTest.class
 com\bharatshop\service\SLAAndCancelRulesTest.class
 com\bharatshop\service\RiderOtpFlowTest.class
 com\bharatshop\integration\AdminEndpointsIntegrationTest.class
