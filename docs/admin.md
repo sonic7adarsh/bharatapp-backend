@@ -36,4 +36,3 @@
 ## Notes
 
 - Existing SLA deadlines, OTP delivery, inventory reserve/consume, and cancellation rules remain unchanged.
-- Smoke tests included for zone validations and admin logistics overrides.

@@ -143,14 +143,14 @@ $resp = Invoke-Api -Name 'SF payments verify' -Method 'POST' -Path '/api/storefr
 
 # Seller register/login
 $sellerEmail = "seller_$ts@example.com"
-$resp = Invoke-Api -Name 'Seller register' -Method 'POST' -Path '/api/auth/seller/register' -Body @{ name='Seller Smoke'; email=$sellerEmail; password='Passw0rd!' } -Session $session; if ($resp) { $ok++ } else { $fail++ }
+$resp = Invoke-Api -Name 'Seller register' -Method 'POST' -Path '/api/auth/seller/register' -Body @{ name='Seller Test'; email=$sellerEmail; password='Passw0rd!' } -Session $session; if ($resp) { $ok++ } else { $fail++ }
 $sellerLogin = Invoke-Api -Name 'Seller login' -Method 'POST' -Path '/api/auth/seller/login' -Body @{ email=$sellerEmail; password='Passw0rd!' } -Session $session; if ($sellerLogin) { $ok++ } else { $fail++ }
 $sellerToken = $null
 try { $sellerToken = (($sellerLogin.Content | ConvertFrom-Json).token) } catch {}
 $sellerHeaders = if ($sellerToken) { @{ Authorization = "Bearer $sellerToken"; 'X-Tenant-Domain'=$Tenant } } else { @{ 'X-Tenant-Domain'=$Tenant } }
 
 # Seller store create/update/list
-$storeCreate = Invoke-Api -Name 'Seller create store' -Method 'POST' -Path '/api/seller/stores' -Headers $sellerHeaders -Body @{ name='Smoke Store'; city='City'; area='Area'; category='General' } -Session $session; if ($storeCreate) { $ok++ } else { $fail++ }
+$storeCreate = Invoke-Api -Name 'Seller create store' -Method 'POST' -Path '/api/seller/stores' -Headers $sellerHeaders -Body @{ name='Test Store'; city='City'; area='Area'; category='General' } -Session $session; if ($storeCreate) { $ok++ } else { $fail++ }
 $storeId = $null
 try { $storeId = (($storeCreate.Content | ConvertFrom-Json).id) } catch {}
 if ($storeId) {
@@ -219,7 +219,7 @@ if ($legacyOrders -and $legacyOrders.Count -gt 0) {
 }
 
 # Legacy checkout and payments
-$address = @{ line1='Smoke Address'; city='City'; area='Area'; pin='000000' }
+$address = @{ line1='Test Address'; city='City'; area='Area'; pin='000000' }
 $resp = Invoke-Api -Name 'Legacy checkout' -Method 'POST' -Path '/store/checkout' -Headers $sfHeaders -Body @{ items=@(@{ id='p1'; name='Prod'; price=100; quantity=1 }); totals=@{ payable=100 }; address=$address; paymentMethod='cod' } -Session $session; if ($resp) { $ok++ } else { $fail++ }
 $resp = Invoke-Api -Name 'Legacy payments initiate' -Method 'POST' -Path '/store/payments/initiate' -Headers $sfHeaders -Body @{ amount=100; currency='INR' } -Session $session; if ($resp) { $ok++ } else { $fail++ }
 $resp = Invoke-Api -Name 'Legacy payments verify' -Method 'POST' -Path '/store/payments/verify' -Headers $sfHeaders -Body @{ razorpay_order_id='order_abc'; razorpay_payment_id='pay_def'; razorpay_signature='sig_xyz' } -Session $session; if ($resp) { $ok++ } else { $fail++ }
