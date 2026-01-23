@@ -14,7 +14,7 @@ public class RiderEntity {
     private String tenantId;
     private String name;
     private String phone;
-    private String status; // OFFLINE|ONLINE|ASSIGNED|PICKED_UP|DELIVERED
+    private String status; // OFFLINE|ONLINE (availability only)
     private String currentZoneId;
     private java.time.Instant createdAt;
     private java.time.Instant updatedAt;

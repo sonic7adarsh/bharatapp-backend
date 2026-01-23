@@ -17,6 +17,7 @@ import com.bharatshop.repository.RiderLocationRepository;
 import com.bharatshop.service.GeoService;
 import com.bharatshop.service.NotificationService;
 import com.bharatshop.error.ApiException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 import java.time.Instant;
@@ -24,11 +25,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.UUID;
+import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import java.util.Optional;
 import java.util.Comparator;
 
 @Service
 public class LogisticsService {
+    private static final Logger log = LoggerFactory.getLogger(LogisticsService.class);
     private final RiderRepository riderRepository;
     private final OrderDeliveryRepository orderDeliveryRepository;
     private final StoreZoneRepository storeZoneRepository;
@@ -109,19 +115,15 @@ public class LogisticsService {
                 return Double.MAX_VALUE;
             }));
             RiderEntity rider = zoneMatchedRiders.get(0);
-            
-            rider.setStatus("ASSIGNED");
-            riderRepository.save(rider);
 
             OrderDeliveryEntity delivery = new OrderDeliveryEntity();
-            delivery.setId(UUID.randomUUID().toString());
+            delivery.setDeliveryId(UUID.randomUUID().toString());
             delivery.setTenantId(tenantId);
             delivery.setOrderId(orderId);
             delivery.setStoreId(storeId);
             delivery.setRiderId(rider.getId());
             delivery.setStatus("RIDER_ASSIGNED");
             delivery.setAssignedAt(Instant.now());
-            delivery.setOtp(String.valueOf((int)(Math.random()*9000)+1000));
             return orderDeliveryRepository.save(delivery);
         }
 
@@ -131,18 +133,16 @@ public class LogisticsService {
                 List<RiderZoneEntity> rZones = riderZoneRepository.findByTenantIdAndRiderId(tenantId, r.getId());
                 boolean matches = rZones.stream().anyMatch(z -> storeZoneIds.contains(z.getZoneId()));
                 if (matches) { 
-                    r.setStatus("ASSIGNED");
-                    riderRepository.save(r);
+                    // Do not change rider availability here; keep ONLINE/OFFLINE semantics only
 
                     OrderDeliveryEntity delivery = new OrderDeliveryEntity();
-                    delivery.setId(UUID.randomUUID().toString());
+                    delivery.setDeliveryId(UUID.randomUUID().toString());
                     delivery.setTenantId(tenantId);
                     delivery.setOrderId(orderId);
                     delivery.setStoreId(storeId);
                     delivery.setRiderId(r.getId());
                     delivery.setStatus("RIDER_ASSIGNED");
                     delivery.setAssignedAt(Instant.now());
-                    delivery.setOtp(String.valueOf((int)(Math.random()*9000)+1000));
                     return orderDeliveryRepository.save(delivery);
                 }
             }
@@ -150,18 +150,15 @@ public class LogisticsService {
 
         // Fallback to first available rider if no zone match
         RiderEntity rider = available.get(0);
-        rider.setStatus("ASSIGNED");
-        riderRepository.save(rider);
 
         OrderDeliveryEntity delivery = new OrderDeliveryEntity();
-        delivery.setId(UUID.randomUUID().toString());
+        delivery.setDeliveryId(UUID.randomUUID().toString());
         delivery.setTenantId(tenantId);
         delivery.setOrderId(orderId);
         delivery.setStoreId(storeId);
         delivery.setRiderId(rider.getId());
         delivery.setStatus("RIDER_ASSIGNED");
         delivery.setAssignedAt(Instant.now());
-        delivery.setOtp(String.valueOf((int)(Math.random()*9000)+1000));
         return orderDeliveryRepository.save(delivery);
     }
 
@@ -188,26 +185,24 @@ public class LogisticsService {
         if (!"ONLINE".equalsIgnoreCase(rider.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "RIDER_NOT_AVAILABLE", "Rider not available for assignment");
         }
-        rider.setStatus("ASSIGNED");
-        riderRepository.save(rider);
+        // Do not change rider availability here; keep ONLINE/OFFLINE semantics only
 
-        OrderDeliveryEntity delivery = new OrderDeliveryEntity();
-        delivery.setId(UUID.randomUUID().toString());
-        delivery.setTenantId(tenantId);
-        delivery.setOrderId(orderId);
-        delivery.setStoreId(storeId);
-        delivery.setRiderId(rider.getId());
-        delivery.setStatus("RIDER_ASSIGNED");
-        delivery.setAssignedAt(Instant.now());
-        delivery.setOtp(String.valueOf((int)(Math.random()*9000)+1000));
-        return orderDeliveryRepository.save(delivery);
-    }
+            OrderDeliveryEntity delivery = new OrderDeliveryEntity();
+            delivery.setDeliveryId(UUID.randomUUID().toString());
+            delivery.setTenantId(tenantId);
+            delivery.setOrderId(orderId);
+            delivery.setStoreId(storeId);
+            delivery.setRiderId(rider.getId());
+            delivery.setStatus("RIDER_ASSIGNED");
+            delivery.setAssignedAt(Instant.now());
+            return orderDeliveryRepository.save(delivery);
+        }
 
     /**
      * Admin override: unassign rider from a delivery if not yet picked up.
      */
     public OrderDeliveryEntity unassignRiderAdmin(String tenantId, String deliveryId) {
-        OrderDeliveryEntity d = orderDeliveryRepository.findByTenantIdAndId(tenantId, deliveryId)
+        OrderDeliveryEntity d = orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, deliveryId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "DELIVERY_NOT_FOUND", "Delivery not found"));
         String status = d.getStatus() == null ? "" : d.getStatus().toUpperCase();
         if (!"RIDER_ASSIGNED".equals(status)) {
@@ -238,6 +233,45 @@ public class LogisticsService {
         return orderDeliveryRepository.save(d);
     }
 
+    @Transactional
+    public OrderDeliveryEntity acceptDelivery(String deliveryId) {
+        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
+        var up = com.bharatshop.security.UserPrincipal.current();
+        if (up == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Unauthorized");
+        }
+        String riderId = up.getUserId();
+        OrderDeliveryEntity d = orderDeliveryRepository
+                .lockReadyForAssign(tenantId, deliveryId)
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "ORDER_ALREADY_ASSIGNED", "Already taken"));
+        d.setRiderId(riderId);
+        d.setStatus("RIDER_ASSIGNED");
+        d.setAssignedAt(Instant.now());
+        return orderDeliveryRepository.save(d);
+    }
+
+    // COPY-PASTE (EXACT) per spec: ONLY update existing row
+    @Transactional
+    public void accept(String deliveryId) {
+
+      OrderDeliveryEntity d = orderDeliveryRepository.findById(deliveryId)
+          .orElseThrow(() -> new RuntimeException("Delivery not found"));
+
+      if (!"READY".equals(d.getStatus())) {
+        throw new RuntimeException("Already taken");
+      }
+
+      d.setRiderId(currentUserId());
+      d.setStatus("RIDER_ASSIGNED");
+      d.setAssignedAt(Instant.now());
+    }
+
+    private String currentUserId() {
+        var up = com.bharatshop.security.UserPrincipal.current();
+        if (up == null) throw new RuntimeException("Unauthorized");
+        return up.getUserId();
+    }
+
     public OrderDeliveryEntity markPickedUp(String deliveryId) {
         return orderDeliveryRepository.findById(deliveryId).map(d -> {
             String cur = d.getStatus() == null ? "" : d.getStatus();
@@ -250,13 +284,19 @@ public class LogisticsService {
         }).orElse(null);
     }
 
-    public OrderDeliveryEntity markOutForDelivery(String deliveryId) {
+    public OrderDeliveryEntity startDelivery(String deliveryId) {
         return orderDeliveryRepository.findById(deliveryId).map(d -> {
             String cur = d.getStatus() == null ? "" : d.getStatus();
             if (!"PICKED_UP".equalsIgnoreCase(cur)) {
                 throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
             }
             d.setStatus("OUT_FOR_DELIVERY");
+            // Generate 6-digit numeric OTP and store hashed
+            String otp = String.format("%06d", new java.util.Random().nextInt(1_000_000));
+            String hash = BCrypt.hashpw(otp, BCrypt.gensalt());
+            d.setOtp(hash);
+            d.setOtpGeneratedAt(Instant.now());
+            log.info("Delivery OTP generated: deliveryId={} otp={} (simulated SMS)", d.getDeliveryId(), otp);
             return orderDeliveryRepository.save(d);
         }).orElse(null);
     }
@@ -267,8 +307,11 @@ public class LogisticsService {
             if (!"OUT_FOR_DELIVERY".equalsIgnoreCase(cur)) {
                 throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
             }
-            if (d.getOtp() == null || !d.getOtp().equals(otp)) {
-                throw new ApiException(HttpStatus.CONFLICT, "INVALID_OTP", "Incorrect OTP");
+            // OTP must be present, valid hash, and not expired (10 minutes)
+            boolean expired = d.getOtpGeneratedAt() == null || Instant.now().isAfter(d.getOtpGeneratedAt().plus(Duration.ofMinutes(10)));
+            boolean match = d.getOtp() != null && BCrypt.checkpw(otp, d.getOtp());
+            if (expired || !match) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_OTP", "Incorrect or expired OTP");
             }
             d.setStatus("DELIVERED");
             d.setCompletedAt(Instant.now());
@@ -311,6 +354,6 @@ public class LogisticsService {
     }
 
     public java.util.Optional<OrderDeliveryEntity> findByTenantIdAndId(String tenantId, String id) {
-        return orderDeliveryRepository.findByTenantIdAndId(tenantId, id);
+        return orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, id);
     }
 }

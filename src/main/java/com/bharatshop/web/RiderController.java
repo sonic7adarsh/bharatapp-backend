@@ -14,7 +14,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-@RestController
+@RestController("webRiderController")
 @RequestMapping("/api/riders")
 public class RiderController {
     private final RiderRepository riderRepository;

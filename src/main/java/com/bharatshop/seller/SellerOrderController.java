@@ -179,7 +179,7 @@ public class SellerOrderController {
         // Attempt rider assignment when ready
         try {
             com.bharatshop.entity.OrderDeliveryEntity d = logisticsService.assignRider(tenant, orderId, e.getStoreId());
-            log.info("Rider assignment upon ready: orderId={} deliveryId={} riderId={}", orderId, d != null ? d.getId() : null, d != null ? d.getRiderId() : null);
+            log.info("Rider assignment upon ready: orderId={} deliveryId={} riderId={}", orderId, d != null ? d.getDeliveryId() : null, d != null ? d.getRiderId() : null);
         } catch (Exception ex) {
             log.warn("Rider assignment failed: orderId={} error={}", orderId, ex.getMessage());
         }

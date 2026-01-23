@@ -61,7 +61,7 @@ public class AdminLogisticsOverrideTest {
         Assertions.assertEquals("RIDER_ASSIGNED", d.getStatus());
         Assertions.assertEquals(r.getId(), d.getRiderId());
 
-        OrderDeliveryEntity unassigned = logisticsService.unassignRiderAdmin(tenant, d.getId());
+        OrderDeliveryEntity unassigned = logisticsService.unassignRiderAdmin(tenant, d.getDeliveryId());
         Assertions.assertEquals("PENDING", unassigned.getStatus());
         Assertions.assertNull(unassigned.getRiderId());
         RiderEntity refreshed = riderRepository.findById(r.getId()).orElseThrow();

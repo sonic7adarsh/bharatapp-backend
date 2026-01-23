@@ -57,7 +57,7 @@ public class RiderOtpFlowTest {
         orderItemRepository.save(item);
 
         OrderDeliveryEntity delivery = new OrderDeliveryEntity();
-        delivery.setId(UUID.randomUUID().toString());
+        delivery.setDeliveryId(UUID.randomUUID().toString());
         delivery.setTenantId(tenant);
         delivery.setOrderId(order.getId());
         delivery.setStatus("out_for_delivery");
@@ -65,7 +65,7 @@ public class RiderOtpFlowTest {
         orderDeliveryRepository.save(delivery);
 
         // Act
-        OrderDeliveryEntity completed = logisticsService.completeWithOtp(delivery.getId(), "123456");
+        OrderDeliveryEntity completed = logisticsService.completeWithOtp(delivery.getDeliveryId(), "123456");
 
         // Assert: order delivered and inventory consumed handled by service
         assertThat(completed.getStatus()).isEqualTo("DELIVERED");
@@ -84,7 +84,7 @@ public class RiderOtpFlowTest {
         orderRepository.save(order);
 
         OrderDeliveryEntity delivery = new OrderDeliveryEntity();
-        delivery.setId(UUID.randomUUID().toString());
+        delivery.setDeliveryId(UUID.randomUUID().toString());
         delivery.setTenantId(tenant);
         delivery.setOrderId(order.getId());
         delivery.setStatus("out_for_delivery");
@@ -92,7 +92,7 @@ public class RiderOtpFlowTest {
         orderDeliveryRepository.save(delivery);
 
         ApiException ex = assertThrows(ApiException.class,
-                () -> logisticsService.completeWithOtp(delivery.getId(), "000000"));
+                () -> logisticsService.completeWithOtp(delivery.getDeliveryId(), "000000"));
         assertThat(ex.getStatus().value()).isEqualTo(409);
         assertThat(ex.getCode()).isEqualTo("INVALID_OTP");
     }

@@ -51,7 +51,7 @@ public class LogisticsController {
         }
         return ResponseEntity.ok(Map.of(
                 "status","assigned",
-                "deliveryId", delivery.getId(),
+                "deliveryId", delivery.getDeliveryId(),
                 "riderId", delivery.getRiderId(),
                 "otp", delivery.getOtp()
         ));

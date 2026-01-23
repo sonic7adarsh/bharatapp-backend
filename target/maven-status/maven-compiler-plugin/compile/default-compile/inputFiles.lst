@@ -47,8 +47,10 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\OrderEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\OrderItemEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\ProductEntity.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\RiderEarningEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\RiderEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\RiderLocationEntity.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\RiderStatusEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\RiderZoneEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\StoreEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\StoreZoneEntity.java
@@ -94,8 +96,10 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\reposi
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\OrderItemRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\OrderRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\ProductRepository.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\RiderEarningRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\RiderLocationRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\RiderRepository.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\RiderStatusRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\RiderZoneRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\StoreRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\StoreZoneRepository.java
@@ -104,7 +108,7 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\reposi
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\UserRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\UserRoleRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\ZoneRepository.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\rider\RiderOrderController.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\rider\RiderController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\security\JwtService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\security\rbac\CustomerOnly.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\security\rbac\RiderOnly.java

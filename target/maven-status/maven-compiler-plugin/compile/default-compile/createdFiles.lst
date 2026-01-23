@@ -4,6 +4,7 @@ com\bharatshop\service\OrderCancelledEvent.class
 com\bharatshop\service\RiderAssignedEvent.class
 com\bharatshop\service\OutForDeliveryEvent.class
 com\bharatshop\security\rbac\CustomerOnly.class
+com\bharatshop\repository\RiderEarningRepository.class
 com\bharatshop\repository\RiderRepository.class
 com\bharatshop\web\StorefrontConfigController.class
 com\bharatshop\repository\UserRoleRepository.class
@@ -15,13 +16,13 @@ com\bharatshop\factory\impl\DefaultStorefrontFactory$5.class
 com\bharatshop\web\MediaController.class
 com\bharatshop\domain\Order$Totals.class
 com\bharatshop\repository\StoreZoneRepository.class
+com\bharatshop\repository\RiderStatusRepository.class
 com\bharatshop\factory\SellerFactory.class
 com\bharatshop\storefront\StorefrontController.class
 com\bharatshop\devtools\TenantDataNormalizer.class
 com\bharatshop\factory\impl\DefaultSellerFactory$2.class
 com\bharatshop\service\AuthService$OtpInfo.class
 com\bharatshop\entity\TenantConfiguration.class
-com\bharatshop\web\RiderController.class
 com\bharatshop\repository\AuditLogRepository.class
 com\bharatshop\dto\PhoneLoginRequest.class
 com\bharatshop\storefront\StorefrontAuthController.class
@@ -54,13 +55,13 @@ com\bharatshop\service\BulkUploadService.class
 com\bharatshop\security\JwtService$Payload.class
 com\bharatshop\entity\ProductEntity.class
 com\bharatshop\service\OrderAcceptedEvent.class
-com\bharatshop\web\admin\AdminLogisticsController.class
 com\bharatshop\config\NotificationScheduler.class
 com\bharatshop\entity\UserNotificationPreference.class
 com\bharatshop\logging\ArgSanitizer.class
 com\bharatshop\factory\ops\SellerOrderOps.class
 com\bharatshop\repository\UserNotificationPreferenceRepository.class
 com\bharatshop\config\TenantInterceptor.class
+com\bharatshop\entity\RiderStatusEntity.class
 com\bharatshop\service\UserRoleService.class
 com\bharatshop\config\GlobalExceptionHandler.class
 com\bharatshop\factory\StorefrontFactory.class
@@ -92,6 +93,7 @@ com\bharatshop\web\ZoneController.class
 com\bharatshop\config\IdempotencyConfig.class
 com\bharatshop\repository\TenantConfigurationRepository.class
 com\bharatshop\repository\ZoneRepository.class
+com\bharatshop\entity\RiderEarningEntity.class
 com\bharatshop\service\RateLimitingService.class
 com\bharatshop\repository\RiderZoneRepository.class
 com\bharatshop\repository\InventoryRepository.class
@@ -109,9 +111,7 @@ com\bharatshop\domain\PaymentVerificationResponse.class
 com\bharatshop\dto\SellerRegisterRequest.class
 com\bharatshop\repository\NotificationEventRepository.class
 com\bharatshop\security\rbac\SellerOnly.class
-com\bharatshop\seller\SellerOrderController.class
 com\bharatshop\service\OrderEvent.class
-com\bharatshop\entity\OrderDeliveryEntity.class
 com\bharatshop\web\StorefrontCartController.class
 com\bharatshop\service\ProductService.class
 com\bharatshop\security\TokenAuthFilter.class
@@ -132,7 +132,6 @@ com\bharatshop\service\AuditLoggingService.class
 com\bharatshop\error\BadRequestException.class
 com\bharatshop\dto\OrderDto$Item.class
 com\bharatshop\entity\StoreZoneEntity.class
-com\bharatshop\repository\OrderDeliveryRepository.class
 com\bharatshop\entity\ZoneEntity.class
 com\bharatshop\web\StorefrontCartController$UpdateCartItemRequest.class
 com\bharatshop\factory\impl\DefaultStorefrontFactory$1.class
@@ -141,14 +140,12 @@ com\bharatshop\service\RateLimitingService$RateLimitBucket.class
 com\bharatshop\config\TenantFilter.class
 com\bharatshop\error\ApiException.class
 com\bharatshop\service\CheckoutService.class
-com\bharatshop\service\LogisticsService.class
 com\bharatshop\factory\ops\PaymentOps.class
 com\bharatshop\web\ServiceabilityController.class
 com\bharatshop\entity\UserRoleEntity.class
 com\bharatshop\service\CheckoutService$CacheEntry.class
 com\bharatshop\factory\ops\SellerStoreOps.class
 com\bharatshop\repository\NotificationTemplateRepository.class
-com\bharatshop\rider\RiderOrderController.class
 com\bharatshop\service\PaymentService.class
 com\bharatshop\entity\RiderZoneEntity.class
 com\bharatshop\policy\StoreAvailabilityPolicy.class
@@ -160,7 +157,6 @@ com\bharatshop\service\SmsService.class
 com\bharatshop\factory\impl\DefaultSellerFactory$3.class
 com\bharatshop\repository\ProductRepository.class
 com\bharatshop\factory\impl\DefaultStorefrontFactory$6.class
-com\bharatshop\web\AdminController.class
 com\bharatshop\repository\NotificationLogRepository.class
 com\bharatshop\service\AuthService$Session.class
 com\bharatshop\security\JwtService.class
@@ -179,7 +175,6 @@ com\bharatshop\repository\RiderLocationRepository.class
 com\bharatshop\error\ForbiddenException.class
 com\bharatshop\error\UnauthorizedException.class
 com\bharatshop\service\EmailService.class
-com\bharatshop\web\LogisticsController.class
 com\bharatshop\factory\impl\DefaultStorefrontFactory$4.class
 com\bharatshop\service\OrderPlacedEvent.class
 com\bharatshop\web\AvailabilityController.class

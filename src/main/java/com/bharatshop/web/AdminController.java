@@ -61,7 +61,7 @@ public class AdminController {
         String storeId = opt.get().getStoreId();
         OrderDeliveryEntity d = logisticsService.assignRider(tenant, orderId, storeId);
         if (d == null) return ResponseEntity.status(409).body(Map.of("error", "NO_AVAILABLE_RIDERS"));
-        return ResponseEntity.ok(Map.of("deliveryId", d.getId(), "riderId", d.getRiderId()));
+        return ResponseEntity.ok(Map.of("deliveryId", d.getDeliveryId(), "riderId", d.getRiderId()));
     }
 
     @PostMapping("/grant-role")

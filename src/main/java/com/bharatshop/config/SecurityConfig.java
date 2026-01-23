@@ -47,6 +47,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/actuator/**"
                         ).permitAll()
+                        // Rider onboarding: allow any authenticated user, even without RIDER role
+                        .requestMatchers(HttpMethod.POST, "/api/rider/onboard").authenticated()
                         // API docs / Swagger
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Actuator
@@ -64,19 +66,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"
-        ));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "X-Tenant-Domain",
-                "X-Correlation-Id",
-                "X-Idempotency-Key"
-        ));
+        // Allow all origins in production and any localhost ports in dev via patterns
+        config.setAllowedOriginPatterns(List.of("*"));
+        // Allow all headers & methods; preflight should always succeed
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+        // Optionally expose common headers used by frontend
+        config.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id", "X-Idempotency-Key"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

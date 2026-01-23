@@ -20,7 +20,8 @@ public class TenantFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
         boolean isApi = path.startsWith("/api/");
-        boolean isTenantExempt = path.startsWith("/api/storefront/auth/")
+        boolean isTenantExempt = path.startsWith("/api/auth/")
+                || path.startsWith("/api/storefront/auth/")
                 || path.equals("/api/riders/login")
                 || path.equals("/health")
                 || path.equals("/");
