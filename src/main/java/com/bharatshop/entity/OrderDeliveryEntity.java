@@ -40,10 +40,13 @@ public class OrderDeliveryEntity {
   private Instant completedAt;
 
   @Column(name = "otp")
-  private String otp;
+    private String otp;
 
-  @Column(name = "otp_generated_at")
-  private Instant otpGeneratedAt;
+    @Column(name = "otp_generated_at")
+    private Instant otpGeneratedAt;
+
+    @Column(name = "otp_sent_at")
+    private Instant otpSentAt;
 
   @Column(name = "updated_at")
   private Instant updatedAt;
@@ -78,6 +81,8 @@ public class OrderDeliveryEntity {
   public void setOtp(String otp) { this.otp = otp; }
   public Instant getOtpGeneratedAt() { return otpGeneratedAt; }
   public void setOtpGeneratedAt(Instant otpGeneratedAt) { this.otpGeneratedAt = otpGeneratedAt; }
+  public Instant getOtpSentAt() { return otpSentAt; }
+  public void setOtpSentAt(Instant otpSentAt) { this.otpSentAt = otpSentAt; }
   public Instant getUpdatedAt() { return updatedAt; }
   public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
   public String getFailureReason() { return failureReason; }

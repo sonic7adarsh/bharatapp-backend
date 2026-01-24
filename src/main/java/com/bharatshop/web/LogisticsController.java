@@ -57,40 +57,6 @@ public class LogisticsController {
         ));
     }
 
-    @PostMapping("/pickup")
-    @PreAuthorize("hasRole('RIDER') or hasRole('ADMIN')")
-    public ResponseEntity<?> pickup(@RequestBody Map<String, String> req) {
-        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
-        String deliveryId = req.get("deliveryId");
-        ensureAssignedRiderOrAdmin(tenantId, deliveryId);
-        OrderDeliveryEntity d = logisticsService.markPickedUp(deliveryId);
-        if (d == null) return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid deliveryId"));
-        return ResponseEntity.ok(Map.of("status", d.getStatus()));
-    }
-
-    @PostMapping("/complete")
-    @PreAuthorize("hasRole('RIDER') or hasRole('ADMIN')")
-    public ResponseEntity<?> complete(@RequestBody Map<String, String> req) {
-        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
-        String deliveryId = req.get("deliveryId");
-        String otp = req.get("otp");
-        ensureAssignedRiderOrAdmin(tenantId, deliveryId);
-        OrderDeliveryEntity d = logisticsService.completeWithOtp(deliveryId, otp);
-        if (d == null) return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid deliveryId"));
-        return ResponseEntity.ok(Map.of("status", d.getStatus(), "reason", d.getFailureReason()));
-    }
-
-    @PostMapping("/out-for-delivery")
-    @PreAuthorize("hasRole('RIDER') or hasRole('ADMIN')")
-    public ResponseEntity<?> outForDelivery(@RequestBody Map<String, String> req) {
-        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
-        String deliveryId = req.get("deliveryId");
-        ensureAssignedRiderOrAdmin(tenantId, deliveryId);
-        OrderDeliveryEntity d = logisticsService.markOutForDelivery(deliveryId);
-        if (d == null) return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid deliveryId"));
-        return ResponseEntity.ok(Map.of("status", d.getStatus()));
-    }
-
     @PostMapping("/attempt")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> attempt(@RequestBody Map<String, String> req) {

@@ -32,6 +32,10 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import java.util.Optional;
 import java.util.Comparator;
 
+import com.bharatshop.repository.UserRepository;
+import com.bharatshop.service.SmsService;
+import java.util.Random;
+
 @Service
 public class LogisticsService {
     private static final Logger log = LoggerFactory.getLogger(LogisticsService.class);
@@ -46,6 +50,8 @@ public class LogisticsService {
     private final NotificationService notificationService;
     private final InventoryService inventoryService;
     private final OrderItemRepository orderItemRepository;
+    private final UserRepository userRepository;
+    private final SmsService smsService;
 
     public LogisticsService(RiderRepository riderRepository,
                             OrderDeliveryRepository orderDeliveryRepository,
@@ -57,7 +63,9 @@ public class LogisticsService {
                             OrderRepository orderRepository,
                             NotificationService notificationService,
                             InventoryService inventoryService,
-                            OrderItemRepository orderItemRepository) {
+                            OrderItemRepository orderItemRepository,
+                            UserRepository userRepository,
+                            SmsService smsService) {
         this.riderRepository = riderRepository;
         this.orderDeliveryRepository = orderDeliveryRepository;
         this.storeZoneRepository = storeZoneRepository;
@@ -69,6 +77,8 @@ public class LogisticsService {
         this.notificationService = notificationService;
         this.inventoryService = inventoryService;
         this.orderItemRepository = orderItemRepository;
+        this.userRepository = userRepository;
+        this.smsService = smsService;
     }
 
     public OrderDeliveryEntity assignRider(String tenantId, String orderId, String storeId) {
@@ -284,19 +294,39 @@ public class LogisticsService {
         }).orElse(null);
     }
 
+    @Transactional
     public OrderDeliveryEntity startDelivery(String deliveryId) {
         return orderDeliveryRepository.findById(deliveryId).map(d -> {
             String cur = d.getStatus() == null ? "" : d.getStatus();
-            if (!"PICKED_UP".equalsIgnoreCase(cur)) {
+            if (!"PICKED_UP".equalsIgnoreCase(cur) && !"RIDER_ASSIGNED".equalsIgnoreCase(cur)) {
                 throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
             }
             d.setStatus("OUT_FOR_DELIVERY");
-            // Generate 6-digit numeric OTP and store hashed
+            
+            // Generate 6-digit numeric OTP (Plain text as per requirement)
             String otp = String.format("%06d", new java.util.Random().nextInt(1_000_000));
-            String hash = BCrypt.hashpw(otp, BCrypt.gensalt());
-            d.setOtp(hash);
+            d.setOtp(otp);
             d.setOtpGeneratedAt(Instant.now());
-            log.info("Delivery OTP generated: deliveryId={} otp={} (simulated SMS)", d.getDeliveryId(), otp);
+            d.setOtpSentAt(Instant.now());
+            
+            // Send OTP via SMS
+            try {
+                orderRepository.findByTenantIdAndId(d.getTenantId(), d.getOrderId()).ifPresent(order -> {
+                     userRepository.findById(order.getUserId()).ifPresent(user -> {
+                         String phone = user.getPhone();
+                         if (phone != null && !phone.isBlank()) {
+                             smsService.sendMessage(phone, "Your delivery OTP is " + otp);
+                             log.info("OTP sent to phone: {}", phone);
+                         } else {
+                             log.warn("No phone number found for user {}", order.getUserId());
+                         }
+                     });
+                 });
+            } catch (Exception e) {
+                log.error("Failed to send OTP SMS", e);
+            }
+            
+            log.info("Delivery OTP generated: deliveryId={} otp={} (plain text)", d.getDeliveryId(), otp);
             return orderDeliveryRepository.save(d);
         }).orElse(null);
     }
@@ -307,11 +337,10 @@ public class LogisticsService {
             if (!"OUT_FOR_DELIVERY".equalsIgnoreCase(cur)) {
                 throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
             }
-            // OTP must be present, valid hash, and not expired (10 minutes)
-            boolean expired = d.getOtpGeneratedAt() == null || Instant.now().isAfter(d.getOtpGeneratedAt().plus(Duration.ofMinutes(10)));
-            boolean match = d.getOtp() != null && BCrypt.checkpw(otp, d.getOtp());
-            if (expired || !match) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_OTP", "Incorrect or expired OTP");
+            // Verify Plain Text OTP
+            boolean match = d.getOtp() != null && d.getOtp().equals(otp);
+            if (!match) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_OTP", "Incorrect OTP");
             }
             d.setStatus("DELIVERED");
             d.setCompletedAt(Instant.now());
