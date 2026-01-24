@@ -13,6 +13,8 @@ public class ProductEntity {
     private String description;
     private String image;
     private String category;
+    @Column(name = "category_id")
+    private String categoryId;
     private String storeId;
     private String currency;
     private String sku;
