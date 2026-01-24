@@ -47,6 +47,8 @@ public class ProductEntity {
     public void setImage(String image) { this.image = image; }
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+    public String getCategoryId() { return categoryId; }
+    public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
     public String getStoreId() { return storeId; }
     public void setStoreId(String storeId) { this.storeId = storeId; }
     public String getCurrency() { return currency; }

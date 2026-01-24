@@ -2,3 +2,68 @@
 2026-01-24 12:07:27.280 [39mDEBUG[0;39m [] [http-nio-8080-exec-6] o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
 2026-01-24 12:07:27.404 [39mDEBUG[0;39m [] [http-nio-8080-exec-7] o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
 2026-01-24 12:07:36.737 [31mWARN [0;39m [] [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=10h38m15s947ms18µs).
+2026-01-24 12:27:10.003 [34mINFO [0;39m [] [main] c.bharatshop.BharatshopApplication - Starting BharatshopApplication using Java 17.0.12 with PID 39152 (C:\Users\Adarsh\Downloads\bharatshop-backend\target\bharatshop-backend-0.0.1-SNAPSHOT.jar started by Adarsh in C:\Users\Adarsh\Downloads\bharatshop-backend)
+2026-01-24 12:27:10.007 [39mDEBUG[0;39m [] [main] c.bharatshop.BharatshopApplication - Running with Spring Boot v3.3.4, Spring v6.1.13
+2026-01-24 12:27:10.010 [34mINFO [0;39m [] [main] c.bharatshop.BharatshopApplication - The following 1 profile is active: "mysql"
+2026-01-24 12:27:13.472 [34mINFO [0;39m [] [main] o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-24 12:27:13.746 [34mINFO [0;39m [] [main] o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 254 ms. Found 22 JPA repository interfaces.
+2026-01-24 12:27:16.311 [34mINFO [0;39m [] [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-01-24 12:27:16.337 [34mINFO [0;39m [] [main] o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-01-24 12:27:16.348 [34mINFO [0;39m [] [main] o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-01-24 12:27:16.349 [34mINFO [0;39m [] [main] o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.30]
+2026-01-24 12:27:16.463 [34mINFO [0;39m [] [main] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-01-24 12:27:16.464 [34mINFO [0;39m [] [main] o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 6321 ms
+2026-01-24 12:27:18.477 [34mINFO [0;39m [] [main] o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-24 12:27:18.581 [34mINFO [0;39m [] [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-01-24 12:27:19.036 [34mINFO [0;39m [] [main] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@17e8c38c
+2026-01-24 12:27:19.042 [34mINFO [0;39m [] [main] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-01-24 12:27:22.958 [34mINFO [0;39m [] [main] o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-24 12:27:23.771 [34mINFO [0;39m [] [main] o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-01-24 12:27:24.801 [39mDEBUG[0;39m [] [main] c.b.c.logging.CorrelationIdFilter - Filter 'correlationIdFilter' configured for use
+2026-01-24 12:27:24.801 [39mDEBUG[0;39m [] [main] c.b.config.logging.HttpLoggingFilter - Filter 'httpLoggingFilter' configured for use
+2026-01-24 12:27:24.805 [39mDEBUG[0;39m [] [main] com.bharatshop.config.TenantFilter - Filter 'tenantFilter' configured for use
+2026-01-24 12:27:24.805 [39mDEBUG[0;39m [] [main] c.b.security.TokenAuthFilter - Filter 'tokenAuthFilter' configured for use
+2026-01-24 12:27:24.809 [39mDEBUG[0;39m [] [main] c.b.config.IdempotencyFilter - Filter 'idempotencyFilter' configured for use
+2026-01-24 12:27:24.859 [34mINFO [0;39m [] [main] c.b.config.DatabaseIdentityLogger - [PROFILES] active=mysql
+2026-01-24 12:27:24.863 [34mINFO [0;39m [] [main] c.b.config.DatabaseIdentityLogger - [DB] url=jdbc:mysql://localhost:3306/bharatshop?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC schema=null user=root@localhost catalog=bharatshop
+2026-01-24 12:27:27.535 [31mWARN [0;39m [] [main] o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-24 12:27:28.096 [39mDEBUG[0;39m [] [main] o.s.w.s.m.m.a.RequestMappingHandlerMapping - 131 mappings in 'requestMappingHandlerMapping'
+2026-01-24 12:27:28.605 [34mINFO [0;39m [] [main] o.s.b.a.e.web.EndpointLinksResolver - Exposing 4 endpoints beneath base path '/actuator'
+2026-01-24 12:27:29.966 [34mINFO [0;39m [] [main] o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-01-24 12:27:30.034 [34mINFO [0;39m [] [main] o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-01-24 12:27:30.076 [34mINFO [0;39m [] [main] c.bharatshop.BharatshopApplication - Started BharatshopApplication in 21.799 seconds (process running for 23.505)
+2026-01-24 12:27:30.227 [34mINFO [0;39m [] [main] c.b.devtools.TenantDataInspector - TENANT CHECK: DISTINCT store tenants=[tenantA] DISTINCT product tenants=[tenantA] 
+2026-01-24 12:27:30.228 [34mINFO [0;39m [] [main] c.b.devtools.TenantDataInspector - TENANT CHECK: COUNT(stores, tenantA)=125 COUNT(products, tenantA)=189
+2026-01-24 12:27:30.233 [34mINFO [0;39m [] [main] c.b.devtools.TenantDataNormalizer - TENANT NORMALIZE: updated stores=0 updated products=0 (NULL/default -> tenantA)
+2026-01-24 12:27:30.467 [1;31mERROR[0;39m [] [main] com.bharatshop.service.StoreService - [PROOF][STORE_MAP] entity.id=46fc2f50-a742-433d-ad34-56cdb3db2154 mapped.id=46fc2f50-a742-433d-ad34-56cdb3db2154
+2026-01-24 12:27:30.481 [1;31mERROR[0;39m [] [main] com.bharatshop.service.StoreService - [PROOF][STORE_MAP] entity.id=29c94933-bf44-45c6-8398-2331fc26b35b mapped.id=29c94933-bf44-45c6-8398-2331fc26b35b
+2026-01-24 13:10:55.156 [34mINFO [0;39m [] [http-nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-24 13:10:55.157 [34mINFO [0;39m [] [http-nio-8080-exec-1] o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-01-24 13:10:55.162 [34mINFO [0;39m [] [http-nio-8080-exec-1] o.s.web.servlet.DispatcherServlet - Completed initialization in 4 ms
+2026-01-24 13:10:55.373 [39mDEBUG[0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.bharatshop.auth.AuthController#sendOtp(Map)
+2026-01-24 13:10:55.374 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] c.b.config.TenantInterceptor - tenant-context: tenant=tenantA method=POST path=/api/auth/send-otp
+2026-01-24 13:10:55.571 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] com.bharatshop.auth.AuthController - OTP send requested: phone=9876543211
+2026-01-24 13:10:55.571 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] com.bharatshop.service.AuthService - Sending OTP to phone=9876543211
+2026-01-24 13:10:55.572 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] com.bharatshop.service.AuthService - OTP generated: otpId=c6914f80-ec71-4b38-819e-3682bf90e397 expiresAt=1769240575572
+2026-01-24 13:10:55.656 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - POST /api/auth/send-otp -> 200 (301 ms)
+2026-01-24 13:10:55.657 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=application/json, text/plain, */*
+2026-01-24 13:10:55.657 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - Request payload: {"phone":"9876543211"}
+2026-01-24 13:10:55.659 [34mINFO [0;39m [83e5af5b-700e-4f6d-9253-9a90dcf2e0c7] [http-nio-8080-exec-2] c.b.config.logging.HttpLoggingFilter - Response payload: {"success":true,"ttlSeconds":120,"otp":"865398","otpId":"c6914f80-ec71-4b38-819e-3682bf90e397"}
+2026-01-24 13:11:09.399 [39mDEBUG[0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.bharatshop.auth.AuthController#verifyOtp(Map)
+2026-01-24 13:11:09.401 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] c.b.config.TenantInterceptor - tenant-context: tenant=tenantA method=POST path=/api/auth/verify-otp
+2026-01-24 13:11:09.403 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.auth.AuthController - OTP verify requested: phone=9876543211 otpPresent=true
+2026-01-24 13:11:09.405 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.service.AuthService - Verifying OTP for phone=9876543211
+2026-01-24 13:11:09.405 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.service.AuthService - OTP verification success for phone=9876543211
+2026-01-24 13:11:09.406 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.service.AuthService - Login (phone) attempt: phone=9876543211
+2026-01-24 13:11:09.724 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.service.AuthService - Session created: userId=19357970-9902-46b3-9445-4385835a36aa activeRole=CUSTOMER
+2026-01-24 13:11:09.724 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.service.AuthService - Login (phone) success: userId=19357970-9902-46b3-9445-4385835a36aa token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTM1Nzk3MC05OTAyLTQ2YjMtOTQ0NS00Mzg1ODM1YTM2YWEiLCJpc3MiOiJiaGFyYXRzaG9wIiwiYXVkIjoiYmhhcmF0c2hvcC1jbGllbnRzIiwibmFtZSI6IlVzZXIzMjExIiwicm9sZSI6IkNVU1RPTUVSIiwidGVuYW50SWQiOiJ0ZW5hbnRBIiwiYWN0aXZlUm9sZSI6IkNVU1RPTUVSIiwicm9sZXMiOlsiQ1VTVE9NRVIiXSwiaWF0IjoxNzY5MjQwNDY5LCJleHAiOjE3NjkyNDQwNjl9.trsSOHkbmqDHq23B4aXDzGfBezZFF1xmr5Btmhl9Uxc activeRole=CUSTOMER 
+2026-01-24 13:11:09.797 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] com.bharatshop.auth.AuthController - OTP verify success: userId=19357970-9902-46b3-9445-4385835a36aa tokenPresent=true
+2026-01-24 13:11:09.875 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - POST /api/auth/verify-otp -> 200 (476 ms)
+2026-01-24 13:11:09.875 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - Headers: auth=absent content-type=application/json accept=application/json, text/plain, */*
+2026-01-24 13:11:09.876 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - Request payload: {"phone":"9876543211","otp":"865398"}
+2026-01-24 13:11:09.876 [34mINFO [0;39m [386391a3-f07f-46ef-be46-c0b62e24145c] [http-nio-8080-exec-6] c.b.config.logging.HttpLoggingFilter - Response payload: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTM1Nzk3MC05OTAyLTQ2YjMtOTQ0NS00Mzg1ODM1YTM2YWEiLCJpc3MiOiJiaGFyYXRzaG9wIiwiYXVkIjoiYmhhcmF0c2hvcC1jbGllbnRzIiwibmFtZSI6IlVzZXIzMjExIiwicm9sZSI6IkNVU1RPTUVSIiwidGVuYW50SWQiOiJ0ZW5hbnRBIiwiYWN0aXZlUm9sZSI6IkNVU1RPTUVSIiwicm9sZXMiOlsiQ1VTVE9NRVIiXSwiaWF0IjoxNzY5MjQwNDY5LCJleHAiOjE3NjkyNDQwNjl9.trsSOHkbmqDHq23B4aXDzGfBezZFF1xmr5Btmhl9Uxc","success":true,"user":{"id":"19357970-9902-46b3-9445-4385835a36aa","name":"User3211","email":null,"phone":"9876543211","role":"CUSTOMER","tenantId":"tenantA"}}
+2026-01-24 14:43:13.859 [31mWARN [0;39m [] [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=22m53s95ms935µs).
+2026-01-24 16:32:32.795 [31mWARN [0;39m [] [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h49m23s320ms846µs).
+2026-01-24 16:32:36.738 [34mINFO [0;39m [] [SpringApplicationShutdownHook] o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-24 16:32:36.765 [34mINFO [0;39m [] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-01-24 16:32:36.790 [34mINFO [0;39m [] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
