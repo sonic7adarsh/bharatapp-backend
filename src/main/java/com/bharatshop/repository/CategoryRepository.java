@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<CategoryEntity, String> {
     List<CategoryEntity> findByIsGlobalTrueOrderByPriorityAsc();
-    List<CategoryEntity> findByNameContainingIgnoreCaseAndIsGlobalTrue(String name);
+    List<CategoryEntity> findByNameContainingIgnoreCase(String name);
 }
