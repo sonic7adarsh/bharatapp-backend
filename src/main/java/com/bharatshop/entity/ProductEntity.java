@@ -15,6 +15,10 @@ public class ProductEntity {
     private String category;
     @Column(name = "category_id")
     private String categoryId;
+    
+    // Indexing is handled via DB DDL or assumed existing as per prompt
+    // We explicitly keep this field for loose coupling
+
     private String storeId;
     private String currency;
     private String sku;

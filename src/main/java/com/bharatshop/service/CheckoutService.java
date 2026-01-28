@@ -137,8 +137,18 @@ public class CheckoutService {
         totals.payable = computedTotal;
         log.info("CheckoutService: total computed={}", computedTotal);
 
+        // Map Payment Info
+        Order.PaymentInfo paymentInfo = null;
+        if (req.getPaymentInfo() != null) {
+            paymentInfo = new Order.PaymentInfo();
+            paymentInfo.gateway = req.getPaymentInfo().gateway;
+            paymentInfo.orderId = req.getPaymentInfo().orderId;
+            paymentInfo.paymentId = req.getPaymentInfo().paymentId;
+            // signature is verified in /verify endpoint, passing it here isn't strictly needed for linking but good for context if needed
+        }
+
         Order order = factoryProvider.getFactory(tenant).orders()
-                .placeOrder(up.getUserId(), normalizedItems, totals, req.getPaymentMethod(), null, "order", resolvedStoreId, null);
+                .placeOrder(up.getUserId(), normalizedItems, totals, req.getPaymentMethod(), paymentInfo, "order", resolvedStoreId, null);
 
         log.info("CheckoutService: success orderId={} reference={} userId={}", order.getId(), order.getReference(), up.getUserId());
         Map<String, Object> resp = Map.of("order", order, "reference", order.getReference());

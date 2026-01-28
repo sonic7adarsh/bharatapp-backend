@@ -4,10 +4,20 @@ import com.bharatshop.entity.NotificationEvent;
 import com.bharatshop.entity.NotificationLog;
 import com.bharatshop.entity.NotificationTemplate;
 import com.bharatshop.entity.UserNotificationPreference;
+import com.bharatshop.enums.NotificationEventType;
+import com.bharatshop.domain.Order;
+import com.bharatshop.domain.Store;
+import com.bharatshop.tenant.TenantContext;
+import org.springframework.scheduling.annotation.Async;
 import com.bharatshop.repository.NotificationEventRepository;
 import com.bharatshop.repository.NotificationLogRepository;
 import com.bharatshop.repository.NotificationTemplateRepository;
 import com.bharatshop.repository.UserNotificationPreferenceRepository;
+import com.bharatshop.repository.RiderRepository;
+import com.bharatshop.repository.OrderDeliveryRepository;
+import com.bharatshop.repository.UserRepository;
+import com.bharatshop.entity.RiderEntity;
+import com.bharatshop.entity.OrderDeliveryEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +41,10 @@ public class NotificationService {
     private final WhatsAppService whatsAppService;
     private final SmsService smsService;
     private final EmailService emailService;
+    private final StoreService storeService; // Injected
+    private final RiderRepository riderRepository;
+    private final OrderDeliveryRepository orderDeliveryRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     
     @Value("${notifications.whatsapp.enabled:true}")
@@ -62,6 +76,10 @@ public class NotificationService {
             WhatsAppService whatsAppService,
             SmsService smsService,
             @Nullable EmailService emailService,
+            StoreService storeService,
+            RiderRepository riderRepository,
+            OrderDeliveryRepository orderDeliveryRepository,
+            UserRepository userRepository,
             ObjectMapper objectMapper) {
         this.eventRepository = eventRepository;
         this.logRepository = logRepository;
@@ -70,6 +88,10 @@ public class NotificationService {
         this.whatsAppService = whatsAppService;
         this.smsService = smsService;
         this.emailService = emailService;
+        this.storeService = storeService;
+        this.riderRepository = riderRepository;
+        this.orderDeliveryRepository = orderDeliveryRepository;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -102,6 +124,123 @@ public class NotificationService {
         
         String eventType = "OTP_" + otpType.toUpperCase();
         return sendNotification(tenantId, userId, eventType, data);
+    }
+
+    // --- NEW EVENT SYSTEM ---
+    
+    @Async
+    public void sendLifecycleEvent(NotificationEventType eventType, Order order, Map<String, Object> extraData) {
+        logger.info("🔔 [TRIGGER] Processing Lifecycle Event: {}", eventType);
+        try {
+            switch (eventType) {
+                case ORDER_PLACED -> {
+                    notifyCustomer(order, "order_placed", List.of(order.getReference()), 
+                        "Your order #" + order.getReference() + " has been placed.");
+                    // notifySeller is handled by NEW_ORDER_RECEIVED event usually, but if simultaneous:
+                }
+                case NEW_ORDER_RECEIVED -> notifySeller(order, "seller_new_order", List.of(order.getReference()), 
+                        "You have a new order #" + order.getReference());
+                case ORDER_CONFIRMED -> notifyCustomer(order, "order_confirmed", List.of(order.getReference()), 
+                        "Your order #" + order.getReference() + " is confirmed.");
+                case ORDER_CANCELLED -> {
+                    String reason = extraData != null ? (String) extraData.get("reason") : "Cancelled";
+                    notifyCustomer(order, "order_cancelled", List.of(order.getReference(), reason), 
+                        "Order #" + order.getReference() + " cancelled. Reason: " + reason);
+                    notifySeller(order, "seller_order_cancelled", List.of(order.getReference(), reason), 
+                        "Order #" + order.getReference() + " cancelled by " + reason);
+                    notifyRider(order, "rider_order_cancelled", List.of(order.getReference()), 
+                        "Trip cancelled for Order #" + order.getReference());
+                }
+                case ORDER_DELIVERED -> notifyCustomer(order, "order_delivered", List.of(order.getReference()), 
+                        "Your order #" + order.getReference() + " has been delivered. Enjoy!");
+                case DELIVERY_ASSIGNED -> notifyRider(order, "rider_delivery_assigned", List.of(order.getReference()), 
+                        "New delivery assigned: #" + order.getReference());
+                default -> logger.warn("⚠️ [TRIGGER] Unhandled event type: {}", eventType);
+            }
+        } catch (Exception e) {
+            logger.error("❌ [TRIGGER] Failed to process event {}", eventType, e);
+        }
+    }
+
+    @Async
+    public void sendOtp(String phone, String otp) {
+        logger.info("🔔 [TRIGGER] Sending OTP via WhatsApp to {}", phone);
+        if (whatsappEnabled) {
+            // Use sendOtp method which handles template fallback internally
+            whatsAppService.sendOtp(phone, otp);
+        }
+    }
+
+    private void notifyCustomer(Order order, String templateName, List<String> params, String fallbackMessage) {
+        if (order.getUserId() != null) {
+            userRepository.findByIdAndTenantId(order.getUserId(), order.getTenantId()).ifPresent(user -> {
+                if (whatsappEnabled && user.getPhone() != null) {
+                    // FORCE TEXT MODE for MVP-1 (Templates not configured)
+                    logger.info("📨 [ROUTING] Sending TEXT notification to Customer: {}", user.getPhone());
+                    boolean sent = whatsAppService.sendMessage(user.getPhone(), fallbackMessage);
+                    if (sent) logger.info("✅ [SENT] Text notification sent to Customer: {}", user.getPhone());
+                    else logger.error("❌ [FAILED] Text notification failed for Customer: {}", user.getPhone());
+                    
+                    // Original Template Logic (Commented out for now)
+                    /*
+                    boolean sent = whatsAppService.sendTemplateMessage(user.getPhone(), templateName, defaultLanguage, params);
+                    if (!sent) {
+                        logger.warn("Template {} failed for user {}, falling back to text", templateName, user.getId());
+                        whatsAppService.sendMessage(user.getPhone(), fallbackMessage);
+                    }
+                    */
+                }
+            });
+        }
+    }
+
+    private void notifySeller(Order order, String templateName, List<String> params, String fallbackMessage) {
+        if (order.getStoreId() != null) {
+            storeService.getStoreById(order.getStoreId(), order.getTenantId()).ifPresent(store -> {
+                if (store.getOwnerPhone() != null && whatsappEnabled) {
+                    // FORCE TEXT MODE for MVP-1 (Templates not configured)
+                    logger.info("📨 [ROUTING] Sending TEXT notification to Seller: {}", store.getOwnerPhone());
+                    boolean sent = whatsAppService.sendMessage(store.getOwnerPhone(), fallbackMessage);
+                    if (sent) logger.info("✅ [SENT] Text notification sent to Seller: {}", store.getOwnerPhone());
+                    else logger.error("❌ [FAILED] Text notification failed for Seller: {}", store.getOwnerPhone());
+
+                    // Original Template Logic (Commented out for now)
+                    /*
+                    boolean sent = whatsAppService.sendTemplateMessage(store.getOwnerPhone(), templateName, defaultLanguage, params);
+                    if (!sent) {
+                        logger.warn("Template {} failed for seller {}, falling back to text", templateName, store.getId());
+                        whatsAppService.sendMessage(store.getOwnerPhone(), fallbackMessage);
+                    }
+                    */
+                }
+            });
+        }
+    }
+
+    private void notifyRider(Order order, String templateName, List<String> params, String fallbackMessage) {
+        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByTenantIdAndOrderId(order.getTenantId(), order.getId());
+        for (OrderDeliveryEntity delivery : deliveries) {
+            if (delivery.getRiderId() != null) {
+                riderRepository.findById(delivery.getRiderId()).ifPresent(rider -> {
+                    if (whatsappEnabled && rider.getPhone() != null) {
+                        // FORCE TEXT MODE for MVP-1 (Templates not configured)
+                        logger.info("📨 [ROUTING] Sending TEXT notification to Rider: {}", rider.getPhone());
+                        boolean sent = whatsAppService.sendMessage(rider.getPhone(), fallbackMessage);
+                        if (sent) logger.info("✅ [SENT] Text notification sent to Rider: {}", rider.getPhone());
+                        else logger.error("❌ [FAILED] Text notification failed for Rider: {}", rider.getPhone());
+
+                        // Original Template Logic (Commented out for now)
+                        /*
+                        boolean sent = whatsAppService.sendTemplateMessage(rider.getPhone(), templateName, defaultLanguage, params);
+                        if (!sent) {
+                            logger.warn("Template {} failed for rider {}, falling back to text", templateName, rider.getId());
+                            whatsAppService.sendMessage(rider.getPhone(), fallbackMessage);
+                        }
+                        */
+                    }
+                });
+            }
+        }
     }
 
     /**
@@ -165,7 +304,7 @@ public class NotificationService {
                 .toList();
             
             if (activePreferences.isEmpty()) {
-                logger.info("No active notification preferences for user {} in tenant {}", 
+                logger.info("🚫 [SKIPPED] No active notification preferences for user {} in tenant {}", 
                     event.getUserId(), event.getTenantId());
                 event.setStatus("SKIPPED");
                 event.setProcessedAt(LocalDateTime.now());
@@ -181,9 +320,13 @@ public class NotificationService {
                     .findFirst();
                 
                 if (preference.isPresent()) {
+                    logger.info("🔄 [PROCESSING] Trying channel: {} for event: {}", channel, event.getEventType());
                     sent = sendNotificationThroughChannel(event, channel, preference.get().getLanguage());
                     if (sent) {
+                        logger.info("✅ [SENT] Notification sent successfully via {}", channel);
                         break;
+                    } else {
+                        logger.warn("⚠️ [FAILED] Channel {} failed, trying next...", channel);
                     }
                 }
             }
@@ -194,7 +337,7 @@ public class NotificationService {
             eventRepository.save(event);
             
         } catch (Exception e) {
-            logger.error("Error processing notification event {}: {}", event.getId(), e.getMessage(), e);
+            logger.error("❌ [ERROR] Error processing notification event {}: {}", event.getId(), e.getMessage(), e);
             event.setStatus("ERROR");
             event.setProcessedAt(LocalDateTime.now());
             eventRepository.save(event);
@@ -216,12 +359,16 @@ public class NotificationService {
             }
             
             if (templateOpt.isEmpty()) {
-                logger.warn("No template found for event {} channel {} language {}", 
+                logger.warn("📄 [TEMPLATE] No template found for event {} channel {} language {}. Falling back to text.", 
                     event.getEventType(), channel, language);
-                return false;
+                
+                // Fallback to simple text message
+                String fallbackMessage = generateFallbackMessage(event);
+                return sendSimpleMessage(event, channel, fallbackMessage);
             }
             
             NotificationTemplate template = templateOpt.get();
+            logger.info("📄 [TEMPLATE] Found template: {}", template.getTemplateName());
             String message = processTemplate(template.getContent(), event.getEventData());
             String subject = template.getSubject() != null ? 
                 processTemplate(template.getSubject(), event.getEventData()) : null;
@@ -229,7 +376,7 @@ public class NotificationService {
             // Get recipient based on channel
             String recipient = getRecipientForChannel(event, channel);
             if (recipient == null) {
-                logger.warn("No recipient found for user {} channel {}", event.getUserId(), channel);
+                logger.warn("⚠️ [RECIPIENT] No recipient found for user {} channel {}", event.getUserId(), channel);
                 return false;
             }
             
@@ -247,10 +394,56 @@ public class NotificationService {
             return sent;
             
         } catch (Exception e) {
-            logger.error("Error sending notification through channel {}: {}", channel, e.getMessage(), e);
+            logger.error("❌ [ERROR] Error sending notification through channel {}: {}", channel, e.getMessage(), e);
             logNotification(event, channel, "UNKNOWN", null, null, false, e.getMessage());
             return false;
         }
+    }
+
+    private boolean sendSimpleMessage(NotificationEvent event, String channel, String message) {
+        String recipient = getRecipientForChannel(event, channel);
+        if (recipient == null) {
+            logger.warn("⚠️ [RECIPIENT] No recipient found for user {} channel {} (fallback)", event.getUserId(), channel);
+            return false;
+        }
+
+        logger.info("📨 [FALLBACK] Sending simple text via {}: {}", channel, message);
+        boolean sent = switch (channel) {
+            case "WHATSAPP" -> whatsappEnabled && whatsAppService.sendMessage(recipient, message);
+            case "SMS" -> smsEnabled && smsService.sendMessage(recipient, message);
+            case "EMAIL" -> emailEnabled && emailService != null && emailService.sendMessage(recipient, "Notification: " + event.getEventType(), message);
+            default -> false;
+        };
+        
+        if (sent) logger.info("✅ [SENT] Fallback notification sent via {}", channel);
+        else logger.error("❌ [FAILED] Fallback notification failed via {}", channel);
+
+        logNotification(event, channel, "FALLBACK", recipient, message, sent, null);
+        return sent;
+    }
+
+    private String generateFallbackMessage(NotificationEvent event) {
+        String type = event.getEventType();
+        Map<String, Object> data = event.getEventData();
+        
+        if (type.contains("ORDER_PLACED") || type.contains("ORDER_placed")) {
+            String ref = data.containsKey("reference") ? (String) data.get("reference") : 
+                         data.containsKey("orderId") ? (String) data.get("orderId") : "";
+            return "Your order " + ref + " has been placed successfully.";
+        }
+        if (type.contains("NEW_ORDER") || type.contains("new_order")) {
+            String id = data.containsKey("orderId") ? (String) data.get("orderId") : "";
+            return "You have a new order " + id + ". Please check your dashboard.";
+        }
+        if (type.contains("ORDER_CANCELLED")) {
+            String ref = data.containsKey("reference") ? (String) data.get("reference") : 
+                         data.containsKey("orderId") ? (String) data.get("orderId") : "";
+            String reason = data.containsKey("reason") ? (String) data.get("reason") : "Cancelled";
+            return "Order " + ref + " has been cancelled. Reason: " + reason;
+        }
+        
+        // Generic fallback
+        return "Notification: " + type + ". " + data.toString();
     }
 
     private String processTemplate(String template, Map<String, Object> data) {

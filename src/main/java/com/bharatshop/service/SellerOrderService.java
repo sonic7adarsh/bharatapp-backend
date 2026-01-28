@@ -18,15 +18,18 @@ public class SellerOrderService {
     private final OrderItemRepository orderItemRepository;
     private final StoreRepository storeRepository;
     private final InventoryService inventoryService;
+    private final NotificationService notificationService;
 
     public SellerOrderService(OrderRepository orderRepository,
                               OrderItemRepository orderItemRepository,
                               StoreRepository storeRepository,
-                              InventoryService inventoryService) {
+                              InventoryService inventoryService,
+                              NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.storeRepository = storeRepository;
         this.inventoryService = inventoryService;
+        this.notificationService = notificationService;
     }
 
     public OrderEntity acceptOrder(String orderId, String sellerUserId) {
@@ -39,7 +42,26 @@ public class SellerOrderService {
         orderRepository.save(e);
         // Inventory hook (placeholder only)
         inventoryService.reserveForOrder(e.getTenantId(), e.getId());
+        // Notify Customer of Order Confirmation
+        try {
+            com.bharatshop.domain.Order orderDto = toOrder(e);
+            notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_CONFIRMED, orderDto, null);
+        } catch (Exception ex) {
+            // Log but don't fail transaction
+        }
         return e;
+    }
+
+    private com.bharatshop.domain.Order toOrder(OrderEntity e) {
+        com.bharatshop.domain.Order o = new com.bharatshop.domain.Order();
+        o.setId(e.getId());
+        o.setReference(e.getReference());
+        o.setUserId(e.getUserId());
+        o.setStatus(e.getStatus());
+        o.setTotal(e.getTotal());
+        o.setStoreId(e.getStoreId());
+        o.setTenantId(e.getTenantId());
+        return o;
     }
 
     public OrderEntity rejectOrder(String orderId, String sellerUserId, String reason) {

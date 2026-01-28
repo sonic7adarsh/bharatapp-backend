@@ -36,15 +36,38 @@ public class ProductService {
     }
 
     public List<Product> getByStore(String storeId) {
-        // HARD PROOF LOGS
-        log.error("[PROOF][PRODUCT_QUERY] requested storeId={}", storeId);
         String tenant = TenantContext.getTenant();
         if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
         List<ProductEntity> list = productRepository.findByStoreIdAndTenantId(storeId, tenant);
-        for (ProductEntity p : list) {
-            log.error("[PROOF][PRODUCT_DB] product.id={} storeId={}", p != null ? p.getId() : null, p != null ? p.getStoreId() : null);
-        }
         return list.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    public List<Product> getActiveByStore(String storeId) {
+        String tenant = TenantContext.getTenant();
+        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
+        // MVP: Filter in memory or use repository method if tenant aware
+        // Ideally: findByStoreIdAndTenantIdAndActiveTrue
+        List<ProductEntity> list = productRepository.findByStoreIdAndTenantId(storeId, tenant);
+        return list.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<Product> getByStoreAndCategory(String storeId, String categoryId) {
+        String tenant = TenantContext.getTenant();
+        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
+        List<ProductEntity> list = productRepository.findByStoreIdAndCategoryIdAndActiveTrue(storeId, categoryId);
+        // Tenant check is implicitly handled if repository method handles it or if we filter post-fetch.
+        // However, standard repository pattern for tenant would require tenantId in the query.
+        // But since we used findByStoreIdAndCategoryIdAndActiveTrue in repository which might not be tenant-aware by name,
+        // let's double check. If the repo method is just standard JPA, it won't filter by tenant.
+        // Let's filter by tenant in memory for safety or ensure the repo method includes tenantId.
+        
+        return list.stream()
+                .filter(p -> tenant.equals(p.getTenantId()))
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     public void add(Product p) {
@@ -59,6 +82,7 @@ public class ProductService {
         e.setDescription(p.getDescription());
         e.setImage(p.getImage());
         e.setCategory(p.getCategory());
+        e.setCategoryId(p.getCategoryId());
         e.setStoreId(p.getStoreId());
         e.setCurrency(p.getCurrency());
         e.setSku(p.getSku());
@@ -129,6 +153,7 @@ public class ProductService {
             if (pv instanceof Number) e.setPrice(((Number) pv).doubleValue());
         }
         if (changes.containsKey("image")) e.setImage((String) changes.get("image"));
+        if (changes.containsKey("categoryId")) e.setCategoryId((String) changes.get("categoryId"));
         if (changes.containsKey("category")) e.setCategory((String) changes.get("category"));
         if (changes.containsKey("storeId")) e.setStoreId((String) changes.get("storeId"));
         if (changes.containsKey("currency")) e.setCurrency((String) changes.get("currency"));

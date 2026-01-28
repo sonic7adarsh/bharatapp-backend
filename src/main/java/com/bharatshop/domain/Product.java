@@ -7,6 +7,7 @@ public class Product {
     private String description;
     private String image;
     private String category;
+    private String categoryId;
     private String storeId;
     private String currency;
     private String sku;
@@ -31,6 +32,8 @@ public class Product {
     public void setImage(String image) { this.image = image; }
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+    public String getCategoryId() { return categoryId; }
+    public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
     public String getStoreId() { return storeId; }
     public void setStoreId(String storeId) { this.storeId = storeId; }
     public String getCurrency() { return currency; }

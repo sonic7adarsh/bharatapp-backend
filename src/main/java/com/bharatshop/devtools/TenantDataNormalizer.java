@@ -23,7 +23,8 @@ public class TenantDataNormalizer implements ApplicationRunner {
         try {
             int updatedStores = jdbc.update("UPDATE stores SET tenant_id = 'tenantA' WHERE tenant_id IS NULL OR tenant_id = 'default'");
             int updatedProducts = jdbc.update("UPDATE products SET tenant_id = 'tenantA' WHERE tenant_id IS NULL OR tenant_id = 'default'");
-            log.info("TENANT NORMALIZE: updated stores={} updated products={} (NULL/default -> tenantA)", updatedStores, updatedProducts);
+            int updatedCategories = jdbc.update("UPDATE categories SET tenant_id = 'tenantA' WHERE tenant_id IS NULL OR tenant_id = 'default'");
+            log.info("TENANT NORMALIZE: updated stores={} updated products={} updated categories={} (NULL/default -> tenantA)", updatedStores, updatedProducts, updatedCategories);
         } catch (Exception e) {
             log.warn("TENANT NORMALIZE: failed to update tenant data", e);
         }

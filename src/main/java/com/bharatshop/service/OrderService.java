@@ -26,18 +26,22 @@ public class OrderService {
     private final NotificationService notificationService;
     private final StoreRepository storeRepository;
     private final TenantConfigurationService tenantConfigurationService;
+    private final PaymentService paymentService;
+
     @org.springframework.beans.factory.annotation.Value("${app.orders.acceptanceWindowMinutes:15}")
     private int acceptanceWindowMinutes;
 
     public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
                         InventoryService inventoryService, NotificationService notificationService,
-                        StoreRepository storeRepository, TenantConfigurationService tenantConfigurationService) {
+                        StoreRepository storeRepository, TenantConfigurationService tenantConfigurationService,
+                        PaymentService paymentService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.inventoryService = inventoryService;
         this.notificationService = notificationService;
         this.storeRepository = storeRepository;
         this.tenantConfigurationService = tenantConfigurationService;
+        this.paymentService = paymentService;
     }
 
     public Order placeOrder(String userId, List<CartItem> items, Order.Totals totals, String paymentMethod, Order.PaymentInfo paymentInfo, String type, String storeId, String notes) {
@@ -52,6 +56,9 @@ public class OrderService {
         e.setType(type == null ? "order" : type);
         e.setCreatedAt(Instant.now());
         e.setStoreId(storeId);
+        if (storeId != null) {
+            storeRepository.findById(storeId).ifPresent(store -> e.setSellerId(store.getOwnerId()));
+        }
         e.setNotes(notes);
         if (acceptanceWindowMinutes > 0) {
             e.setSellerResponseDeadline(Instant.now().plusSeconds(acceptanceWindowMinutes * 60L));
@@ -60,6 +67,16 @@ public class OrderService {
                 items == null ? 0 : items.stream().mapToDouble(ci -> ci.getPrice() * ci.getQuantity()).sum();
         e.setTotal(total);
         orderRepository.save(e);
+
+        // Link payment if exists
+        if (paymentInfo != null && paymentInfo.orderId != null && !paymentInfo.orderId.isBlank()) {
+             try {
+                 paymentService.linkOrder(paymentInfo.orderId, e.getId());
+             } catch (Exception ex) {
+                 // Log error
+                 System.err.println("Failed to link payment " + paymentInfo.orderId + " to order " + e.getId() + ": " + ex.getMessage());
+             }
+        }
 
         if (items != null) {
             List<OrderItemEntity> persist = new ArrayList<>();
@@ -104,7 +121,8 @@ public class OrderService {
 
         // Send order placed notification (buyer)
         try {
-            notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "PLACED",
+            Order dto = toDto(e);
+            notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_PLACED, dto, 
                     storeId != null ? Map.of("storeId", storeId) : null);
         } catch (Exception ex) {
             // Ignore notification errors to not block order placement
@@ -115,8 +133,8 @@ public class OrderService {
             if (storeId != null) {
                 java.util.Optional<StoreEntity> storeOpt = storeRepository.findById(storeId);
                 if (storeOpt.isPresent() && storeOpt.get().getOwnerId() != null) {
-                    String sellerId = storeOpt.get().getOwnerId();
-                    notificationService.sendSellerNotification(e.getTenantId(), sellerId, "NEW_ORDER",
+                    Order dto = toDto(e);
+                    notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.NEW_ORDER_RECEIVED, dto,
                             Map.of("orderId", e.getId(), "storeId", storeId));
                 }
             }
@@ -155,8 +173,7 @@ public class OrderService {
                 }
                 // Notify buyer
                 try {
-                    notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
-                            Map.of("reason", "auto_cancelled_no_response"));
+                    notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_CANCELLED, toDto(e), Map.of("reason", "auto_cancelled_no_response"));
                 } catch (Exception ex) { }
             }
 
@@ -179,8 +196,7 @@ public class OrderService {
                     }
                     // Notify buyer
                     try {
-                        notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
-                                Map.of("reason", "auto_cancelled_reservation_timeout"));
+                        notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_CANCELLED, toDto(e), Map.of("reason", "auto_cancelled_reservation_timeout"));
                     } catch (Exception ex) { }
                 }
             }
@@ -203,6 +219,13 @@ public class OrderService {
         if (reason != null && !reason.isBlank()) { e.setCancellationReason(reason); }
         orderRepository.save(e);
 
+        // Process Refund
+        try {
+            paymentService.processRefundForShopOrder(e.getId(), reason != null ? reason : "Admin Cancelled");
+        } catch (Exception ex) {
+            System.err.println("Refund failed for order " + e.getId() + ": " + ex.getMessage());
+        }
+
         // Release reserved inventory on cancel
         List<OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
         for (OrderItemEntity oi : items) {
@@ -212,15 +235,9 @@ public class OrderService {
         }
 
         // Notify buyer and seller
-        try { notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED", null); } catch (Exception ignore) {}
         try {
-            if (e.getStoreId() != null) {
-                java.util.Optional<StoreEntity> storeOpt = storeRepository.findById(e.getStoreId());
-                if (storeOpt.isPresent() && storeOpt.get().getOwnerId() != null) {
-                    notificationService.sendSellerNotification(e.getTenantId(), storeOpt.get().getOwnerId(), "ORDER_CANCELLED",
-                            java.util.Map.of("orderId", e.getId(), "storeId", e.getStoreId()));
-                }
-            }
+            notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_CANCELLED, toDto(e),
+                    reason != null ? Map.of("reason", reason) : null);
         } catch (Exception ignore) {}
 
         return toDto(e);
@@ -247,6 +264,14 @@ public class OrderService {
                     e.setCancelledAt(Instant.now());
                     if (reason != null && !reason.isBlank()) { e.setCancellationReason(reason); }
                     orderRepository.save(e);
+                    
+                    // Process Refund
+                    try {
+                        paymentService.processRefundForShopOrder(e.getId(), reason != null ? reason : "User Cancelled");
+                    } catch (Exception ex) {
+                        System.err.println("Refund failed for order " + e.getId() + ": " + ex.getMessage());
+                    }
+
                     // Release reserved inventory on cancellation
                     List<OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
                     for (OrderItemEntity oi : items) {
@@ -256,7 +281,7 @@ public class OrderService {
                     }
                     // Send order cancelled notification
                     try {
-                        notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
+                        notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_CANCELLED, toDtoWithItems(e),
                                 reason != null ? Map.of("reason", reason) : null);
                     } catch (Exception ex) { }
                     return toDtoWithItems(e);
@@ -294,8 +319,7 @@ public class OrderService {
         }
         // Send order cancelled notification (buyer)
         try {
-            notificationService.sendOrderNotification(e.getTenantId(), e.getUserId(), e.getId(), "CANCELLED",
-                    java.util.Map.of("reason", "customer_cancelled"));
+            notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_CANCELLED, toDto(e), java.util.Map.of("reason", "customer_cancelled"));
         } catch (Exception ignore) {}
     }
 
@@ -342,6 +366,8 @@ public class OrderService {
     public Order toDto(OrderEntity e) {
         Order o = new Order();
         o.setId(e.getId());
+        o.setTenantId(e.getTenantId());
+        o.setUserId(e.getUserId());
         o.setReference(e.getReference());
         o.setStatus(e.getStatus());
         o.setTotal(e.getTotal());

@@ -40,10 +40,20 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Allow browser preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        
+                        // SECURED STOREFRONT ENDPOINTS (Must come BEFORE public wildcard)
+                        // Payments and Checkout MUST be authenticated
+                        .requestMatchers("/api/storefront/payments/**").authenticated()
+                        .requestMatchers("/api/storefront/checkout/**").authenticated()
+
                         // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/storefront/**",
+                                "/api/storefront/**", // Products, Categories etc remain public
+                                "/api/location/**",
+                                "/api/categories/**",
+                                "/api/products/**",
+                                "/api/search/**",
                                 "/error",
                                 "/actuator/**"
                         ).permitAll()
@@ -58,6 +68,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/rider/**").hasRole("RIDER")
                         // Everything else requires authentication
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(401);
+                            response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                        })
                 );
         return http.build();
     }

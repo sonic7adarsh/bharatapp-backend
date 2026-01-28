@@ -153,7 +153,11 @@ public class LogisticsService {
                     delivery.setRiderId(r.getId());
                     delivery.setStatus("RIDER_ASSIGNED");
                     delivery.setAssignedAt(Instant.now());
-                    return orderDeliveryRepository.save(delivery);
+                    OrderDeliveryEntity saved = orderDeliveryRepository.save(delivery);
+                    try {
+                        notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.DELIVERY_ASSIGNED, toOrder(orderOpt.get()), null);
+                    } catch (Exception ex) { }
+                    return saved;
                 }
             }
         }
@@ -169,7 +173,11 @@ public class LogisticsService {
         delivery.setRiderId(rider.getId());
         delivery.setStatus("RIDER_ASSIGNED");
         delivery.setAssignedAt(Instant.now());
-        return orderDeliveryRepository.save(delivery);
+        OrderDeliveryEntity saved = orderDeliveryRepository.save(delivery);
+        try {
+            notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.DELIVERY_ASSIGNED, toOrder(orderOpt.get()), null);
+        } catch (Exception ex) { }
+        return saved;
     }
 
     /**
@@ -358,8 +366,7 @@ public class LogisticsService {
                     }
                 } catch (Exception ignore) {}
                 try {
-                    notificationService.sendOrderNotification(order.getTenantId(), order.getUserId(), order.getId(), "DELIVERED",
-                            java.util.Map.of("storeId", d.getStoreId()));
+                    notificationService.sendLifecycleEvent(com.bharatshop.enums.NotificationEventType.ORDER_DELIVERED, toOrder(order), java.util.Map.of("storeId", d.getStoreId()));
                 } catch (Exception ignored) {}
             });
             return orderDeliveryRepository.save(d);
@@ -384,5 +391,17 @@ public class LogisticsService {
 
     public java.util.Optional<OrderDeliveryEntity> findByTenantIdAndId(String tenantId, String id) {
         return orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, id);
+    }
+
+    private com.bharatshop.domain.Order toOrder(com.bharatshop.entity.OrderEntity e) {
+        com.bharatshop.domain.Order o = new com.bharatshop.domain.Order();
+        o.setId(e.getId());
+        o.setReference(e.getReference());
+        o.setUserId(e.getUserId());
+        o.setStatus(e.getStatus());
+        o.setTotal(e.getTotal());
+        o.setStoreId(e.getStoreId());
+        o.setTenantId(e.getTenantId());
+        return o;
     }
 }

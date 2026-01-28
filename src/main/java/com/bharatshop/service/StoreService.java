@@ -2,7 +2,11 @@ package com.bharatshop.service;
 
 import com.bharatshop.domain.Store;
 import com.bharatshop.entity.StoreEntity;
+import com.bharatshop.entity.StoreZoneEntity;
+import com.bharatshop.entity.ZoneEntity;
 import com.bharatshop.repository.StoreRepository;
+import com.bharatshop.repository.StoreZoneRepository;
+import com.bharatshop.repository.ZoneRepository;
 import com.bharatshop.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +19,74 @@ import java.util.stream.Collectors;
 public class StoreService {
     private static final Logger log = LoggerFactory.getLogger(StoreService.class);
     private final StoreRepository storeRepository;
+    private final ZoneRepository zoneRepository;
+    private final StoreZoneRepository storeZoneRepository;
+    private final GeoService geoService;
 
-    public StoreService(StoreRepository storeRepository) { this.storeRepository = storeRepository; }
+    public StoreService(StoreRepository storeRepository,
+                        ZoneRepository zoneRepository,
+                        StoreZoneRepository storeZoneRepository,
+                        GeoService geoService) {
+        this.storeRepository = storeRepository;
+        this.zoneRepository = zoneRepository;
+        this.storeZoneRepository = storeZoneRepository;
+        this.geoService = geoService;
+    }
+
+    public List<Store> listNearby(Double lat, Double lng, String search, String category) {
+        String tenant = TenantContext.getTenant();
+        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
+        
+        // Explicit behavior: NO location = NO stores
+        if (lat == null || lng == null) {
+            log.warn("[GEO_STRICT] No location provided. Returning empty list.");
+            return Collections.emptyList();
+        }
+
+        // 1. Get candidate zones (Radius filtered by DB, Polygon fetched for memory check)
+        List<ZoneEntity> candidateZones = zoneRepository.findNearbyZones(tenant, lat, lng);
+        
+        // 2. Filter zones (Double check Radius for precision, Strict check for Polygon)
+        Set<String> validZoneIds = candidateZones.stream()
+            .filter(z -> geoService.isPointInZone(lat, lng, z))
+            .map(ZoneEntity::getId)
+            .collect(Collectors.toSet());
+            
+        log.info("[GEO_STRICT] Zones matched: {} (lat={}, lng={})", validZoneIds.size(), lat, lng);
+
+        if (validZoneIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // 3. Get store IDs in these zones
+        List<StoreZoneEntity> storeZones = storeZoneRepository.findByTenantIdAndZoneIdIn(tenant, validZoneIds);
+        Set<String> storeIds = storeZones.stream()
+            .map(StoreZoneEntity::getStoreId)
+            .collect(Collectors.toSet());
+            
+        log.info("[GEO_STRICT] Store mappings found: {}", storeIds.size());
+
+        if (storeIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // 4. Fetch stores
+        List<StoreEntity> stores = storeRepository.findAllById(storeIds);
+        
+        // 5. Filter and map
+        List<Store> result = stores.stream()
+            .filter(s -> tenant.equals(s.getTenantId())) // Safety check
+            .filter(s -> "open".equalsIgnoreCase(s.getStatus())) // Strict status check
+            .filter(s -> !Boolean.TRUE.equals(s.getOrderingDisabled())) // Strict ordering check
+            .filter(s -> search == null || s.getName().toLowerCase().contains(search.toLowerCase()))
+            .filter(s -> category == null || category.equalsIgnoreCase(s.getCategory()))
+            .map(this::toDto)
+            .sorted(Comparator.comparing(Store::getName))
+            .collect(Collectors.toList());
+
+        log.info("[GEO_STRICT] Stores returned: {}", result.size());
+        return result;
+    }
 
     public List<Store> list(String search, String category) {
         String tenant = TenantContext.getTenant();
@@ -33,6 +103,10 @@ public class StoreService {
         String tenant = TenantContext.getTenant();
         if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
         return storeRepository.findByIdAndTenantId(id, tenant).map(this::toDto).orElse(null);
+    }
+
+    public Optional<Store> getStoreById(String id, String tenantId) {
+        return storeRepository.findByIdAndTenantId(id, tenantId).map(this::toDto);
     }
 
     public Store add(Store s) {

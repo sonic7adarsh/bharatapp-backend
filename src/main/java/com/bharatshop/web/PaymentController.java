@@ -72,47 +72,21 @@ public class PaymentController {
         String orderId = po.getId();
 
         Map<String, Object> response;
-        switch (method.toLowerCase()) {
-            case "upi": {
-                String upiLink = buildUpiDeepLink(orderId, amount);
-                response = Map.of(
-                        "orderId", orderId,
-                        "gateway", "native_upi",
-                        "session", Map.of(
-                                "upiDeepLink", upiLink
+        // All supported methods use Razorpay Standard Checkout
+        // Frontend will invoke Razorpay(options) which handles UPI Intent automatically on mobile
+        response = Map.of(
+                "orderId", orderId,
+                "gateway", "razorpay",
+                "session", Map.of(
+                        "key", razorpayKey == null ? "" : razorpayKey,
+                        "razorpayOrderId", orderId,
+                        "prefill", Map.of(
+                            "contact", phone != null ? phone : ""
                         )
-                );
-                break;
-            }
-            case "card":
-            case "netbanking":
-            case "wallet": {
-                // For inline Razorpay checkout, return key + provider order id
-                response = Map.of(
-                        "orderId", orderId,
-                        "gateway", "razorpay",
-                        "session", Map.of(
-                                "key", razorpayKey == null ? "" : razorpayKey,
-                                "razorpayOrderId", orderId
-                        )
-                );
-                break;
-            }
-            default: {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "PAYMENT_INIT_FAILED", "Unsupported payment method: " + method);
-            }
-        }
+                )
+        );
 
         return ResponseEntity.ok(response);
-    }
-
-    private String buildUpiDeepLink(String orderId, int amountPaise) {
-        BigDecimal rupees = new BigDecimal(amountPaise).divide(new BigDecimal(100));
-        String am = rupees.setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString();
-        String tn = URLEncoder.encode("Order " + orderId, StandardCharsets.UTF_8);
-        String pa = "merchant@upi"; // demo VPA; replace when provider config is available
-        String pn = URLEncoder.encode("BharatApp", StandardCharsets.UTF_8);
-        return "upi://pay?pa=" + pa + "&pn=" + pn + "&am=" + am + "&tn=" + tn;
     }
 
     @PostMapping("/verify")

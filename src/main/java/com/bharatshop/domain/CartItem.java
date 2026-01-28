@@ -7,6 +7,7 @@ public class CartItem {
     private int quantity;
     private Boolean requiresPrescription;
     private String status;
+    private String storeId;
 
     public CartItem() {}
 
@@ -26,4 +27,6 @@ public class CartItem {
     public void setRequiresPrescription(Boolean requiresPrescription) { this.requiresPrescription = requiresPrescription; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getStoreId() { return storeId; }
+    public void setStoreId(String storeId) { this.storeId = storeId; }
 }

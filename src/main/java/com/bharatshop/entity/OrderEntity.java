@@ -24,6 +24,7 @@ public class OrderEntity {
     private Instant cancelledAt;
     private String cancellationReason;
     private String storeId;
+    private String sellerId;
     private String notes;
 
     @OneToMany(mappedBy = "orderId", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -75,6 +76,8 @@ public class OrderEntity {
     public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
     public String getStoreId() { return storeId; }
     public void setStoreId(String storeId) { this.storeId = storeId; }
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 }

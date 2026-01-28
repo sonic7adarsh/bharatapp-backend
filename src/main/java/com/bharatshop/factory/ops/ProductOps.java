@@ -9,4 +9,5 @@ public interface ProductOps {
     List<String> categories();
     void add(Product p);
     List<Product> byStore(String storeId);
+    List<Product> byStoreAndCategory(String storeId, String categoryId);
 }

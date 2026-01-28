@@ -4,6 +4,7 @@ import java.util.List;
 
 public class Order {
     private String id;
+    private String userId;
     private String reference;
     private String status; // placed|processing|delivered|cancelled
     private Double total;
@@ -23,9 +24,12 @@ public class Order {
     private String cancellationReason;
     private String storeId;
     private String notes;
+    private String tenantId;
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     public String getReference() { return reference; }
     public void setReference(String reference) { this.reference = reference; }
     public String getStatus() { return status; }
@@ -63,6 +67,8 @@ public class Order {
     public void setStoreId(String storeId) { this.storeId = storeId; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 
     public static class Totals {
         public Double subtotal;

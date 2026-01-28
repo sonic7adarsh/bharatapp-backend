@@ -20,6 +20,8 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
     private final UserRoleService userRoleService;
+    private final NotificationService notificationService;
+    private final WhatsAppService whatsAppService;
     private final Map<String, Session> sessionsByToken = new ConcurrentHashMap<>();
     private final Map<String, OtpInfo> otpsByPhone = new ConcurrentHashMap<>();
     private final com.bharatshop.security.JwtService jwtService;
@@ -27,10 +29,14 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository,
                        UserRoleService userRoleService,
+                       NotificationService notificationService,
+                       WhatsAppService whatsAppService,
                        com.bharatshop.security.JwtService jwtService,
                        PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userRoleService = userRoleService;
+        this.notificationService = notificationService;
+        this.whatsAppService = whatsAppService;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -272,6 +278,13 @@ public class AuthService {
         info.expiresAt = System.currentTimeMillis() + 120_000L;
         otpsByPhone.put(phone, info);
         log.info("OTP generated: otpId={} expiresAt={}", info.otpId, info.expiresAt);
+        // Send OTP via WhatsApp
+        try {
+            // notificationService.sendOtp(phone, info.otp); // Legacy
+            whatsAppService.sendOtp(phone, info.otp); // Direct call to use updated template logic
+        } catch (Exception e) {
+            log.error("Failed to send OTP via WhatsApp to {}", phone, e);
+        }
         // Note: For now, we expose the OTP in the response to facilitate testing.
         // Replace this with SMS integration and remove the 'otp' field in production.
         return Map.of("success", true, "otpId", info.otpId, "ttlSeconds", 120, "otp", info.otp);

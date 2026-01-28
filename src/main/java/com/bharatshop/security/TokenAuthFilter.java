@@ -33,8 +33,8 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true;
         String path = request.getRequestURI();
         AntPathMatcher matcher = new AntPathMatcher();
+        // Remove /api/storefront/** from ignored list because some storefront endpoints (like payments) need optional auth
         List<String> publicPatterns = List.of(
-                "/api/storefront/**",
                 "/api/auth/**",
                 "/actuator/**",
                 "/v3/api-docs/**",

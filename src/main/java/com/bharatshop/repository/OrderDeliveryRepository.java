@@ -21,6 +21,8 @@ public interface OrderDeliveryRepository extends JpaRepository<OrderDeliveryEnti
 
     List<OrderDeliveryEntity> findByTenantIdAndStatus(String tenantId, String status);
 
+    List<OrderDeliveryEntity> findByTenantIdAndOrderId(String tenantId, String orderId);
+
     List<OrderDeliveryEntity> findByTenantIdAndRiderIdAndStatusIn(String tenantId, String riderId, List<String> statuses);
 
     Optional<OrderDeliveryEntity> findByTenantIdAndDeliveryId(String tenantId, String deliveryId);

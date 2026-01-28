@@ -20,6 +20,7 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
     private final PaymentService paymentService;
     private final StoreAvailabilityPolicy storeAvailabilityPolicy;
     private final InventoryService inventoryService;
+    private final CategoryService categoryService;
     
     public DefaultStorefrontFactory(ProductService productService,
                                     StoreService storeService,
@@ -27,7 +28,8 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
                                     CartService cartService,
                                     PaymentService paymentService,
                                     StoreAvailabilityPolicy storeAvailabilityPolicy,
-                                    InventoryService inventoryService) {
+                                    InventoryService inventoryService,
+                                    CategoryService categoryService) {
         this.productService = productService;
         this.storeService = storeService;
         this.orderService = orderService;
@@ -35,6 +37,7 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
         this.paymentService = paymentService;
         this.storeAvailabilityPolicy = storeAvailabilityPolicy;
         this.inventoryService = inventoryService;
+        this.categoryService = categoryService;
     }
 
     @Override public ProductOps products() {
@@ -43,9 +46,14 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
                 return productService.getAll(category, search);
             }
             @Override public com.bharatshop.domain.Product get(String id) { return productService.getById(id); }
-            @Override public List<String> categories() { return productService.categories(); }
+            @Override public List<String> categories() { 
+                return categoryService.getCategories().stream()
+                        .map(CategoryService.CategoryDto::getName)
+                        .collect(java.util.stream.Collectors.toList());
+            }
             @Override public void add(Product p) { productService.add(p); }
-            @Override public List<Product> byStore(String storeId) { return productService.getByStore(storeId); }
+            @Override public List<Product> byStore(String storeId) { return productService.getActiveByStore(storeId); }
+            @Override public List<Product> byStoreAndCategory(String storeId, String categoryId) { return productService.getByStoreAndCategory(storeId, categoryId); }
         };
     }
 
