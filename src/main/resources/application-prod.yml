@@ -19,22 +19,22 @@ spring:
       max-file-size: 10MB
       max-request-size: 50MB
   datasource:
-    url: jdbc:mysql://localhost:3306/bharatshop?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: ${DB_URL}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: root
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
   mail:
-    host: ${MAIL_HOST:}
+    host: ${MAIL_HOST}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -42,7 +42,7 @@ spring:
 app:
   jwt:
     enabled: true
-    secret: dev-insecure-secret-change
+    secret: ${JWT_SECRET}
     expSeconds: 3600
   tenant:
     header: X-Tenant-Domain
@@ -56,14 +56,44 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
   metrics:
     tags:
       application: bharatshop-backend
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
+    enabled: false
+
+# Production specific settings
+devtools:
+  tenant:
+    inspector:
+      enabled: false
+    normalizer:
+      enabled: false
+
+notifications:
+  email:
     enabled: true
-    path: /swagger-ui
+  whatsapp:
+    enabled: true
+    api-url: ${WHATSAPP_API_URL}
+    api-key: ${WHATSAPP_API_KEY}
+    sender-number: ${WHATSAPP_SENDER_NUMBER}
+
+bharatshop:
+  maps:
+    provider: NOMINATIM
+  payment:
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID}
+      key-secret: ${RAZORPAY_KEY_SECRET}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: WARN
+    com.bharatshop: INFO

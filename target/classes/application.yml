@@ -1,12 +1,5 @@
 spring:
+  application:
+    name: bharatshop-backend
   profiles:
-    active: mysql
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: never
+    active: dev
