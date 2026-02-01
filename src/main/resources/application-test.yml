@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bharatshop_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    enabled: true
+    secret: test-secret-key-must-be-long-enough-for-hs256-algorithm
+    expSeconds: 3600
+  tenant:
+    header: X-Tenant-Domain
+  orders:
+    acceptanceWindowMinutes: 15
+
+notifications:
+  email:
+    enabled: false
+  whatsapp:
+    enabled: false
+
+bharatshop:
+  maps:
+    provider: NOMINATIM
+
+logging:
+  level:
+    root: INFO
+    com.bharatshop: DEBUG

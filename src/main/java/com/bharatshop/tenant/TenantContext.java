@@ -1,0 +1,25 @@
+package com.bharatshop.tenant;
+
+public class TenantContext {
+    private static final ThreadLocal<String> CURRENT_TENANT = new ThreadLocal<>();
+
+    public static void setTenant(String tenant) {
+        CURRENT_TENANT.set(tenant);
+    }
+
+    public static String getTenant() {
+        return CURRENT_TENANT.get();
+    }
+
+    public static String getRequiredTenant() {
+        String t = CURRENT_TENANT.get();
+        if (t == null || t.isBlank()) {
+            throw new IllegalStateException("TenantContext missing");
+        }
+        return t;
+    }
+
+    public static void clear() {
+        CURRENT_TENANT.remove();
+    }
+}

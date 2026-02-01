@@ -1,0 +1,107 @@
+server:
+  port: 8080
+  servlet:
+    context-path: '/'
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: logs
+      pattern: "%h %l %u %t \"%r\" %s %b %Dms"
+      prefix: access
+      suffix: .log
+      rotate: true
+    max-swallow-size: 50MB
+    max-http-form-post-size: 50MB
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+  datasource:
+    url: jdbc:mysql://localhost:3306/bharatshop?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
+    # url: jdbc:h2:mem:bharatshop;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    # driver-class-name: org.h2.Driver
+    # username: sa
+    # password: 
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+app:
+  jwt:
+    enabled: true
+    secret: dev-insecure-secret-change
+    expSeconds: 3600
+  tenant:
+    header: X-Tenant-Domain
+  orders:
+    acceptanceWindowMinutes: ${ORDERS_ACCEPTANCE_WINDOW_MINUTES:15}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: bharatshop-backend
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+# Merged from application.properties
+devtools:
+  tenant:
+    inspector:
+      enabled: true
+    normalizer:
+      enabled: true
+
+notifications:
+  email:
+    enabled: false
+  whatsapp:
+    enabled: true
+    api-url: https://graph.facebook.com/v22.0/993362360524447/messages
+    api-key: EAAMQm5Y7vZAUBQgXahjU3RN0DRhN1FnC9RgWRWeFyWqA17be1G8H7E5uWLWpcehauliZCXTZCFYdULzokNiPsyO9Fta2rJaK6Fqf2OCU6kOPO5gxruLUjuYqZBhE33uqZBz3H0ZCfwEyhMKZA3uqufjRgc3hnaC1ejpE5sKTKPPRH7aLECKlgXtkPEmCTkKI1pqAlwRjIUCjZApOTsFl1Dwrv5BBQNggzhCvMfZBZARcUE9I5ZB1MX14Gr4IBvcegRtJzYbbdPQdLlVoD7ikSZC2Q3FvRZAo5
+    sender-number: 15551718906
+
+bharatshop:
+  maps:
+    provider: NOMINATIM
+    # google:
+    #   api-key: XXXX
+  payment:
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID:rzp_test_missing}
+      key-secret: ${RAZORPAY_KEY_SECRET:secret_missing}
+
+logging:
+  level:
+    org.springframework.security: INFO
+    com.bharatshop: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: DEBUG
