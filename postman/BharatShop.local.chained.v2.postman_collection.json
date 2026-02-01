@@ -1,0 +1,753 @@
+{
+  "info": {
+    "name": "BharatShop Local Chained v2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Storefront",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"SF User\",\"email\":\"sf@example.com\",\"password\":\"Pass123!\"}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"sf@example.com\",\"password\":\"Pass123!\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.token) { pm.collectionVariables.set('TOKEN', json.token); }",
+                  "  } catch(e) { }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OTP Send",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/auth/otp/send",
+            "body": { "mode": "raw", "raw": "{\"phone\":\"+919999999999\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.otpId) pm.collectionVariables.set('OTP_ID', json.otpId);",
+                  "  if (json && json.otp) pm.collectionVariables.set('OTP', json.otp);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OTP Verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/auth/otp/verify",
+            "body": { "mode": "raw", "raw": "{\"phone\":\"+919999999999\",\"otp\":\"{{OTP}}\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.token) pm.collectionVariables.set('TOKEN', json.token);",
+                  "  } catch(e) { }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OTP Resend",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/auth/otp/resend",
+            "body": { "mode": "raw", "raw": "{\"phone\":\"+919999999999\",\"otpId\":\"{{OTP_ID}}\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.otp) pm.collectionVariables.set('OTP', json.otp);",
+                  "  if (json && json.otpId) pm.collectionVariables.set('OTP_ID', json.otpId);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/auth/profile"
+          }
+        },
+        {
+          "name": "Products",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Tenant-Domain", "value": "local" } ],
+            "url": "http://localhost:8081/api/storefront/products?search=&category="
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = Array.isArray(json) ? json[0] : (json && Array.isArray(json.items) ? json.items[0] : null);",
+                  "  if (first) {",
+                  "    pm.collectionVariables.set('PRODUCT_ID', first.id);",
+                  "    pm.collectionVariables.set('PRICE', first.price);",
+                  "    pm.collectionVariables.set('NAME', first.name);",
+                  "  }",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categories",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Tenant-Domain", "value": "local" } ],
+            "url": "http://localhost:8081/api/storefront/categories"
+          }
+        },
+        {
+          "name": "Checkout (COD)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [ { \"id\": \"{{PRODUCT_ID}}\", \"name\": \"{{NAME}}\", \"price\": {{PRICE}}, \"quantity\": 1 } ],\n  \"totals\": { \"payable\": {{PRICE}} },\n  \"paymentMethod\": \"cod\",\n  \"address\": { \"line1\": \"123\", \"city\": \"BLR\" }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.order && json.order.id) pm.collectionVariables.set('ORDER_ID', json.order.id);",
+                  "  if (json && json.reference) pm.collectionVariables.set('REFERENCE', json.reference);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/orders"
+          }
+        },
+        {
+          "name": "Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/orders/{{ORDER_ID}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/payments/create-order",
+            "body": { "mode": "raw", "raw": "{\"amount\":1500,\"currency\":\"INR\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('PAYMENT_ORDER_ID', json.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/storefront/payments/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{PAYMENT_ORDER_ID}}\",\n  \"razorpay_payment_id\": \"pay_demo\",\n  \"razorpay_signature\": \"sig_demo\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Legacy Storefront",
+      "item": [
+        {
+          "name": "Legacy Products",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Tenant-Domain", "value": "local" } ],
+            "url": "http://localhost:8081/store/products?search=&category="
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = Array.isArray(json) ? json[0] : (json && Array.isArray(json.items) ? json.items[0] : null);",
+                  "  if (first) pm.collectionVariables.set('PRODUCT_ID_LEG', first.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Legacy Categories",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Tenant-Domain", "value": "local" } ],
+            "url": "http://localhost:8081/store/categories"
+          }
+        },
+        {
+          "name": "Legacy Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/store/checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [ { \"id\": \"{{PRODUCT_ID_LEG}}\", \"name\": \"Prod\", \"price\": 100, \"quantity\": 1 } ],\n  \"totals\": { \"payable\": 100 },\n  \"paymentMethod\": \"cod\",\n  \"address\": { \"line1\": \"123\", \"city\": \"BLR\" }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.order && json.order.id) pm.collectionVariables.set('LEGACY_ORDER_ID', json.order.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        }
+        ,
+        {
+          "name": "Legacy Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/store/orders"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = Array.isArray(json) ? json[0] : (json && Array.isArray(json.items) ? json.items[0] : null);",
+                  "  if (first && first.id) pm.collectionVariables.set('LEGACY_ORDER_ID', first.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Legacy Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/store/orders/{{LEGACY_ORDER_ID}}"
+          }
+        },
+        {
+          "name": "Legacy Payments Initiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/store/payments/initiate",
+            "body": { "mode": "raw", "raw": "{\"amount\":1500,\"currency\":\"INR\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('PAYMENT_ORDER_ID', json.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Legacy Payments Verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/store/payments/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{PAYMENT_ORDER_ID}}\",\n  \"razorpay_payment_id\": \"pay_demo\",\n  \"razorpay_signature\": \"sig_demo\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seller",
+      "item": [
+        {
+          "name": "Seller Register",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "http://localhost:8081/api/auth/seller/register",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Seller\",\"email\":\"seller@example.com\",\"password\":\"Pass123!\"}" }
+          }
+        },
+        {
+          "name": "Seller Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "http://localhost:8081/api/auth/seller/login",
+            "body": { "mode": "raw", "raw": "{\"email\":\"seller@example.com\",\"password\":\"Pass123!\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.token) pm.collectionVariables.set('SELLER_TOKEN', json.token);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Store",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" }
+            ],
+            "url": "http://localhost:8081/api/seller/stores",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Smoke Store\",\"city\":\"BLR\",\"area\":\"MG Road\",\"category\":\"General\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('STORE_ID', json.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/stores/{{STORE_ID}}/products",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Item\",\"price\":299,\"category\":\"General\",\"currency\":\"INR\",\"description\":\"Desc\",\"stock\":10,\"active\":true}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('SELLER_PRODUCT_ID', json.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/stores/{{STORE_ID}}/products?search=&category=&active=true&page=0&limit=25"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/products/{{SELLER_PRODUCT_ID}}",
+            "body": { "mode": "raw", "raw": "{\"price\":349,\"active\":true}" }
+          }
+        },
+        {
+          "name": "Adjust Inventory",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/products/{{SELLER_PRODUCT_ID}}/inventory",
+            "body": { "mode": "raw", "raw": "{\"stockDelta\":5,\"price\":299}" }
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/orders?storeId={{STORE_ID}}&status=&from=&to=&page=0&limit=25"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = Array.isArray(json) ? json[0] : (json && Array.isArray(json.items) ? json.items[0] : null);",
+                  "  if (first && first.id) pm.collectionVariables.set('SELLER_ORDER_ID', first.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/orders/{{SELLER_ORDER_ID}}/status",
+            "body": { "mode": "raw", "raw": "{\"status\":\"shipped\",\"notes\":\"Packed and ready\"}" }
+          }
+        },
+        {
+          "name": "Create Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/orders/{{SELLER_ORDER_ID}}/refunds",
+            "body": { "mode": "raw", "raw": "{\"amount\":100,\"reason\":\"Customer returned item\"}" }
+          }
+        },
+        {
+          "name": "Analytics Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/analytics/overview?storeId={{STORE_ID}}&from=&to="
+          }
+        },
+        {
+          "name": "Payouts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/payouts"
+          }
+        },
+        {
+          "name": "Payout Config",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/payouts/config"
+          }
+        },
+        {
+          "name": "Bookings List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/bookings?storeId={{STORE_ID}}&status=&from=&to="
+          }
+        },
+        {
+          "name": "Post Announcement",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/seller/announcements",
+            "body": { "mode": "raw", "raw": "{\"storeId\":\"{{STORE_ID}}\",\"message\":\"Festival sale - 20% off till Sunday\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Platform",
+      "item": [
+        {
+          "name": "List Platform Products",
+          "request": { "method": "GET", "url": "http://localhost:8081/api/platform/products?search=&category=" }
+        },
+        {
+          "name": "Create Platform Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SELLER_TOKEN}}" }
+            ],
+            "url": "http://localhost:8081/api/platform/products",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Platform Item\",\"price\":299,\"description\":\"Desc\",\"category\":\"General\",\"storeId\":\"{{STORE_ID}}\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('PLATFORM_PRODUCT_ID', json.id);",
+                  "} catch(e) { }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+    ,
+    {
+      "name": "Misc",
+      "item": [
+        {
+          "name": "Get Config",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Tenant-Domain", "value": "local" } ],
+            "url": "http://localhost:8081/api/config"
+          }
+        },
+        {
+          "name": "Track Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Domain", "value": "local" }
+            ],
+            "url": "http://localhost:8081/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"frontend_test\",\n  \"timestamp\": {{$timestamp}},\n  \"payload\": { \"page\": \"home\", \"action\": \"click\", \"label\": \"hero_cta\" }\n}"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "TOKEN", "value": "" },
+    { "key": "PRODUCT_ID", "value": "" },
+    { "key": "PRICE", "value": "" },
+    { "key": "NAME", "value": "" },
+    { "key": "ORDER_ID", "value": "" },
+    { "key": "REFERENCE", "value": "" },
+    { "key": "PAYMENT_ORDER_ID", "value": "" },
+    { "key": "PRODUCT_ID_LEG", "value": "" },
+    { "key": "LEGACY_ORDER_ID", "value": "" },
+    { "key": "SELLER_TOKEN", "value": "" },
+    { "key": "STORE_ID", "value": "" },
+    { "key": "SELLER_PRODUCT_ID", "value": "" },
+    { "key": "SELLER_ORDER_ID", "value": "" },
+    { "key": "PLATFORM_PRODUCT_ID", "value": "" },
+    { "key": "OTP_ID", "value": "" },
+    { "key": "OTP", "value": "" }
+  ]
+}
