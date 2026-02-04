@@ -11,7 +11,6 @@ import jakarta.persistence.PreUpdate;
 public class RiderEntity {
     @Id
     private String id;
-    private String tenantId;
     private String name;
     private String phone;
     private String status; // OFFLINE|ONLINE (availability only)
@@ -24,8 +23,7 @@ public class RiderEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    // tenant getters/setters removed
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getPhone() { return phone; }

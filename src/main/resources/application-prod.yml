@@ -68,12 +68,7 @@ springdoc:
     enabled: false
 
 # Production specific settings
-devtools:
-  tenant:
-    inspector:
-      enabled: false
-    normalizer:
-      enabled: false
+devtools: {}
 
 notifications:
   email:

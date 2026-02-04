@@ -4,7 +4,6 @@ import com.bharatshop.entity.RiderEntity;
 import com.bharatshop.entity.RiderLocationEntity;
 import com.bharatshop.repository.RiderLocationRepository;
 import com.bharatshop.repository.RiderRepository;
-import com.bharatshop.tenant.TenantContext;
 import com.bharatshop.security.JwtService;
 import com.bharatshop.security.UserPrincipal;
 import org.springframework.http.ResponseEntity;
@@ -29,14 +28,14 @@ public class RiderController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> req) {
-        String tenant = TenantContext.getTenant();
+        // tenant is ignored
         String phone = req.get("phone");
         String riderId = req.get("riderId");
         RiderEntity rider = null;
         if (riderId != null) {
             rider = riderRepository.findById(riderId).orElse(null);
         } else if (phone != null) {
-            rider = riderRepository.findByTenantIdAndPhone(tenant, phone).orElse(null);
+            rider = riderRepository.findByPhone(phone).orElse(null);
         }
         if (rider == null) {
             return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid rider credentials"));
@@ -48,7 +47,6 @@ public class RiderController {
                 rider.getId(),
                 rider.getName() == null ? "Rider" : rider.getName(),
                 "RIDER",
-                rider.getTenantId(),
                 "RIDER",
                 java.util.List.of("RIDER")
         );
@@ -82,7 +80,6 @@ public class RiderController {
         if (up == null || up.getRole() == null || !"RIDER".equalsIgnoreCase(up.getRole())) {
             return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
         }
-        String tenant = TenantContext.getTenant();
         String riderId = up.getUserId();
         Number lat = (Number) req.get("lat");
         Number lng = (Number) req.get("lng");
@@ -91,7 +88,6 @@ public class RiderController {
         }
         RiderLocationEntity loc = new RiderLocationEntity();
         loc.setId(UUID.randomUUID().toString());
-        loc.setTenantId(tenant);
         loc.setRiderId(riderId);
         loc.setLat(lat.doubleValue());
         loc.setLng(lng.doubleValue());

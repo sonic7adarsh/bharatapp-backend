@@ -3,7 +3,6 @@ package com.bharatshop.service;
 import com.bharatshop.domain.Product;
 import com.bharatshop.entity.ProductEntity;
 import com.bharatshop.repository.ProductRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,33 +20,32 @@ public class ProductService {
     }
 
     public List<Product> getAll(String category, String search) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        List<ProductEntity> list = productRepository.findByTenantId(tenant);
+        List<ProductEntity> list;
+        if (category != null && !category.isBlank()) {
+             list = productRepository.findByCategoryIgnoreCase(category);
+        } else if (search != null && !search.isBlank()) {
+             list = productRepository.findByNameContainingIgnoreCase(search);
+        } else {
+             list = productRepository.findAll();
+        }
+        
         return list.stream().map(this::toDto)
                 .sorted(Comparator.comparing(Product::getName))
                 .collect(Collectors.toList());
     }
 
     public Product getById(String id) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        return productRepository.findByIdAndTenantId(id, tenant).map(this::toDto).orElse(null);
+        return productRepository.findById(id).map(this::toDto).orElse(null);
     }
 
     public List<Product> getByStore(String storeId) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        List<ProductEntity> list = productRepository.findByStoreIdAndTenantId(storeId, tenant);
+        List<ProductEntity> list = productRepository.findByStoreId(storeId);
         return list.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     public List<Product> getActiveByStore(String storeId) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        // MVP: Filter in memory or use repository method if tenant aware
-        // Ideally: findByStoreIdAndTenantIdAndActiveTrue
-        List<ProductEntity> list = productRepository.findByStoreIdAndTenantId(storeId, tenant);
+        // MVP: Filter in memory or use repository method
+        List<ProductEntity> list = productRepository.findByStoreId(storeId);
         return list.stream()
                 .filter(p -> Boolean.TRUE.equals(p.getActive()))
                 .map(this::toDto)
@@ -55,17 +53,9 @@ public class ProductService {
     }
 
     public List<Product> getByStoreAndCategory(String storeId, String categoryId) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
         List<ProductEntity> list = productRepository.findByStoreIdAndCategoryIdAndActiveTrue(storeId, categoryId);
-        // Tenant check is implicitly handled if repository method handles it or if we filter post-fetch.
-        // However, standard repository pattern for tenant would require tenantId in the query.
-        // But since we used findByStoreIdAndCategoryIdAndActiveTrue in repository which might not be tenant-aware by name,
-        // let's double check. If the repo method is just standard JPA, it won't filter by tenant.
-        // Let's filter by tenant in memory for safety or ensure the repo method includes tenantId.
-        
+        // Tenant check removed for local-first platform
         return list.stream()
-                .filter(p -> tenant.equals(p.getTenantId()))
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -88,8 +78,6 @@ public class ProductService {
         e.setSku(p.getSku());
         e.setStock(p.getStock());
         e.setActive(p.getActive() == null ? Boolean.TRUE : p.getActive());
-        String tenant = TenantContext.getTenant();
-        if (tenant != null && !tenant.isBlank()) { e.setTenantId(tenant); }
         productRepository.save(e);
     }
 
@@ -105,13 +93,12 @@ public class ProductService {
         e.setDescription(p.getDescription());
         e.setImage(p.getImage());
         e.setCategory(p.getCategory());
+        e.setCategoryId(p.getCategoryId());
         e.setStoreId(p.getStoreId());
         e.setCurrency(p.getCurrency());
         e.setSku(p.getSku());
         e.setStock(p.getStock());
         e.setActive(p.getActive() == null ? Boolean.TRUE : p.getActive());
-        String tenant = TenantContext.getTenant();
-        if (tenant != null && !tenant.isBlank()) { e.setTenantId(tenant); }
         e = productRepository.save(e);
         if (e.getId() == null) {
             throw new IllegalStateException("Returning non-persisted entity");
@@ -120,9 +107,7 @@ public class ProductService {
     }
 
     public List<String> categories() {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        return productRepository.findByTenantId(tenant).stream().map(ProductEntity::getCategory)
+        return productRepository.findAll().stream().map(ProductEntity::getCategory)
                 .filter(Objects::nonNull).distinct().sorted().collect(Collectors.toList());
     }
 
@@ -133,6 +118,7 @@ public class ProductService {
         Product p = new Product(e.getId(), e.getName(), e.getPrice(), e.getCategory(), e.getStoreId());
         p.setDescription(e.getDescription());
         p.setImage(e.getImage());
+        p.setCategoryId(e.getCategoryId());
         p.setCurrency(e.getCurrency());
         p.setSku(e.getSku());
         p.setStock(e.getStock());
@@ -141,9 +127,7 @@ public class ProductService {
     }
 
     public Product updatePartial(String id, Map<String, Object> changes) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        Optional<ProductEntity> opt = productRepository.findByIdAndTenantId(id, tenant);
+        Optional<ProductEntity> opt = productRepository.findById(id);
         if (!opt.isPresent()) return null;
         ProductEntity e = opt.get();
         if (changes.containsKey("name")) e.setName((String) changes.get("name"));
@@ -174,9 +158,7 @@ public class ProductService {
     }
 
     public Product adjustInventory(String id, Integer stockDelta, Integer stockSet, Double price) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        Optional<ProductEntity> opt = productRepository.findByIdAndTenantId(id, tenant);
+        Optional<ProductEntity> opt = productRepository.findById(id);
         if (!opt.isPresent()) return null;
         ProductEntity e = opt.get();
         if (stockSet != null) e.setStock(stockSet);
@@ -187,9 +169,7 @@ public class ProductService {
     }
 
     public Product updateImage(String id, String imageName) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        Optional<ProductEntity> opt = productRepository.findByIdAndTenantId(id, tenant);
+        Optional<ProductEntity> opt = productRepository.findById(id);
         if (!opt.isPresent()) return null;
         ProductEntity e = opt.get();
         e.setImage(imageName);

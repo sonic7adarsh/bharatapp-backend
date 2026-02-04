@@ -14,6 +14,9 @@ public class Store {
     private Boolean orderingDisabled;
     private String closedReason;
     private java.time.Instant closedUntil;
+    private String address;
+    private Double latitude;
+    private Double longitude;
     private String logo;
     private java.time.Instant updatedAt;
 
@@ -29,6 +32,12 @@ public class Store {
     public void setName(String name) { this.name = name; }
     public String getArea() { return area; }
     public void setArea(String area) { this.area = area; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
     public String getOwnerId() { return ownerId; }

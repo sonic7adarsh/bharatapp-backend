@@ -3,7 +3,6 @@ package com.bharatshop.web;
 import com.bharatshop.domain.PaymentVerificationResponse;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.security.UserPrincipal;
-import com.bharatshop.tenant.TenantContext;
 import com.bharatshop.error.UnauthorizedException;
 import com.bharatshop.domain.PaymentOrder;
 import com.bharatshop.error.ApiException;
@@ -33,13 +32,12 @@ public class PaymentController {
     public ResponseEntity<?> createOrder(@RequestBody Map<String, Object> body) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) {
-            log.warn("Create-order unauthorized: tenant={}", TenantContext.getTenant());
+            log.warn("Create-order unauthorized");
             throw new UnauthorizedException("Unauthorized");
         }
         int amount = ((Number) body.getOrDefault("amount", 0)).intValue();
         String currency = (String) body.getOrDefault("currency", "INR");
-        String tenant = TenantContext.getTenant();
-        log.info("Create-order: userId={} tenant={} amount={} currency={}", up.getUserId(), tenant, amount, currency);
+        log.info("Create-order: userId={} amount={} currency={}", up.getUserId(), amount, currency);
         PaymentOrder po = factoryProvider.getFactory().payments().createOrder(amount, currency);
         log.info("Create-order success: orderId={} amount={}", po.getId(), po.getAmount());
         return ResponseEntity.ok(po);
@@ -49,10 +47,9 @@ public class PaymentController {
     public ResponseEntity<?> initiate(@RequestBody Map<String, Object> body) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) {
-            log.warn("Payment initiate unauthorized: tenant={}", TenantContext.getTenant());
+            log.warn("Payment initiate unauthorized");
             throw new UnauthorizedException("Unauthorized");
         }
-        String tenant = TenantContext.getTenant();
         int amount = ((Number) body.getOrDefault("amount", 0)).intValue();
         String currency = (String) body.getOrDefault("currency", "INR");
         String method = (String) body.getOrDefault("method", "");
@@ -66,7 +63,7 @@ public class PaymentController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "PAYMENT_INIT_FAILED", "Payment method is required");
         }
 
-        log.info("Initiate payment: userId={} tenant={} amount={} currency={} method={} phone_present={}", up.getUserId(), tenant, amount, currency, method, phone != null && !phone.isBlank());
+        log.info("Initiate payment: userId={} amount={} currency={} method={} phone_present={}", up.getUserId(), amount, currency, method, phone != null && !phone.isBlank());
 
         PaymentOrder po = factoryProvider.getFactory().payments().createOrder(amount, currency);
         String orderId = po.getId();
@@ -93,15 +90,14 @@ public class PaymentController {
     public ResponseEntity<?> verify(@RequestBody Map<String, Object> body) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) {
-            log.warn("Payment verify unauthorized: tenant={}", TenantContext.getTenant());
+            log.warn("Payment verify unauthorized");
             throw new UnauthorizedException("Unauthorized");
         }
         String orderId = (String) body.getOrDefault("razorpay_order_id", body.get("orderId"));
         String paymentId = (String) body.getOrDefault("razorpay_payment_id", body.get("paymentId"));
         String signature = (String) body.getOrDefault("razorpay_signature", body.get("signature"));
-        String tenant = TenantContext.getTenant();
-        log.info("Verify payment: userId={} tenant={} orderId={} paymentId={} signaturePresent={}",
-                up.getUserId(), tenant, orderId, paymentId, signature != null);
+        log.info("Verify payment: userId={} orderId={} paymentId={} signaturePresent={}",
+                up.getUserId(), orderId, paymentId, signature != null);
         PaymentVerificationResponse resp = factoryProvider.getFactory().payments()
                 .verify(orderId, paymentId, signature);
         log.info("Verify result: status={} message={}", resp.getStatus(), resp.getMessage());

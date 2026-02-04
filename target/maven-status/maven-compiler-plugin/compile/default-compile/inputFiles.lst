@@ -13,15 +13,9 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config\NotificationScheduler.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config\RestTemplateConfig.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config\SecurityConfig.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config\TenantFilter.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config\TenantInterceptor.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\config\WebMvcConfig.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\controller\AuditController.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\controller\TenantConfigurationController.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\controller\UserController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\customer\CustomerOrderController.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\devtools\TenantDataInspector.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\devtools\TenantDataNormalizer.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\domain\Address.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\domain\CartItem.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\domain\Order.java
@@ -39,7 +33,11 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\Lo
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\OrderDto.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\PhoneLoginRequest.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\RegisterRequest.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\seller\SellerOrderDetail.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\seller\SellerOrderSummary.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\SellerRegisterRequest.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\UserAddressDto.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\dto\UserProfileDto.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\AuditLog.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\CategoryEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\DeliveryAttemptEntity.java
@@ -59,8 +57,8 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\RiderZoneEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\StoreEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\StoreZoneEntity.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\TenantConfiguration.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\TransactionEntity.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\UserAddressEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\UserEntity.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\UserNotificationPreference.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\entity\UserRoleEntity.java
@@ -89,7 +87,6 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\factor
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\factory\StorefrontFactory.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\logging\ArgSanitizer.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\logging\LoggingAspect.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\logging\RepositoryLoggingAspect.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\payment\adapter\RazorpayAdapter.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\payment\PaymentGateway.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\policy\StoreAvailabilityPolicy.java
@@ -112,8 +109,8 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\reposi
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\RiderZoneRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\StoreRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\StoreZoneRepository.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\TenantConfigurationRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\TransactionRepository.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\UserAddressRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\UserNotificationPreferenceRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\UserRepository.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\repository\UserRoleRepository.java
@@ -125,7 +122,6 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\securi
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\security\rbac\SellerOnly.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\security\TokenAuthFilter.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\security\UserPrincipal.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\seller\SellerOrderController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\AuditLoggingService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\AuthService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\BulkUploadService.java
@@ -156,13 +152,11 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\servic
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\SellerOrderService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\SmsService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\StoreService.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\TenantConfigurationService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\UserRoleService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\WhatsAppService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\service\ZoneService.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\storefront\StorefrontAuthController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\storefront\StorefrontController.java
-C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\tenant\TenantContext.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\admin\AdminLogisticsController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\admin\AdminZoneController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\AdminController.java
@@ -178,6 +172,8 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\Pa
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\RiderController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\SearchController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\seller\SellerBulkUploadController.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\seller\SellerDashboardController.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\seller\SellerOrderController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\seller\SellerProductController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\seller\SellerStoreController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\SellerAuthController.java
@@ -185,5 +181,6 @@ C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\Se
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\StorefrontCartController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\StorefrontConfigController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\StorePaymentsController.java
+C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\UserController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\bharatshop\web\ZoneController.java
 C:\Users\Adarsh\Downloads\bharatshop-backend\src\main\java\com\yourapp\dto\CustomerOrderDto.java

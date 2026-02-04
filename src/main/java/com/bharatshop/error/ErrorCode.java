@@ -32,7 +32,6 @@ public enum ErrorCode {
     INVALID_PAYMENT_INFO("Payment information is invalid"),
     
     // Delivery errors
-    DELIVERY_SLOT_UNAVAILABLE("Selected delivery slot is not available"),
     DELIVERY_ADDRESS_INVALID("Delivery address is invalid"),
     DELIVERY_NOT_AVAILABLE("Delivery is not available for your location"),
     

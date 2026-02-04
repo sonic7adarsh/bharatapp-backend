@@ -31,8 +31,16 @@ public class AuthController {
     public ResponseEntity<?> verifyOtp(@RequestBody Map<String, Object> body) {
         String phone = body.get("phone") == null ? null : body.get("phone").toString();
         String otp = body.get("otp") == null ? null : body.get("otp").toString();
-        log.info("OTP verify requested: phone={} otpPresent={}", phone, otp != null);
-        var session = authService.verifyOtp(phone, otp);
+        String role = body.get("role") == null ? null : body.get("role").toString();
+        Object isRegObj = body.get("isRegistration");
+        boolean isRegistration = isRegObj != null && Boolean.parseBoolean(isRegObj.toString());
+
+        log.info("OTP verify requested: phone={} role={} otpPresent={} isRegistration={}", phone, role, otp != null, isRegistration);
+        
+        var session = (role != null && !role.isBlank()) 
+                ? authService.verifyOtpWithRole(phone, otp, role, isRegistration)
+                : authService.verifyOtp(phone, otp);
+                
         if (session == null) throw new BadRequestException("Invalid OTP");
         User user = authService.getProfile(session.token());
         log.info("OTP verify success: userId={} tokenPresent=true", user.getId());

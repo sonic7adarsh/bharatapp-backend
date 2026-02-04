@@ -11,7 +11,7 @@ import jakarta.persistence.PreUpdate;
 public class ZoneEntity {
     @Id
     private String id;
-    private String tenantId;
+    // tenantId removed
     private String name;
     private String type; // radius|polygon
     private Double centerLat;
@@ -26,8 +26,6 @@ public class ZoneEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getType() { return type; }

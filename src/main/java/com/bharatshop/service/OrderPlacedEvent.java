@@ -6,8 +6,8 @@ package com.bharatshop.service;
 public class OrderPlacedEvent extends OrderEvent {
     private double orderTotal;
     
-    public OrderPlacedEvent(String tenantId, String userId, String orderId, String storeId, double orderTotal) {
-        super(tenantId, userId, orderId, storeId);
+    public OrderPlacedEvent(String userId, String orderId, String storeId, double orderTotal) {
+        super(userId, orderId, storeId);
         this.orderTotal = orderTotal;
     }
     

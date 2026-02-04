@@ -10,15 +10,14 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "categories", uniqueConstraints = {
-    @jakarta.persistence.UniqueConstraint(columnNames = {"tenant_id", "slug"})
+    @jakarta.persistence.UniqueConstraint(columnNames = {"slug"})
 })
 public class CategoryEntity {
 
     @Id
     private String id;
 
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
+    // tenant_id removed for local-first platform
 
     @Column(nullable = false)
     private String name;
@@ -52,8 +51,7 @@ public class CategoryEntity {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    // tenantId getters/setters removed
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

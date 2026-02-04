@@ -17,9 +17,6 @@ public class UserNotificationPreference {
     @Column(name = "id", length = 255)
     private String id;
 
-    @Column(name = "tenant_id", length = 100, nullable = false)
-    private String tenantId;
-
     @Column(name = "user_id", length = 255, nullable = false)
     private String userId;
 
@@ -62,14 +59,6 @@ public class UserNotificationPreference {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 
     public String getUserId() {
@@ -140,7 +129,6 @@ public class UserNotificationPreference {
     public String toString() {
         return "UserNotificationPreference{" +
                 "id='" + id + '\'' +
-                ", tenantId='" + tenantId + '\'' +
                 ", userId='" + userId + '\'' +
                 ", channel='" + channel + '\'' +
                 ", enabled=" + enabled +

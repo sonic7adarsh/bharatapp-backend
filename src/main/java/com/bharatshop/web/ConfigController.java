@@ -18,8 +18,7 @@ public class ConfigController {
 
     @GetMapping("/config")
     public ResponseEntity<?> getConfig() {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        log.info("Config requested: tenant={} acceptanceWindowMinutes={}", tenant, acceptanceWindowMinutes);
+        log.info("Config requested: acceptanceWindowMinutes={}", acceptanceWindowMinutes);
         return ResponseEntity.ok(Map.of(
                 "sellerResponseWindowMinutes", acceptanceWindowMinutes
         ));

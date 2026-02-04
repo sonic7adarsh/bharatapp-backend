@@ -24,13 +24,12 @@ public class StorePaymentsController {
     public ResponseEntity<?> initiate(@RequestBody Map<String, Object> body) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) {
-            log.warn("Legacy initiate unauthorized: tenant={}", com.bharatshop.tenant.TenantContext.getTenant());
+            log.warn("Legacy initiate unauthorized");
             throw new UnauthorizedException("Unauthorized");
         }
         int amount = ((Number) body.getOrDefault("amount", 0)).intValue();
         String currency = (String) body.getOrDefault("currency", "INR");
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        log.info("Legacy initiate: userId={} tenant={} amount={} currency={}", up.getUserId(), tenant, amount, currency);
+        log.info("Legacy initiate: userId={} amount={} currency={}", up.getUserId(), amount, currency);
         PaymentOrder po = factoryProvider.getFactory().payments().createOrder(amount, currency);
         log.info("Legacy initiate success: orderId={} amount={}", po.getId(), po.getAmount());
         return ResponseEntity.ok(po);
@@ -40,16 +39,15 @@ public class StorePaymentsController {
     public ResponseEntity<?> verify(@RequestBody Map<String, Object> body) {
         UserPrincipal up = UserPrincipal.current();
         if (up == null) {
-            log.warn("Legacy verify unauthorized: tenant={}", com.bharatshop.tenant.TenantContext.getTenant());
+            log.warn("Legacy verify unauthorized");
             throw new UnauthorizedException("Unauthorized");
         }
         // Support both legacy keys and standard keys
         String orderId = (String) body.getOrDefault("razorpay_order_id", body.get("orderId"));
         String paymentId = (String) body.getOrDefault("razorpay_payment_id", body.get("paymentId"));
         String signature = (String) body.getOrDefault("razorpay_signature", body.get("signature"));
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        log.info("Legacy verify: userId={} tenant={} orderId={} paymentId={} signaturePresent={}",
-                up.getUserId(), tenant, orderId, paymentId, signature != null);
+        log.info("Legacy verify: userId={} orderId={} paymentId={} signaturePresent={}",
+                up.getUserId(), orderId, paymentId, signature != null);
         PaymentVerificationResponse resp = factoryProvider.getFactory().payments().verify(orderId, paymentId, signature);
         log.info("Legacy verify result: status={} message={}", resp.getStatus(), resp.getMessage());
         return ResponseEntity.ok(resp);

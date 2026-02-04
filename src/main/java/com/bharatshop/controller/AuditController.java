@@ -33,7 +33,6 @@ public class AuditController {
     
     @GetMapping("/logs")
     public ResponseEntity<Map<String, Object>> getAuditLogs(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(required = false) String userId,
@@ -47,7 +46,7 @@ public class AuditController {
             Page<AuditLog> logs;
             
             if (startDate != null && endDate != null) {
-                logs = auditLoggingService.getAuditLogsPaginated(tenantId, page, size);
+                logs = auditLoggingService.getAuditLogsPaginated(page, size);
                 // Filter by date range manually since we need to combine with other filters
                 List<AuditLog> filteredLogs = logs.getContent().stream()
                     .filter(log -> log.getCreatedAt().isAfter(startDate) && log.getCreatedAt().isBefore(endDate))
@@ -64,7 +63,7 @@ public class AuditController {
                 
                 return ResponseEntity.ok(response);
             } else {
-                logs = auditLoggingService.getAuditLogsPaginated(tenantId, page, size);
+                logs = auditLoggingService.getAuditLogsPaginated(page, size);
             }
             
             Map<String, Object> response = new HashMap<>();
@@ -78,7 +77,7 @@ public class AuditController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error getting audit logs for tenant {}", tenantId, e);
+            logger.error("Error getting audit logs", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to get audit logs"));
         }
@@ -86,12 +85,11 @@ public class AuditController {
     
     @GetMapping("/logs/search")
     public ResponseEntity<Map<String, Object>> searchAuditLogs(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         try {
-            Page<AuditLog> logs = auditLoggingService.searchAuditLogsPaginated(tenantId, query, page, size);
+            Page<AuditLog> logs = auditLoggingService.searchAuditLogsPaginated(query, page, size);
             
             Map<String, Object> response = new HashMap<>();
             response.put("logs", logs.getContent());
@@ -105,7 +103,7 @@ public class AuditController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error searching audit logs for tenant {} with query: {}", tenantId, query, e);
+            logger.error("Error searching audit logs with query: {}", query, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to search audit logs"));
         }
@@ -113,15 +111,9 @@ public class AuditController {
     
     @GetMapping("/logs/{logId}")
     public ResponseEntity<Map<String, Object>> getAuditLog(
-            @PathVariable String logId,
-            @RequestHeader("X-Tenant-ID") String tenantId) {
+            @PathVariable String logId) {
         try {
-            // This would need a method to get by ID and tenant - adding it to service
-            List<AuditLog> logs = auditLoggingService.getAuditLogsByTenant(tenantId);
-            AuditLog log = logs.stream()
-                .filter(l -> l.getId().equals(logId))
-                .findFirst()
-                .orElse(null);
+            AuditLog log = auditLoggingService.getAuditLog(logId).orElse(null);
             
             if (log != null) {
                 Map<String, Object> response = new HashMap<>();
@@ -132,7 +124,7 @@ public class AuditController {
                     .body(Map.of("error", "Audit log not found"));
             }
         } catch (Exception e) {
-            logger.error("Error getting audit log {} for tenant {}", logId, tenantId, e);
+            logger.error("Error getting audit log {}", logId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to get audit log"));
         }
@@ -140,7 +132,6 @@ public class AuditController {
     
     @GetMapping("/analytics/summary")
     public ResponseEntity<Map<String, Object>> getAuditSummary(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
@@ -149,47 +140,46 @@ public class AuditController {
             // Total logs count
             long totalLogs;
             if (startDate != null && endDate != null) {
-                totalLogs = auditLoggingService.getLogsCountByTimeRange(tenantId, startDate, endDate);
+                totalLogs = auditLoggingService.getLogsCountByTimeRange(startDate, endDate);
             } else {
-                totalLogs = auditLoggingService.getTotalLogsCount(tenantId);
+                totalLogs = auditLoggingService.getTotalLogsCount();
             }
             summary.put("totalLogs", totalLogs);
             
             // Action counts
-            Map<String, Long> actionCounts = auditLoggingService.getActionCounts(tenantId);
+            Map<String, Long> actionCounts = auditLoggingService.getActionCounts();
             summary.put("actionCounts", actionCounts);
             
             // Status counts
-            Map<String, Long> statusCounts = auditLoggingService.getStatusCounts(tenantId);
+            Map<String, Long> statusCounts = auditLoggingService.getStatusCounts();
             summary.put("statusCounts", statusCounts);
             
             // Recent activity (last 10)
-            List<AuditLog> recentActivity = auditLoggingService.getRecentActivity(tenantId, 10);
+            List<AuditLog> recentActivity = auditLoggingService.getRecentActivity(10);
             summary.put("recentActivity", recentActivity);
             
             // Recent failures (last 10)
-            List<AuditLog> recentFailures = auditLoggingService.getRecentFailures(tenantId, 10);
+            List<AuditLog> recentFailures = auditLoggingService.getRecentFailures(10);
             summary.put("recentFailures", recentFailures);
             
             // Security events (last 10)
-            List<AuditLog> securityEvents = auditLoggingService.getSecurityEvents(tenantId, 10);
+            List<AuditLog> securityEvents = auditLoggingService.getSecurityEvents(10);
             summary.put("securityEvents", securityEvents);
             
             // Top active users (top 10)
-            List<Object[]> topUsers = auditLoggingService.getTopUsersByActivity(tenantId, 10);
+            List<Object[]> topUsers = auditLoggingService.getTopUsersByActivity(10);
             summary.put("topUsers", topUsers);
             
             // Slow queries (execution time > 5 seconds)
-            List<AuditLog> slowQueries = auditLoggingService.getSlowQueries(tenantId, 5000L);
+            List<AuditLog> slowQueries = auditLoggingService.getSlowQueries(5000L);
             summary.put("slowQueries", slowQueries);
             
-            summary.put("tenantId", tenantId);
             if (startDate != null) summary.put("startDate", startDate);
             if (endDate != null) summary.put("endDate", endDate);
             
             return ResponseEntity.ok(summary);
         } catch (Exception e) {
-            logger.error("Error getting audit summary for tenant {}", tenantId, e);
+            logger.error("Error getting audit summary", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to get audit summary"));
         }
@@ -197,24 +187,22 @@ public class AuditController {
     
     @GetMapping("/analytics/actions")
     public ResponseEntity<Map<String, Object>> getActionAnalytics(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam(required = false) String action) {
         try {
             Map<String, Object> analytics = new HashMap<>();
             
             if (action != null) {
-                long count = auditLoggingService.getLogsCountByAction(tenantId, action);
+                long count = auditLoggingService.getLogsCountByAction(action);
                 analytics.put("action", action);
                 analytics.put("count", count);
             } else {
-                Map<String, Long> actionCounts = auditLoggingService.getActionCounts(tenantId);
+                Map<String, Long> actionCounts = auditLoggingService.getActionCounts();
                 analytics.put("allActions", actionCounts);
             }
             
-            analytics.put("tenantId", tenantId);
             return ResponseEntity.ok(analytics);
         } catch (Exception e) {
-            logger.error("Error getting action analytics for tenant {}", tenantId, e);
+            logger.error("Error getting action analytics", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to get action analytics"));
         }
@@ -222,24 +210,22 @@ public class AuditController {
     
     @GetMapping("/analytics/statuses")
     public ResponseEntity<Map<String, Object>> getStatusAnalytics(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam(required = false) String status) {
         try {
             Map<String, Object> analytics = new HashMap<>();
             
             if (status != null) {
-                long count = auditLoggingService.getLogsCountByStatus(tenantId, status);
+                long count = auditLoggingService.getLogsCountByStatus(status);
                 analytics.put("status", status);
                 analytics.put("count", count);
             } else {
-                Map<String, Long> statusCounts = auditLoggingService.getStatusCounts(tenantId);
+                Map<String, Long> statusCounts = auditLoggingService.getStatusCounts();
                 analytics.put("allStatuses", statusCounts);
             }
             
-            analytics.put("tenantId", tenantId);
             return ResponseEntity.ok(analytics);
         } catch (Exception e) {
-            logger.error("Error getting status analytics for tenant {}", tenantId, e);
+            logger.error("Error getting status analytics", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to get status analytics"));
         }
@@ -247,20 +233,18 @@ public class AuditController {
     
     @GetMapping("/compliance/export")
     public ResponseEntity<Map<String, Object>> exportComplianceData(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
             List<AuditLog> logs;
             if (startDate != null && endDate != null) {
-                logs = auditLoggingService.getAuditLogsByTimeRange(tenantId, startDate, endDate);
+                logs = auditLoggingService.getAuditLogsByTimeRange(startDate, endDate);
             } else {
-                logs = auditLoggingService.getAuditLogsByTenant(tenantId);
+                logs = auditLoggingService.getAllAuditLogs();
             }
             
             // Generate compliance report
             Map<String, Object> complianceReport = new HashMap<>();
-            complianceReport.put("tenantId", tenantId);
             complianceReport.put("exportDate", LocalDateTime.now());
             complianceReport.put("totalRecords", logs.size());
             
@@ -292,7 +276,7 @@ public class AuditController {
             
             return ResponseEntity.ok(complianceReport);
         } catch (Exception e) {
-            logger.error("Error exporting compliance data for tenant {}", tenantId, e);
+            logger.error("Error exporting compliance data", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to export compliance data"));
         }
@@ -300,19 +284,17 @@ public class AuditController {
     
     @DeleteMapping("/cleanup")
     public ResponseEntity<Map<String, Object>> cleanupOldLogs(
-            @RequestHeader("X-Tenant-ID") String tenantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cutoffDate) {
         try {
-            auditLoggingService.cleanupOldLogsByTenant(tenantId, cutoffDate);
+            auditLoggingService.cleanupOldLogs(cutoffDate);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Old audit logs cleaned up successfully");
-            response.put("tenantId", tenantId);
             response.put("cutoffDate", cutoffDate);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error cleaning up old audit logs for tenant {} with cutoff date {}", tenantId, cutoffDate, e);
+            logger.error("Error cleaning up old audit logs with cutoff date {}", cutoffDate, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to cleanup old audit logs"));
         }

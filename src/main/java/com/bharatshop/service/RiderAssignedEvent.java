@@ -7,8 +7,8 @@ public class RiderAssignedEvent extends OrderEvent {
     private String riderId;
     private String estimatedTime;
     
-    public RiderAssignedEvent(String tenantId, String userId, String orderId, String storeId, String riderId, String estimatedTime) {
-        super(tenantId, userId, orderId, storeId);
+    public RiderAssignedEvent(String userId, String orderId, String storeId, String riderId, String estimatedTime) {
+        super(userId, orderId, storeId);
         this.riderId = riderId;
         this.estimatedTime = estimatedTime;
     }

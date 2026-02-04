@@ -13,7 +13,6 @@ public class TransactionEntity {
     @Id
     private String id;
 
-    private String tenantId;
     private String paymentId; // Link to PaymentEntity
     private String orderId;   // Link to OrderEntity
     
@@ -41,8 +40,6 @@ public class TransactionEntity {
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getPaymentId() { return paymentId; }
     public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
     public String getOrderId() { return orderId; }

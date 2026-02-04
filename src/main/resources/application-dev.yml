@@ -44,8 +44,6 @@ app:
     enabled: true
     secret: dev-insecure-secret-change
     expSeconds: 3600
-  tenant:
-    header: X-Tenant-Domain
   orders:
     acceptanceWindowMinutes: ${ORDERS_ACCEPTANCE_WINDOW_MINUTES:15}
 
@@ -69,12 +67,7 @@ springdoc:
     path: /swagger-ui
 
 # Merged from application.properties
-devtools:
-  tenant:
-    inspector:
-      enabled: true
-    normalizer:
-      enabled: true
+devtools: {}
 
 notifications:
   email:

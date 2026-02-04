@@ -7,8 +7,8 @@ public class OutForDeliveryEvent extends OrderEvent {
     private String riderId;
     private String deliveryAddress;
     
-    public OutForDeliveryEvent(String tenantId, String userId, String orderId, String storeId, String riderId, String deliveryAddress) {
-        super(tenantId, userId, orderId, storeId);
+    public OutForDeliveryEvent(String userId, String orderId, String storeId, String riderId, String deliveryAddress) {
+        super(userId, orderId, storeId);
         this.riderId = riderId;
         this.deliveryAddress = deliveryAddress;
     }

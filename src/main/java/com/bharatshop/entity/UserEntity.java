@@ -22,9 +22,10 @@ public class UserEntity {
     private String name;
     private String email;
     private String phone;
+    @Column(name = "alternate_phone")
+    private String alternatePhone;
     // Legacy single role (kept for backward compatibility where referenced)
     private String role;
-    private String tenantId;
 
     // MVP v1: store multiple roles directly on User via CSV to avoid extra tables
     @Column(name = "roles", length = 1024)
@@ -72,11 +73,10 @@ public class UserEntity {
     public void setEmail(String email) { this.email = email; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+    public String getAlternatePhone() { return alternatePhone; }
+    public void setAlternatePhone(String alternatePhone) { this.alternatePhone = alternatePhone; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
-    
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     
     public List<UserRoleEntity> getUserRoles() { return userRoles; }
     public void setUserRoles(List<UserRoleEntity> userRoles) { this.userRoles = userRoles; }

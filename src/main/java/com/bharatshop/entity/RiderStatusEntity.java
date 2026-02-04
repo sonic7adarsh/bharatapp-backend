@@ -11,8 +11,6 @@ import jakarta.persistence.PrePersist;
 public class RiderStatusEntity {
     @Id
     private String id;
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
     @Column(name = "rider_id", nullable = false)
     private String riderId;
     @Column(name = "status", nullable = false)
@@ -24,8 +22,6 @@ public class RiderStatusEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getRiderId() { return riderId; }
     public void setRiderId(String riderId) { this.riderId = riderId; }
     public String getStatus() { return status; }

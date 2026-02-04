@@ -7,7 +7,6 @@ import com.bharatshop.error.ApiException;
 import com.bharatshop.repository.OrderDeliveryRepository;
 import com.bharatshop.repository.OrderItemRepository;
 import com.bharatshop.repository.OrderRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,11 +28,9 @@ public class RiderOtpFlowTest {
     @Autowired private OrderItemRepository orderItemRepository;
     @Autowired private OrderDeliveryRepository orderDeliveryRepository;
 
-    private final String tenant = "tenant-otp";
-
     @BeforeEach
     void setup() {
-        TenantContext.setTenant(tenant);
+        // Tenant context removed
     }
 
     @Test
@@ -41,7 +38,7 @@ public class RiderOtpFlowTest {
         // Arrange: create order with items and delivery entity, mark out for delivery
         OrderEntity order = new OrderEntity();
         order.setId(UUID.randomUUID().toString());
-        order.setTenantId(tenant);
+        // tenantId removed
         order.setUserId("buyer-1");
         order.setStatus("shipped");
         order.setCreatedAt(Instant.now());
@@ -58,7 +55,7 @@ public class RiderOtpFlowTest {
 
         OrderDeliveryEntity delivery = new OrderDeliveryEntity();
         delivery.setDeliveryId(UUID.randomUUID().toString());
-        delivery.setTenantId(tenant);
+        // tenantId removed
         delivery.setOrderId(order.getId());
         delivery.setStatus("out_for_delivery");
         delivery.setOtp("123456");
@@ -77,7 +74,6 @@ public class RiderOtpFlowTest {
     void completeWithWrongOtpFails() {
         OrderEntity order = new OrderEntity();
         order.setId(UUID.randomUUID().toString());
-        order.setTenantId(tenant);
         order.setUserId("buyer-1");
         order.setStatus("shipped");
         order.setCreatedAt(Instant.now());
@@ -85,7 +81,6 @@ public class RiderOtpFlowTest {
 
         OrderDeliveryEntity delivery = new OrderDeliveryEntity();
         delivery.setDeliveryId(UUID.randomUUID().toString());
-        delivery.setTenantId(tenant);
         delivery.setOrderId(order.getId());
         delivery.setStatus("out_for_delivery");
         delivery.setOtp("654321");

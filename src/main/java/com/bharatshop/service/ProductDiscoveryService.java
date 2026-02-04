@@ -7,7 +7,6 @@ import com.bharatshop.repository.CategoryRepository;
 import com.bharatshop.repository.ProductRepository;
 import com.bharatshop.repository.StoreZoneRepository;
 import com.bharatshop.repository.ZoneRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,14 +35,13 @@ public class ProductDiscoveryService {
     }
 
     private Set<String> resolveNearbyStoreIds(double lat, double lng) {
-        String tenant = TenantContext.getTenant();
         // MVP: Fetch all zones and filter in memory. Optimized approach would use spatial DB index.
         List<ZoneEntity> allZones = zoneRepository.findAll(); 
         Set<String> nearbyStoreIds = new HashSet<>();
 
         for (ZoneEntity zone : allZones) {
             if (geoService.isPointInZone(lat, lng, zone)) {
-                storeZoneRepository.findByTenantIdAndZoneId(tenant, zone.getId())
+                storeZoneRepository.findByZoneId(zone.getId())
                         .forEach(sz -> nearbyStoreIds.add(sz.getStoreId()));
             }
         }

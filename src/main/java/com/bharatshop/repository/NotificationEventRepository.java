@@ -13,10 +13,6 @@ import java.util.Optional;
 @Repository
 public interface NotificationEventRepository extends JpaRepository<NotificationEvent, String> {
 
-    List<NotificationEvent> findByTenantIdAndUserId(String tenantId, String userId);
-
-    List<NotificationEvent> findByTenantId(String tenantId);
-
     List<NotificationEvent> findByUserId(String userId);
 
     List<NotificationEvent> findByStatus(String status);
@@ -28,21 +24,17 @@ public interface NotificationEventRepository extends JpaRepository<NotificationE
             @Param("status") String status, 
             @Param("scheduledTime") LocalDateTime scheduledTime);
 
-    @Query("SELECT ne FROM NotificationEvent ne WHERE ne.tenantId = :tenantId AND ne.userId = :userId AND ne.eventType = :eventType AND ne.createdAt > :since")
+    @Query("SELECT ne FROM NotificationEvent ne WHERE ne.userId = :userId AND ne.eventType = :eventType AND ne.createdAt > :since")
     List<NotificationEvent> findRecentEventsByUserAndType(
-            @Param("tenantId") String tenantId,
             @Param("userId") String userId, 
             @Param("eventType") String eventType,
             @Param("since") LocalDateTime since);
 
-    @Query("SELECT COUNT(ne) FROM NotificationEvent ne WHERE ne.tenantId = :tenantId AND ne.createdAt > :since")
-    long countByTenantIdAndCreatedAtAfter(@Param("tenantId") String tenantId, @Param("since") LocalDateTime since);
+    @Query("SELECT COUNT(ne) FROM NotificationEvent ne WHERE ne.createdAt > :since")
+    long countByCreatedAtAfter(@Param("since") LocalDateTime since);
 
-    @Query("SELECT ne FROM NotificationEvent ne WHERE ne.tenantId = :tenantId AND ne.status = :status AND ne.priority = :priority")
-    List<NotificationEvent> findByTenantIdAndStatusAndPriority(
-            @Param("tenantId") String tenantId,
+    @Query("SELECT ne FROM NotificationEvent ne WHERE ne.status = :status AND ne.priority = :priority")
+    List<NotificationEvent> findByStatusAndPriority(
             @Param("status") String status,
             @Param("priority") String priority);
-
-    Optional<NotificationEvent> findByIdAndTenantId(String id, String tenantId);
 }

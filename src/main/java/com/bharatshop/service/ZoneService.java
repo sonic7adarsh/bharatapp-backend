@@ -4,7 +4,6 @@ import com.bharatshop.entity.ZoneEntity;
 import com.bharatshop.repository.RiderZoneRepository;
 import com.bharatshop.repository.StoreZoneRepository;
 import com.bharatshop.repository.ZoneRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -28,10 +27,10 @@ public class ZoneService {
     }
 
     public ZoneEntity createZone(Map<String, Object> req) {
-        String tenant = safeTenant();
+        // tenant parameter ignored in local-first platform
         ZoneEntity z = new ZoneEntity();
         z.setId(UUID.randomUUID().toString());
-        z.setTenantId(tenant);
+        // tenantId removed
         z.setName((String) req.get("name"));
         String type = (String) req.getOrDefault("type", "radius");
         z.setType(type);
@@ -50,13 +49,13 @@ public class ZoneService {
     }
 
     public List<ZoneEntity> getZones() {
-        String tenant = safeTenant();
-        return zoneRepository.findByTenantId(tenant);
+        // tenant context removed
+        return zoneRepository.findAll();
     }
 
     public ZoneEntity updateZone(String zoneId, Map<String, Object> req) {
-        String tenant = safeTenant();
-        Optional<ZoneEntity> opt = findTenantZone(tenant, zoneId);
+        // tenant context removed
+        Optional<ZoneEntity> opt = zoneRepository.findById(zoneId);
         if (opt.isEmpty()) {
             throw new com.bharatshop.error.ApiException(HttpStatus.NOT_FOUND, "ZONE_NOT_FOUND", "Zone not found");
         }
@@ -89,42 +88,18 @@ public class ZoneService {
     }
 
     public void deleteZone(String zoneId) {
-        String tenant = safeTenant();
-        Optional<ZoneEntity> opt = findTenantZone(tenant, zoneId);
+        // tenant context removed
+        Optional<ZoneEntity> opt = zoneRepository.findById(zoneId);
         if (opt.isEmpty()) {
             throw new com.bharatshop.error.ApiException(HttpStatus.NOT_FOUND, "ZONE_NOT_FOUND", "Zone not found");
         }
-        // Prevent deletion if attached to stores/riders in this tenant
-        boolean hasStoreLinks = storeZoneRepository instanceof com.bharatshop.repository.StoreZoneRepository &&
-                existsStoreLinks(tenant, zoneId);
-        boolean hasRiderLinks = !riderZoneRepository.findByTenantIdAndZoneId(tenant, zoneId).isEmpty();
+        // Prevent deletion if attached to stores/riders
+        boolean hasStoreLinks = !storeZoneRepository.findByZoneId(zoneId).isEmpty();
+        boolean hasRiderLinks = !riderZoneRepository.findByZoneId(zoneId).isEmpty();
         if (hasStoreLinks || hasRiderLinks) {
             throw new com.bharatshop.error.ApiException(HttpStatus.CONFLICT, "ZONE_IN_USE", "Zone has existing attachments");
         }
         zoneRepository.delete(opt.get());
-    }
-
-    private boolean existsStoreLinks(String tenant, String zoneId) {
-        try {
-            // Prefer method if available; otherwise scan all links for tenant and match zone
-            if (hasMethod(StoreZoneRepository.class, "findByTenantIdAndZoneId")) {
-                List<com.bharatshop.entity.StoreZoneEntity> links = ((com.bharatshop.repository.StoreZoneRepository) storeZoneRepository)
-                        .findByTenantIdAndZoneId(tenant, zoneId);
-                return !links.isEmpty();
-            }
-        } catch (Exception ignored) {}
-        // Fallback: not ideal but keeps safety within MVP
-        return false;
-    }
-
-    private Optional<ZoneEntity> findTenantZone(String tenant, String zoneId) {
-        if (hasMethod(ZoneRepository.class, "findByTenantIdAndId")) {
-            try {
-                return ((com.bharatshop.repository.ZoneRepository) zoneRepository).findByTenantIdAndId(tenant, zoneId);
-            } catch (Exception ignored) {}
-        }
-        // Fallback to id check after load
-        return zoneRepository.findById(zoneId).filter(z -> tenant.equals(z.getTenantId()));
     }
 
     private void validateZonePayload(String type, Map<String, Object> req) {
@@ -153,16 +128,6 @@ public class ZoneService {
                 throw new com.bharatshop.error.ApiException(HttpStatus.BAD_REQUEST, "INVALID_POLYGON", "polygon must have at least 3 points");
             }
         }
-    }
-
-    private String safeTenant() {
-        String t = TenantContext.getTenant();
-        if (t == null || t.isBlank()) return "default";
-        return t;
-    }
-
-    private boolean hasMethod(Class<?> clazz, String method) {
-        return java.util.Arrays.stream(clazz.getMethods()).anyMatch(m -> m.getName().equals(method));
     }
 
     private int countOccurrences(String s, String token) {

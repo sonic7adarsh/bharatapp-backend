@@ -21,11 +21,12 @@ public class StoreEntity {
     private Boolean orderingDisabled;
     private String closedReason;
     private java.time.Instant closedUntil;
+    private String address;
+    private Double latitude;
+    private Double longitude;
     private String logo; // filename or URL reference
     private java.time.Instant createdAt;
     private java.time.Instant updatedAt;
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId = "default";
 
     @PrePersist
     public void onCreate() {
@@ -45,6 +46,12 @@ public class StoreEntity {
     public void setName(String name) { this.name = name; }
     public String getArea() { return area; }
     public void setArea(String area) { this.area = area; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
@@ -67,6 +74,4 @@ public class StoreEntity {
     public void setCreatedAt(java.time.Instant createdAt) { this.createdAt = createdAt; }
     public java.time.Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.Instant updatedAt) { this.updatedAt = updatedAt; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 }

@@ -18,9 +18,6 @@ public class OrderDeliveryEntity {
   @Column(name = "order_id", nullable = false)
   private String orderId;
 
-  @Column(name = "tenant_id", nullable = false)
-  private String tenantId;
-
   @Column(name = "store_id")
   private String storeId;
 
@@ -63,8 +60,6 @@ public class OrderDeliveryEntity {
   public void setDeliveryId(String deliveryId) { this.deliveryId = deliveryId; }
   public String getOrderId() { return orderId; }
   public void setOrderId(String orderId) { this.orderId = orderId; }
-  public String getTenantId() { return tenantId; }
-  public void setTenantId(String tenantId) { this.tenantId = tenantId; }
   public String getStoreId() { return storeId; }
   public void setStoreId(String storeId) { this.storeId = storeId; }
   public String getRiderId() { return riderId; }

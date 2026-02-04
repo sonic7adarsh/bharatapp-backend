@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface RiderStatusRepository extends JpaRepository<RiderStatusEntity, String> {
-    List<RiderStatusEntity> findByTenantIdAndRiderIdOrderByTsDesc(String tenantId, String riderId);
+    List<RiderStatusEntity> findByRiderIdOrderByTsDesc(String riderId);
 }

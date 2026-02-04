@@ -16,9 +16,6 @@ public class NotificationEvent {
     @Column(name = "id", length = 255)
     private String id;
 
-    @Column(name = "tenant_id", length = 100, nullable = false)
-    private String tenantId;
-
     @Column(name = "user_id", length = 255, nullable = false)
     private String userId;
 
@@ -67,13 +64,8 @@ public class NotificationEvent {
         this.id = id;
     }
 
-    public String getTenantId() {
-        return tenantId;
-    }
+    // tenantId removed
 
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
 
     public String getUserId() {
         return userId;
@@ -151,7 +143,6 @@ public class NotificationEvent {
     public String toString() {
         return "NotificationEvent{" +
                 "id='" + id + '\'' +
-                ", tenantId='" + tenantId + '\'' +
                 ", userId='" + userId + '\'' +
                 ", eventType='" + eventType + '\'' +
                 ", status='" + status + '\'' +

@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 public class RiderEarningEntity {
     @Id
     private String id;
-    private String tenantId;
     private String riderId;
     private String orderId;
     private String deliveryId;
@@ -22,8 +21,6 @@ public class RiderEarningEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getRiderId() { return riderId; }
     public void setRiderId(String riderId) { this.riderId = riderId; }
     public String getOrderId() { return orderId; }

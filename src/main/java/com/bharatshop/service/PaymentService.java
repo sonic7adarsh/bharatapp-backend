@@ -7,7 +7,6 @@ import com.bharatshop.entity.TransactionEntity;
 import com.bharatshop.payment.PaymentGateway;
 import com.bharatshop.repository.PaymentRepository;
 import com.bharatshop.repository.TransactionRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,7 +39,6 @@ public class PaymentService {
         // 2. Persist Intent (ACID: Ensure we track what we asked the gateway)
         PaymentEntity entity = new PaymentEntity();
         entity.setId(UUID.randomUUID().toString());
-        entity.setTenantId(TenantContext.getTenant());
         entity.setGateway("RAZORPAY");
         entity.setGatewayOrderId(order.getId());
         entity.setAmount((double) amount);
@@ -77,7 +75,7 @@ public class PaymentService {
             // Record Transaction
             TransactionEntity txn = new TransactionEntity();
             txn.setId(UUID.randomUUID().toString());
-            txn.setTenantId(payment.getTenantId());
+            // tenantId removed
             txn.setPaymentId(payment.getId());
             txn.setType("PAYMENT");
             txn.setStatus("SUCCESS");
@@ -94,7 +92,6 @@ public class PaymentService {
             
             TransactionEntity txn = new TransactionEntity();
             txn.setId(UUID.randomUUID().toString());
-            txn.setTenantId(payment.getTenantId());
             txn.setPaymentId(payment.getId());
             txn.setType("PAYMENT");
             txn.setStatus("FAILED");
@@ -151,7 +148,6 @@ public class PaymentService {
              
              TransactionEntity txn = new TransactionEntity();
              txn.setId(UUID.randomUUID().toString());
-             txn.setTenantId(payment.getTenantId());
              txn.setPaymentId(payment.getId());
              txn.setType("REFUND");
              txn.setAmount(payment.getAmount());

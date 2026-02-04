@@ -8,7 +8,6 @@ import com.bharatshop.service.GeoService;
 import org.springframework.http.ResponseEntity;
 import com.bharatshop.security.rbac.CustomerOnly;
 import com.bharatshop.security.UserPrincipal;
-import com.bharatshop.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,9 +38,9 @@ public class ServiceabilityController {
                                    @RequestParam double lat,
                                    @RequestParam double lng) {
         UserPrincipal up = UserPrincipal.current();
-        String t = TenantContext.getTenant();
-        log.info("Customer storefront: serviceability tenant={} userId={} storeId={} lat={} lng={} ", t, up != null ? up.getUserId() : null, storeId, lat, lng);
-        List<StoreZoneEntity> links = storeZoneRepository.findByTenantIdAndStoreId(t, storeId);
+        log.info("Customer storefront: serviceability userId={} storeId={} lat={} lng={} ", up != null ? up.getUserId() : null, storeId, lat, lng);
+        // Tenant context removed, assuming storeId is globally unique or sufficient
+        List<StoreZoneEntity> links = storeZoneRepository.findByStoreId(storeId);
         for (StoreZoneEntity link : links) {
             ZoneEntity zone = zoneRepository.findById(link.getZoneId()).orElse(null);
             if (zone != null && geoService.isPointInZone(lat, lng, zone)) {

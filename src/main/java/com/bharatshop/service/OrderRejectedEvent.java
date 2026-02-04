@@ -6,8 +6,8 @@ package com.bharatshop.service;
 public class OrderRejectedEvent extends OrderEvent {
     private String reason;
     
-    public OrderRejectedEvent(String tenantId, String userId, String orderId, String storeId, String reason) {
-        super(tenantId, userId, orderId, storeId);
+    public OrderRejectedEvent(String userId, String orderId, String storeId, String reason) {
+        super(userId, orderId, storeId);
         this.reason = reason;
     }
     

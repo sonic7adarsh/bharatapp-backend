@@ -7,7 +7,6 @@ import com.bharatshop.security.UserPrincipal;
 import com.bharatshop.service.OrderService;
 import com.bharatshop.service.CheckoutService;
 import com.bharatshop.dto.CheckoutRequest;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import com.bharatshop.domain.Order;
@@ -59,22 +58,24 @@ public class CustomerOrderController {
     }
 
     @GetMapping("/orders")
-    public List<CustomerOrderDto> list(@AuthenticationPrincipal UserPrincipal user) {
+    public List<CustomerOrderDto> list(@AuthenticationPrincipal UserPrincipal user,
+                                       @RequestParam(required = false) Double lat,
+                                       @RequestParam(required = false) Double lng) {
         if (user == null) throw new UnauthorizedException("No customer principal");
-        String tenant = TenantContext.getRequiredTenant();
-        return orderService.getOrdersForCustomer(user.getUserId(), tenant);
+        return orderService.getOrdersForCustomer(user.getUserId(), lat, lng);
     }
 
     @GetMapping("/orders/{id}")
     public CustomerOrderDto detail(
             @PathVariable String id,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
             @AuthenticationPrincipal UserPrincipal user
     ) {
         if (user == null) throw new UnauthorizedException("No customer principal");
-        String tenant = TenantContext.getRequiredTenant();
 
         return orderService
-                .getOrderForCustomer(id, user.getUserId(), tenant)
+                .getOrderForCustomer(id, user.getUserId(), lat, lng)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
     }
 
@@ -84,9 +85,8 @@ public class CustomerOrderController {
             @AuthenticationPrincipal UserPrincipal user
     ) {
         if (user == null) throw new UnauthorizedException("No customer principal");
-        String tenant = TenantContext.getRequiredTenant();
 
-        orderService.cancelOrderForCustomer(id, user.getUserId(), tenant);
+        orderService.cancelOrderForCustomer(id, user.getUserId());
         return ResponseEntity.noContent().build();
     }
 }

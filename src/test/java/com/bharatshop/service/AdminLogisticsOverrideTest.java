@@ -6,7 +6,6 @@ import com.bharatshop.entity.RiderEntity;
 import com.bharatshop.repository.OrderDeliveryRepository;
 import com.bharatshop.repository.OrderRepository;
 import com.bharatshop.repository.RiderRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,12 +25,14 @@ public class AdminLogisticsOverrideTest {
     @Autowired OrderDeliveryRepository orderDeliveryRepository;
 
     @BeforeEach
-    void setup() { TenantContext.setTenant("default"); }
+    void setup() {
+        // Tenant setup removed
+    }
 
-    private RiderEntity mkRider(String tenant) {
+    private RiderEntity mkRider() {
         RiderEntity r = new RiderEntity();
         r.setId(UUID.randomUUID().toString());
-        r.setTenantId(tenant);
+        // TenantId removed
         r.setName("Test Rider");
         r.setPhone("9999999999");
         r.setStatus("ONLINE");
@@ -40,10 +41,10 @@ public class AdminLogisticsOverrideTest {
         return riderRepository.save(r);
     }
 
-    private OrderEntity mkOrderReady(String tenant, String storeId) {
+    private OrderEntity mkOrderReady(String storeId) {
         OrderEntity o = new OrderEntity();
         o.setId(UUID.randomUUID().toString());
-        o.setTenantId(tenant);
+        // TenantId removed
         o.setStoreId(storeId);
         o.setStatus("ready");
         o.setCreatedAt(Instant.now());
@@ -53,15 +54,14 @@ public class AdminLogisticsOverrideTest {
 
     @Test
     void adminAssignExplicitRider_andUnassign() {
-        String tenant = "default";
-        RiderEntity r = mkRider(tenant);
-        OrderEntity o = mkOrderReady(tenant, "store-1");
-        OrderDeliveryEntity d = logisticsService.assignRiderAdmin(tenant, o.getId(), o.getStoreId(), r.getId());
+        RiderEntity r = mkRider();
+        OrderEntity o = mkOrderReady("store-1");
+        OrderDeliveryEntity d = logisticsService.assignRiderAdmin(o.getId(), o.getStoreId(), r.getId());
         Assertions.assertNotNull(d);
         Assertions.assertEquals("RIDER_ASSIGNED", d.getStatus());
         Assertions.assertEquals(r.getId(), d.getRiderId());
 
-        OrderDeliveryEntity unassigned = logisticsService.unassignRiderAdmin(tenant, d.getDeliveryId());
+        OrderDeliveryEntity unassigned = logisticsService.unassignRiderAdmin(d.getDeliveryId());
         Assertions.assertEquals("PENDING", unassigned.getStatus());
         Assertions.assertNull(unassigned.getRiderId());
         RiderEntity refreshed = riderRepository.findById(r.getId()).orElseThrow();
@@ -69,11 +69,13 @@ public class AdminLogisticsOverrideTest {
     }
 
     @Test
-    void adminAssign_crossTenantRider_shouldFail() {
-        String tenant = "default";
-        RiderEntity rOther = mkRider("other-tenant");
-        OrderEntity o = mkOrderReady(tenant, "store-2");
+    void adminAssign_offlineRider_shouldFail() {
+        RiderEntity rOffline = mkRider();
+        rOffline.setStatus("OFFLINE");
+        riderRepository.save(rOffline);
+        
+        OrderEntity o = mkOrderReady("store-2");
         Assertions.assertThrows(com.bharatshop.error.ApiException.class, () ->
-                logisticsService.assignRiderAdmin(tenant, o.getId(), o.getStoreId(), rOther.getId()));
+                logisticsService.assignRiderAdmin(o.getId(), o.getStoreId(), rOffline.getId()));
     }
 }

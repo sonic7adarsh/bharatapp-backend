@@ -6,8 +6,8 @@ package com.bharatshop.service;
 public class RiderPickedUpEvent extends OrderEvent {
     private String riderId;
     
-    public RiderPickedUpEvent(String tenantId, String userId, String orderId, String storeId, String riderId) {
-        super(tenantId, userId, orderId, storeId);
+    public RiderPickedUpEvent(String userId, String orderId, String storeId, String riderId) {
+        super(userId, orderId, storeId);
         this.riderId = riderId;
     }
     

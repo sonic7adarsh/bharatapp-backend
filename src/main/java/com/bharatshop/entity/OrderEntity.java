@@ -9,7 +9,6 @@ import java.util.List;
 public class OrderEntity {
     @Id
     private String id;
-    private String tenantId;
     private String reference;
     private String userId;
     private String status;
@@ -26,6 +25,12 @@ public class OrderEntity {
     private String storeId;
     private String sellerId;
     private String notes;
+    private String prescriptionUrl;
+    private Boolean isPrescriptionVerified = false;
+    private String deliveryAddress;
+    private String customerName;
+    private String customerPhone;
+    private String customerAlternatePhone;
 
     @OneToMany(mappedBy = "orderId", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> items;
@@ -44,8 +49,6 @@ public class OrderEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getReference() { return reference; }
     public void setReference(String reference) { this.reference = reference; }
     public String getUserId() { return userId; }
@@ -80,4 +83,16 @@ public class OrderEntity {
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public String getPrescriptionUrl() { return prescriptionUrl; }
+    public void setPrescriptionUrl(String prescriptionUrl) { this.prescriptionUrl = prescriptionUrl; }
+    public Boolean getIsPrescriptionVerified() { return isPrescriptionVerified; }
+    public void setIsPrescriptionVerified(Boolean isPrescriptionVerified) { this.isPrescriptionVerified = isPrescriptionVerified; }
+    public String getDeliveryAddress() { return deliveryAddress; }
+    public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+    public String getCustomerPhone() { return customerPhone; }
+    public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }
+    public String getCustomerAlternatePhone() { return customerAlternatePhone; }
+    public void setCustomerAlternatePhone(String customerAlternatePhone) { this.customerAlternatePhone = customerAlternatePhone; }
 }

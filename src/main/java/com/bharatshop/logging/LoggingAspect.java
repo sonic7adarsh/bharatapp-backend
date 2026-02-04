@@ -1,7 +1,6 @@
 package com.bharatshop.logging;
 
 import com.bharatshop.security.UserPrincipal;
-import com.bharatshop.tenant.TenantContext;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -29,23 +28,22 @@ public class LoggingAspect {
         MethodSignature sig = (MethodSignature) pjp.getSignature();
         String cls = sig.getDeclaringType().getSimpleName();
         String method = sig.getName();
-        String tenant = TenantContext.getTenant();
         String userId = null;
         UserPrincipal up = null;
         try { up = UserPrincipal.current(); } catch (Exception ignored) {}
         if (up != null) userId = up.getUserId();
 
         String args = ArgSanitizer.sanitizeArgs(pjp.getArgs());
-        log.info("{} enter: {}.{} tenant={} userId={} args=[{}]", layer, cls, method, tenant, userId, args);
+        log.info("{} enter: {}.{} userId={} args=[{}]", layer, cls, method, userId, args);
         try {
             Object result = pjp.proceed();
             long durMs = (System.nanoTime() - start) / 1_000_000;
             String res = ArgSanitizer.sanitize(result);
-            log.info("{} exit: {}.{} tenant={} userId={} took={}ms result={}", layer, cls, method, tenant, userId, durMs, res);
+            log.info("{} exit: {}.{} userId={} took={}ms result={}", layer, cls, method, userId, durMs, res);
             return result;
         } catch (Throwable t) {
             long durMs = (System.nanoTime() - start) / 1_000_000;
-            log.error("{} error: {}.{} tenant={} userId={} took={}ms error={}", layer, cls, method, tenant, userId, durMs, t.getMessage());
+            log.error("{} error: {}.{} userId={} took={}ms error={}", layer, cls, method, userId, durMs, t.getMessage());
             throw t;
         }
     }

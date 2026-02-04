@@ -11,10 +11,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, String> 
     List<ProductEntity> findByNameContainingIgnoreCase(String search);
     List<ProductEntity> findByStoreId(String storeId);
     List<ProductEntity> findByStoreIdAndActiveTrue(String storeId);
-    // Tenant-scoped queries (MVP)
-    List<ProductEntity> findByStoreIdAndTenantId(String storeId, String tenantId);
-    Optional<ProductEntity> findByIdAndTenantId(String id, String tenantId);
-    List<ProductEntity> findByTenantId(String tenantId);
 
     // Discovery API queries
     List<ProductEntity> findByStoreIdAndCategoryIdAndActiveTrue(String storeId, String categoryId);

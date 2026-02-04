@@ -23,26 +23,24 @@ public class InventoryController {
     @PostMapping("/reserve")
     public ResponseEntity<?> reserve(@RequestBody Map<String, Object> req) {
         if (!ensureAdmin()) return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
-        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         String productId = (String) req.get("productId");
         int quantity = ((Number) req.getOrDefault("quantity", 0)).intValue();
         if (productId == null || quantity <= 0) {
             return ResponseEntity.badRequest().body(Map.of("status","error","message","productId and positive quantity required"));
         }
-        boolean ok = inventoryService.reserve(tenantId, productId, quantity);
+        boolean ok = inventoryService.reserve(productId, quantity);
         return ResponseEntity.ok(Map.of("status", ok ? "ok" : "insufficient"));
     }
 
     @PostMapping("/release")
     public ResponseEntity<?> release(@RequestBody Map<String, Object> req) {
         if (!ensureAdmin()) return ResponseEntity.status(401).body(Map.of("status","error","message","Unauthorized"));
-        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
         String productId = (String) req.get("productId");
         int quantity = ((Number) req.getOrDefault("quantity", 0)).intValue();
         if (productId == null || quantity <= 0) {
             return ResponseEntity.badRequest().body(Map.of("status","error","message","productId and positive quantity required"));
         }
-        boolean ok = inventoryService.release(tenantId, productId, quantity);
+        boolean ok = inventoryService.release(productId, quantity);
         return ResponseEntity.ok(Map.of("status", ok ? "ok" : "error"));
     }
 }

@@ -3,7 +3,6 @@ package com.bharatshop.web;
 import com.bharatshop.domain.Store;
 import com.bharatshop.policy.StoreAvailabilityPolicy;
 import com.bharatshop.service.StoreService;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,13 +31,7 @@ public class AvailabilityController {
             @RequestParam(name = "lat", required = false) Double lat,
             @RequestParam(name = "lng", required = false) Double lng
     ) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null || tenant.isEmpty()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", "VALIDATION_ERROR");
-            error.put("message", "Missing X-Tenant-Domain header");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+        // Tenant check removed for local-first
 
         Store store = storeService.get(storeId);
         if (store == null) {

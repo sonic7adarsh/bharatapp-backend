@@ -5,7 +5,7 @@ package com.bharatshop.service;
  */
 public class OrderDeliveredEvent extends OrderEvent {
     
-    public OrderDeliveredEvent(String tenantId, String userId, String orderId, String storeId) {
-        super(tenantId, userId, orderId, storeId);
+    public OrderDeliveredEvent(String userId, String orderId, String storeId) {
+        super(userId, orderId, storeId);
     }
 }

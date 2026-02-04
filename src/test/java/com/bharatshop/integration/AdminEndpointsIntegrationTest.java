@@ -27,25 +27,6 @@ public class AdminEndpointsIntegrationTest {
     @Autowired private com.bharatshop.repository.RiderRepository riderRepository;
     @Autowired private com.bharatshop.repository.OrderDeliveryRepository orderDeliveryRepository;
 
-    private final String tenantA = "tenant-a";
-    private final String tenantB = "tenant-b";
-
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void tenantHeaderIsRequired() throws Exception {
-        String payload = objectMapper.writeValueAsString(Map.of(
-                "name", "Zone X",
-                "type", "radius",
-                "centerLat", 12.9,
-                "centerLng", 77.5,
-                "radiusMeters", 200
-        ));
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/zones")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isBadRequest());
-    }
-
     @Test
     @WithMockUser(username = "buyer", roles = {"CUSTOMER"})
     void rbacEnforcedForAdminZones() throws Exception {
@@ -57,7 +38,6 @@ public class AdminEndpointsIntegrationTest {
                 "radiusMeters", 250
         ));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/zones")
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isForbidden());
@@ -65,8 +45,8 @@ public class AdminEndpointsIntegrationTest {
 
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void adminZoneCrudTenantIsolation() throws Exception {
-        // Create a zone in tenant A
+    void adminZoneCrud() throws Exception {
+        // Create a zone
         String payloadA = objectMapper.writeValueAsString(Map.of(
                 "name", "Zone A1",
                 "type", "radius",
@@ -75,7 +55,6 @@ public class AdminEndpointsIntegrationTest {
                 "radiusMeters", 200
         ));
         MvcResult createResA = mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/zones")
-                .header("X-Tenant-Domain", tenantA)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payloadA))
             .andExpect(status().isOk())
@@ -84,15 +63,14 @@ public class AdminEndpointsIntegrationTest {
         String zoneIdA = String.valueOf(createdA.get("zoneId"));
         assertThat(zoneIdA).isNotBlank();
 
-        // List zones in tenant B should not include zone from tenant A
-        MvcResult listB = mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/zones")
-                        .header("X-Tenant-Domain", tenantB))
+        // List zones should include it
+        MvcResult list = mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/zones"))
                 .andExpect(status().isOk())
                 .andReturn();
-        String jsonB = listB.getResponse().getContentAsString();
-        assertThat(jsonB).doesNotContain(zoneIdA);
+        String json = list.getResponse().getContentAsString();
+        assertThat(json).contains(zoneIdA);
 
-        // Update zone in tenant A
+        // Update zone
         String updatePayload = objectMapper.writeValueAsString(Map.of(
                 "name", "Zone A1 Updated",
                 "type", "radius",
@@ -101,37 +79,32 @@ public class AdminEndpointsIntegrationTest {
                 "radiusMeters", 250
         ));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/admin/zones/" + zoneIdA)
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatePayload))
                 .andExpect(status().isOk());
 
-        // Delete zone in tenant A
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/zones/" + zoneIdA)
-                        .header("X-Tenant-Domain", tenantA))
+        // Delete zone
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/zones/" + zoneIdA))
                 .andExpect(status().isOk());
     }
 
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void adminLogisticsAssignUnassignObeysStateAndCrossTenant() throws Exception {
+    void adminLogisticsAssignUnassignObeysState() throws Exception {
         // Seed order READY and rider ONLINE via repositories would be ideal; for MVP, we expect controller/service validation to enforce rules
-        // Attempt assign with missing or invalid state will return errors; here we just assert RBAC + tenant header paths are wired end-to-end
+        // Attempt assign with missing or invalid state will return errors; here we just assert RBAC paths are wired end-to-end
         String assignPayload = objectMapper.writeValueAsString(Map.of(
                 "orderId", "nonexistent-order",
                 "storeId", "nonexistent-store",
                 "riderId", "nonexistent-rider"
         ));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/assign")
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignPayload))
                 .andExpect(status().isNotFound());
 
-        // Cross-tenant check: with a different tenant header, payload still subject to scoping; using tenantB for unassign
         String unassignPayload = objectMapper.writeValueAsString(Map.of("deliveryId", "nonexistent-delivery"));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/unassign")
-                        .header("X-Tenant-Domain", tenantB)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(unassignPayload))
                 .andExpect(status().isNotFound());
@@ -142,14 +115,12 @@ public class AdminEndpointsIntegrationTest {
     void logisticsEndpointsEnforceAdminRole() throws Exception {
         String assignPayload = objectMapper.writeValueAsString(Map.of("orderId", "some-order"));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/assign")
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignPayload))
                 .andExpect(status().isForbidden());
 
         String unassignPayload = objectMapper.writeValueAsString(Map.of("deliveryId", "some-delivery"));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/unassign")
-                        .header("X-Tenant-Domain", tenantB)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(unassignPayload))
                 .andExpect(status().isForbidden());
@@ -158,10 +129,9 @@ public class AdminEndpointsIntegrationTest {
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
     void adminAssignReturns409WhenNoRidersAvailable() throws Exception {
-        // Seed a READY order in tenantA; no riders seeded so assignment should return 409
+        // Seed a READY order; no riders seeded so assignment should return 409
         com.bharatshop.entity.OrderEntity order = new com.bharatshop.entity.OrderEntity();
         order.setId(java.util.UUID.randomUUID().toString());
-        order.setTenantId(tenantA);
         order.setStoreId("store-no-riders");
         order.setStatus("ready");
         order.setCreatedAt(java.time.Instant.now());
@@ -170,7 +140,6 @@ public class AdminEndpointsIntegrationTest {
 
         String assignPayload = objectMapper.writeValueAsString(Map.of("orderId", order.getId()));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/assign")
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignPayload))
                 .andExpect(status().isConflict());
@@ -179,18 +148,16 @@ public class AdminEndpointsIntegrationTest {
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
     void adminAssignUnassignPositivePath() throws Exception {
-        // Seed ONLINE rider in tenantA
+        // Seed ONLINE rider
         com.bharatshop.entity.RiderEntity rider = new com.bharatshop.entity.RiderEntity();
         rider.setId(java.util.UUID.randomUUID().toString());
-        rider.setTenantId(tenantA);
         rider.setName("Rider A");
         rider.setStatus("ONLINE");
         riderRepository.save(rider);
 
-        // Seed READY order in tenantA
+        // Seed READY order
         com.bharatshop.entity.OrderEntity order = new com.bharatshop.entity.OrderEntity();
         order.setId(java.util.UUID.randomUUID().toString());
-        order.setTenantId(tenantA);
         order.setStoreId("store-assign-positive");
         order.setStatus("ready");
         order.setCreatedAt(java.time.Instant.now());
@@ -200,7 +167,6 @@ public class AdminEndpointsIntegrationTest {
         // Assign via admin endpoint
         String assignPayload = objectMapper.writeValueAsString(Map.of("orderId", order.getId()));
         MvcResult assignRes = mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/assign")
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignPayload))
                 .andExpect(status().isOk())
@@ -212,20 +178,19 @@ public class AdminEndpointsIntegrationTest {
         assertThat(riderIdAssigned).isEqualTo(rider.getId());
 
         // Verify delivery status
-        com.bharatshop.entity.OrderDeliveryEntity delivery = orderDeliveryRepository.findByTenantIdAndId(tenantA, deliveryId)
+        com.bharatshop.entity.OrderDeliveryEntity delivery = orderDeliveryRepository.findById(deliveryId)
                 .orElseThrow();
         assertThat(delivery.getStatus()).isEqualTo("RIDER_ASSIGNED");
 
         // Unassign via admin endpoint
         String unassignPayload = objectMapper.writeValueAsString(Map.of("deliveryId", deliveryId));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/unassign")
-                        .header("X-Tenant-Domain", tenantA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(unassignPayload))
                 .andExpect(status().isOk());
 
         // Verify delivery reset and rider ONLINE
-        com.bharatshop.entity.OrderDeliveryEntity refreshed = orderDeliveryRepository.findByTenantIdAndId(tenantA, deliveryId)
+        com.bharatshop.entity.OrderDeliveryEntity refreshed = orderDeliveryRepository.findById(deliveryId)
                 .orElseThrow();
         assertThat(refreshed.getStatus()).isEqualTo("PENDING");
         assertThat(refreshed.getRiderId()).isNull();
@@ -233,51 +198,6 @@ public class AdminEndpointsIntegrationTest {
         assertThat(riderRef.getStatus()).isEqualTo("ONLINE");
     }
 
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void tenantCrossingAssignUnassignRejected() throws Exception {
-        // Seed ONLINE rider and READY order in tenantA
-        com.bharatshop.entity.RiderEntity rider = new com.bharatshop.entity.RiderEntity();
-        rider.setId(java.util.UUID.randomUUID().toString());
-        rider.setTenantId(tenantA);
-        rider.setName("Rider A2");
-        rider.setStatus("ONLINE");
-        riderRepository.save(rider);
+    // Tenant isolation test removed
 
-        com.bharatshop.entity.OrderEntity order = new com.bharatshop.entity.OrderEntity();
-        order.setId(java.util.UUID.randomUUID().toString());
-        order.setTenantId(tenantA);
-        order.setStoreId("store-assign-tenantA");
-        order.setStatus("ready");
-        order.setCreatedAt(java.time.Instant.now());
-        order.setUpdatedAt(java.time.Instant.now());
-        orderRepository.save(order);
-
-        // Attempt assign with tenantB header should 404 (ORDER_NOT_FOUND in tenantB)
-        String assignPayload = objectMapper.writeValueAsString(Map.of("orderId", order.getId()));
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/assign")
-                        .header("X-Tenant-Domain", tenantB)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(assignPayload))
-                .andExpect(status().isNotFound());
-
-        // Assign correctly under tenantA to produce a delivery
-        MvcResult assignRes = mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/assign")
-                        .header("X-Tenant-Domain", tenantA)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(assignPayload))
-                .andExpect(status().isOk())
-                .andReturn();
-        Map<?,?> assignBody = objectMapper.readValue(assignRes.getResponse().getContentAsString(), Map.class);
-        String deliveryId = String.valueOf(assignBody.get("deliveryId"));
-        assertThat(deliveryId).isNotBlank();
-
-        // Attempt unassign with tenantB header should 404 (DELIVERY_NOT_FOUND in tenantB)
-        String unassignPayload = objectMapper.writeValueAsString(Map.of("deliveryId", deliveryId));
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/logistics/unassign")
-                        .header("X-Tenant-Domain", tenantB)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(unassignPayload))
-                .andExpect(status().isNotFound());
-    }
 }

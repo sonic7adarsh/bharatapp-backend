@@ -6,11 +6,13 @@ import com.bharatshop.error.ApiException;
 import com.bharatshop.repository.OrderItemRepository;
 import com.bharatshop.repository.OrderRepository;
 import com.bharatshop.repository.StoreRepository;
+import com.bharatshop.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class SellerOrderService {
@@ -19,17 +21,20 @@ public class SellerOrderService {
     private final StoreRepository storeRepository;
     private final InventoryService inventoryService;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public SellerOrderService(OrderRepository orderRepository,
                               OrderItemRepository orderItemRepository,
                               StoreRepository storeRepository,
                               InventoryService inventoryService,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              UserRepository userRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.storeRepository = storeRepository;
         this.inventoryService = inventoryService;
         this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     public OrderEntity acceptOrder(String orderId, String sellerUserId) {
@@ -39,9 +44,12 @@ public class SellerOrderService {
         ensureDeadlineNotExpired(e, "ACCEPTANCE_WINDOW_EXPIRED");
         e.setStatus("accepted");
         e.setSellerAcceptedAt(Instant.now());
+        if (e.getPrescriptionUrl() != null) {
+            e.setIsPrescriptionVerified(true);
+        }
         orderRepository.save(e);
         // Inventory hook (placeholder only)
-        inventoryService.reserveForOrder(e.getTenantId(), e.getId());
+        inventoryService.reserveForOrder(e.getId());
         // Notify Customer of Order Confirmation
         try {
             com.bharatshop.domain.Order orderDto = toOrder(e);
@@ -60,7 +68,7 @@ public class SellerOrderService {
         o.setStatus(e.getStatus());
         o.setTotal(e.getTotal());
         o.setStoreId(e.getStoreId());
-        o.setTenantId(e.getTenantId());
+        // tenantId removed from DTO mapping
         return o;
     }
 
@@ -75,11 +83,10 @@ public class SellerOrderService {
         if (reason != null && !reason.isBlank()) e.setCancellationReason(reason);
         orderRepository.save(e);
         // Release reserved inventory on reject
-        String tenantId = e.getTenantId();
         List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(e.getId());
         for (com.bharatshop.entity.OrderItemEntity oi : items) {
             if (oi.getProductId() != null) {
-                inventoryService.release(tenantId, oi.getProductId(), oi.getQuantity());
+                inventoryService.release(oi.getProductId(), oi.getQuantity());
             }
         }
         return e;
@@ -104,10 +111,10 @@ public class SellerOrderService {
     }
 
     private OrderEntity findScoped(String orderId) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        return (tenant != null && !tenant.isBlank() ?
-                orderRepository.findByTenantIdAndId(tenant, orderId).orElse(null) :
-                orderRepository.findById(orderId).orElse(null));
+        // Tenant context removed
+        return orderRepository.findById(orderId)
+                .or(() -> orderRepository.findByReference(orderId))
+                .orElse(null);
     }
 
     private void ensureOwnership(OrderEntity e, String sellerUserId) {

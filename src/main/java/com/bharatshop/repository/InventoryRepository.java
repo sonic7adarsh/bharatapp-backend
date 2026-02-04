@@ -8,9 +8,9 @@ import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 public interface InventoryRepository extends JpaRepository<InventoryEntity, String> {
-    Optional<InventoryEntity> findByTenantIdAndProductId(String tenantId, String productId);
+    Optional<InventoryEntity> findByProductId(String productId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select i from InventoryEntity i where i.tenantId = :tenantId and i.productId = :productId")
-    Optional<InventoryEntity> lockByTenantAndProduct(String tenantId, String productId);
+    @Query("select i from InventoryEntity i where i.productId = :productId")
+    Optional<InventoryEntity> lockByProduct(String productId);
 }

@@ -10,7 +10,6 @@ import java.time.Instant;
 public class InventoryEntity {
     @Id
     private String id;
-    private String tenantId;
     private String productId;
     private Integer available;
     private Integer reserved;
@@ -18,8 +17,6 @@ public class InventoryEntity {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getProductId() { return productId; }
     public void setProductId(String productId) { this.productId = productId; }
     public Integer getAvailable() { return available; }

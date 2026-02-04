@@ -67,8 +67,8 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
 
     @Override public OrderOps orders() {
         return new OrderOps() {
-            @Override public com.bharatshop.domain.Order placeOrder(String userId, List<com.bharatshop.domain.CartItem> items, com.bharatshop.domain.Order.Totals totals, String paymentMethod, com.bharatshop.domain.Order.PaymentInfo paymentInfo, String type, String storeId, String notes) {
-                return orderService.placeOrder(userId, items, totals, paymentMethod, paymentInfo, type, storeId, notes);
+            @Override public com.bharatshop.domain.Order placeOrder(String userId, List<com.bharatshop.domain.CartItem> items, com.bharatshop.domain.Order.Totals totals, String paymentMethod, com.bharatshop.domain.Order.PaymentInfo paymentInfo, String type, String storeId, String notes, String prescriptionUrl, String deliveryAddress, String customerName, String customerPhone, String customerAlternatePhone) {
+                return orderService.placeOrder(userId, items, totals, paymentMethod, paymentInfo, type, storeId, notes, prescriptionUrl, deliveryAddress, customerName, customerPhone, customerAlternatePhone);
             }
             @Override public List<com.bharatshop.domain.Order> listOrders(String userId) { return orderService.listOrders(userId); }
 
@@ -103,10 +103,9 @@ public class DefaultStorefrontFactory implements StorefrontFactory {
             
             @Override
             public Map<String, Object> checkInventoryAvailability(String storeId, String productId, int quantity) {
-                String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-                boolean canReserve = inventoryService.canReserve(tenant, productId, quantity);
+                boolean canReserve = inventoryService.canReserve(productId, quantity);
                 if (!canReserve) {
-                    int available = inventoryService.getAvailable(tenant, productId);
+                    int available = inventoryService.getAvailable(productId);
                     return Map.of(
                         "code", "INSUFFICIENT_INVENTORY",
                         "message", "Insufficient inventory",

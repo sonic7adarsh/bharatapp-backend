@@ -6,6 +6,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RiderRepository extends JpaRepository<RiderEntity, String> {
-    List<RiderEntity> findByTenantIdAndStatus(String tenantId, String status);
-    Optional<RiderEntity> findByTenantIdAndPhone(String tenantId, String phone);
+    List<RiderEntity> findByStatus(String status);
+    Optional<RiderEntity> findByPhone(String phone);
 }

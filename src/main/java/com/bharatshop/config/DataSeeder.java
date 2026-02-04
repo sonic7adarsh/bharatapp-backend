@@ -6,7 +6,6 @@ import com.bharatshop.entity.CategoryEntity;
 import com.bharatshop.repository.CategoryRepository;
 import com.bharatshop.service.ProductService;
 import com.bharatshop.service.StoreService;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -26,30 +25,48 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        TenantContext.setTenant("tenantA");
         
         // Seed Categories
-        createCategory("cat-grocery", "Grocery", "grocery", 1);
-        createCategory("cat-pharmacy", "Pharmacy", "pharmacy", 2);
-        createCategory("cat-electronics", "Electronics", "electronics", 3);
-        createCategory("cat-fashion", "Fashion", "fashion", 4);
+        createCategory("cat-medicine", "Medicine", "medicine", 1);
+        createCategory("cat-stationary", "Stationary", "stationary", 2);
+        createCategory("cat-service", "Service", "service", 3);
+        createCategory("cat-grocery", "Grocery", "grocery", 4); // Keeping as backup
 
-        // Seed Stores
-        Store s1 = new Store("store-fresh-mart", "Fresh Mart", "MG Road", "grocery");
-        Store s2 = new Store("store-city-pharmacy", "City Pharmacy", "Brigade", "pharmacy");
+        // Seed Stores (with Location)
+        Store s1 = new Store("store-med-plus", "Med Plus", "Connaught Place", "medicine");
+        s1.setLatitude(28.6304);
+        s1.setLongitude(77.2177);
+        s1.setOwnerPhone("9876543210");
+        s1.setAddress("Shop 12, Block A, CP, Delhi");
+
+        Store s2 = new Store("store-student-point", "Student Point", "Laxmi Nagar", "stationary");
+        s2.setLatitude(28.6300); // Nearby
+        s2.setLongitude(77.2180);
+        s2.setOwnerPhone("9876543211");
+        s2.setAddress("Shop 4, Laxmi Nagar, Delhi");
         
+        Store s3 = new Store("store-repair-hub", "Repair Hub", "Karol Bagh", "service");
+        s3.setLatitude(28.6310); // Nearby
+        s3.setLongitude(77.2190);
+        s3.setOwnerPhone("9876543212");
+        s3.setAddress("Shop 10, Karol Bagh, Delhi");
+
         storeService.add(s1); 
         storeService.add(s2);
+        storeService.add(s3);
 
         // Seed Products
-        // Fresh Mart (Grocery)
-        createProduct("prod-apples", "Apples", 120.0, "grocery", "cat-grocery", s1.getId());
-        createProduct("prod-milk", "Milk", 60.0, "grocery", "cat-grocery", s1.getId());
-        createProduct("prod-bread", "Bread", 40.0, "grocery", "cat-grocery", s1.getId());
+        // Med Plus (Medicine)
+        createProduct("prod-paracetamol", "Paracetamol", 35.0, "medicine", "cat-medicine", s1.getId());
+        createProduct("prod-syrup", "Cough Syrup", 120.0, "medicine", "cat-medicine", s1.getId());
 
-        // City Pharmacy (Pharmacy)
-        createProduct("prod-paracetamol", "Paracetamol", 35.0, "pharmacy", "cat-pharmacy", s2.getId());
-        createProduct("prod-sanitizer", "Hand Sanitizer", 99.0, "pharmacy", "cat-pharmacy", s2.getId());
+        // Student Point (Stationary)
+        createProduct("prod-notebook", "Classmate Notebook", 60.0, "stationary", "cat-stationary", s2.getId());
+        createProduct("prod-pen", "Parker Pen", 250.0, "stationary", "cat-stationary", s2.getId());
+        
+        // Repair Hub (Service)
+        createProduct("prod-ac-service", "AC Service", 500.0, "service", "cat-service", s3.getId());
+        createProduct("prod-ro-repair", "RO Repair", 300.0, "service", "cat-service", s3.getId());
         
         System.out.println("Data Seeding Completed.");
     }
@@ -57,7 +74,6 @@ public class DataSeeder implements CommandLineRunner {
     private void createCategory(String id, String name, String slug, int order) {
         CategoryEntity c = new CategoryEntity();
         c.setId(id);
-        c.setTenantId(TenantContext.getTenant());
         c.setName(name);
         c.setSlug(slug);
         c.setDisplayOrder(order);

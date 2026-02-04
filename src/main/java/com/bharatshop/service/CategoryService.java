@@ -2,7 +2,6 @@ package com.bharatshop.service;
 
 import com.bharatshop.entity.CategoryEntity;
 import com.bharatshop.repository.CategoryRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -17,23 +16,17 @@ public class CategoryService {
         this.categoryRepository = categoryRepository;
     }
 
-    @Cacheable(value = "categories", key = "#root.target.getTenantId()")
+    @Cacheable(value = "categories", key = "'all'")
     public List<CategoryDto> getCategories() {
-        String tenantId = getTenantId();
-        List<CategoryEntity> entities = categoryRepository.findByTenantIdAndIsActiveTrueOrderByDisplayOrderAsc(tenantId);
+        // Tenant context removed
+        List<CategoryEntity> entities = categoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
         
         return entities.stream()
             .map(e -> new CategoryDto(e.getId(), e.getName(), e.getSlug()))
             .collect(Collectors.toList());
     }
 
-    public String getTenantId() {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) {
-            throw new IllegalStateException("Tenant context missing");
-        }
-        return tenant;
-    }
+    // getTenantId removed
 
     public static class CategoryDto {
         private String id;

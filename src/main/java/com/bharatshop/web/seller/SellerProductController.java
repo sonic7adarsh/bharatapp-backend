@@ -36,9 +36,8 @@ public class SellerProductController {
                                          @RequestParam(required = false) Boolean active,
                                          @RequestParam(required = false) Integer page,
                                          @RequestParam(required = false) Integer limit) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        log.info("Seller list products: storeId={} search={} category={} active={} page={} limit={} tenant={}", storeId, search, category, active, page, limit, tenant);
-        List<Product> all = factoryProvider.getSellerFactory(tenant).products()
+        log.info("Seller list products: storeId={} search={} category={} active={} page={} limit={}", storeId, search, category, active, page, limit);
+        List<Product> all = factoryProvider.getSellerFactory().products()
                 .listByStore(storeId, search, category, active, page, limit);
         log.info("Seller list products success: count={}", all != null ? all.size() : 0);
         return ResponseEntity.ok(all);
@@ -47,8 +46,7 @@ public class SellerProductController {
     @PostMapping(value = "/stores/{storeId}/products", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> createJson(@PathVariable String storeId,
                                         @RequestBody Map<String, Object> body) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-
+        
         String name = (String) body.get("name");
         Double price = null;
         Object priceObj = body.get("price");
@@ -57,6 +55,7 @@ public class SellerProductController {
         }
         String description = (String) body.get("description");
         String category = (String) body.get("category");
+        String categoryId = (String) body.get("categoryId");
         String currency = body.get("currency") == null ? null : String.valueOf(body.get("currency"));
         String sku = (String) body.get("sku");
         Integer stock = null;
@@ -84,11 +83,12 @@ public class SellerProductController {
         Product p = new Product(UUID.randomUUID().toString(), name, price, category, storeId);
         p.setCurrency(currency);
         p.setDescription(description);
+        p.setCategoryId(category);
         p.setImage(image);
         p.setSku(sku);
         p.setStock(stock);
         p.setActive(active);
-        p = factoryProvider.getSellerFactory(tenant).products().create(storeId, p);
+        p = factoryProvider.getSellerFactory().products().create(storeId, p);
         log.info("Seller create product success: id={} name={} storeId={}", p.getId(), p.getName(), storeId);
         return ResponseEntity.ok(Map.of("success", true, "product", p));
     }
@@ -104,8 +104,7 @@ public class SellerProductController {
                                             @RequestPart(value = "stock", required = false) String stockStr,
                                             @RequestPart(value = "active", required = false) String activeStr,
                                             @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-
+        
         Double price = null;
         try { if (priceStr != null && !priceStr.isBlank()) price = Double.parseDouble(priceStr); } catch (Exception ignored) {}
         Integer stock = null;
@@ -133,20 +132,20 @@ public class SellerProductController {
         Product p = new Product(UUID.randomUUID().toString(), name, price, category, storeId);
         p.setCurrency(currency);
         p.setDescription(description);
+        p.setCategoryId(category);
         p.setImage(image);
         p.setSku(sku);
         p.setStock(stock);
         p.setActive(active);
-        p = factoryProvider.getSellerFactory(tenant).products().create(storeId, p);
+        p = factoryProvider.getSellerFactory().products().create(storeId, p);
         log.info("Seller create product success: id={} name={} storeId={}", p.getId(), p.getName(), storeId);
         return ResponseEntity.ok(Map.of("success", true, "product", p));
     }
 
     @PatchMapping("/products/{productId}")
     public ResponseEntity<?> update(@PathVariable String productId, @RequestBody Map<String, Object> changes) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller update product: productId={} changesKeys={}", productId, changes != null ? changes.keySet() : java.util.Collections.emptySet());
-        Product updated = factoryProvider.getSellerFactory(tenant).products().updatePartial(productId, changes);
+        Product updated = factoryProvider.getSellerFactory().products().updatePartial(productId, changes);
         if (updated == null) throw new NotFoundException("Product not found");
         log.info("Seller update product success: productId={} active={} stock={} price={}", updated.getId(), updated.getActive(), updated.getStock(), updated.getPrice());
         return ResponseEntity.ok(updated);
@@ -155,9 +154,8 @@ public class SellerProductController {
     @DeleteMapping("/products/{productId}")
     public ResponseEntity<?> delete(@PathVariable String productId,
                                     @RequestParam(required = false, defaultValue = "true") boolean archive) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller delete product requested: productId={} archive={}", productId, archive);
-        boolean ok = factoryProvider.getSellerFactory(tenant).products().delete(productId, archive);
+        boolean ok = factoryProvider.getSellerFactory().products().delete(productId, archive);
         if (!ok) throw new NotFoundException("Product not found");
         log.info("Seller delete product success: productId={} archive={}", productId, archive);
         return ResponseEntity.ok(Map.of(archive ? "archived" : "deleted", true));
@@ -166,9 +164,8 @@ public class SellerProductController {
     @PostMapping(value = "/products/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadImage(@PathVariable String productId,
                                          @RequestPart("file") MultipartFile file) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         log.info("Seller upload product image: productId={} filename={}", productId, file != null ? file.getOriginalFilename() : null);
-        Product updated = factoryProvider.getSellerFactory(tenant).products().updateImage(productId, file.getOriginalFilename());
+        Product updated = factoryProvider.getSellerFactory().products().updateImage(productId, file.getOriginalFilename());
         if (updated == null) throw new NotFoundException("Product not found");
         log.info("Seller upload image success: productId={} image={}", productId, updated.getImage());
         return ResponseEntity.ok(Map.of("success", true, "image", updated.getImage()));
@@ -176,12 +173,11 @@ public class SellerProductController {
 
     @PatchMapping("/products/{productId}/inventory")
     public ResponseEntity<?> adjustInventory(@PathVariable String productId, @RequestBody Map<String, Object> body) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         Integer stockDelta = body.get("stockDelta") instanceof Number ? ((Number) body.get("stockDelta")).intValue() : null;
         Integer stockSet = body.get("stockSet") instanceof Number ? ((Number) body.get("stockSet")).intValue() : null;
         Double price = body.get("price") instanceof Number ? ((Number) body.get("price")).doubleValue() : null;
         log.info("Seller adjust inventory: productId={} stockDelta={} stockSet={} price={}", productId, stockDelta, stockSet, price);
-         Product updated = factoryProvider.getSellerFactory(tenant).products().adjustInventory(productId, stockDelta, stockSet, price);
+         Product updated = factoryProvider.getSellerFactory().products().adjustInventory(productId, stockDelta, stockSet, price);
          if (updated == null) throw new NotFoundException("Product not found");
          log.info("Seller adjust inventory success: productId={} stock={} price={}", updated.getId(), updated.getStock(), updated.getPrice());
          return ResponseEntity.ok(updated);

@@ -10,7 +10,6 @@ import com.bharatshop.entity.ZoneEntity;
 import com.bharatshop.entity.StoreZoneEntity;
 import com.bharatshop.repository.StoreZoneRepository;
 import com.bharatshop.repository.ZoneRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -147,7 +146,6 @@ public class StoreAvailabilityPolicy {
         if (inventoryDevFallback) {
             return null;
         }
-        String tenantId = TenantContext.getTenant();
         
         // Group items by product ID to check total quantity needed
         Map<String, Integer> productQuantities = items.stream()
@@ -158,7 +156,7 @@ public class StoreAvailabilityPolicy {
         
         // Check if any product has insufficient inventory
         List<String> unavailableProducts = productQuantities.entrySet().stream()
-            .filter(entry -> !inventoryService.canReserve(tenantId, entry.getKey(), entry.getValue()))
+            .filter(entry -> !inventoryService.canReserve(entry.getKey(), entry.getValue()))
             .map(Map.Entry::getKey)
             .collect(Collectors.toList());
         
@@ -187,10 +185,8 @@ public class StoreAvailabilityPolicy {
             return null;
         }
 
-        String tenantId = TenantContext.getTenant();
-        
         // Get zones served by this store
-        List<StoreZoneEntity> storeZones = storeZoneRepository.findByTenantIdAndStoreId(tenantId, store.getId());
+        List<StoreZoneEntity> storeZones = storeZoneRepository.findByStoreId(store.getId());
         
         if (storeZones.isEmpty()) {
             return Map.of(

@@ -7,7 +7,6 @@ import com.bharatshop.entity.ZoneEntity;
 import com.bharatshop.repository.StoreRepository;
 import com.bharatshop.repository.StoreZoneRepository;
 import com.bharatshop.repository.ZoneRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,48 +33,21 @@ public class StoreService {
     }
 
     public List<Store> listNearby(Double lat, Double lng, String search, String category) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        
         // Explicit behavior: NO location = NO stores
         if (lat == null || lng == null) {
             log.warn("[GEO_STRICT] No location provided. Returning empty list.");
             return Collections.emptyList();
         }
 
-        // 1. Get candidate zones (Radius filtered by DB, Polygon fetched for memory check)
-        List<ZoneEntity> candidateZones = zoneRepository.findNearbyZones(tenant, lat, lng);
-        
-        // 2. Filter zones (Double check Radius for precision, Strict check for Polygon)
-        Set<String> validZoneIds = candidateZones.stream()
-            .filter(z -> geoService.isPointInZone(lat, lng, z))
-            .map(ZoneEntity::getId)
-            .collect(Collectors.toSet());
-            
-        log.info("[GEO_STRICT] Zones matched: {} (lat={}, lng={})", validZoneIds.size(), lat, lng);
+        double radius = 10.0; // 10km radius as per MVP-1 requirement
 
-        if (validZoneIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        
-        // 3. Get store IDs in these zones
-        List<StoreZoneEntity> storeZones = storeZoneRepository.findByTenantIdAndZoneIdIn(tenant, validZoneIds);
-        Set<String> storeIds = storeZones.stream()
-            .map(StoreZoneEntity::getStoreId)
-            .collect(Collectors.toSet());
-            
-        log.info("[GEO_STRICT] Store mappings found: {}", storeIds.size());
+        // Fetch stores within radius using DB calculation
+        List<StoreEntity> stores = storeRepository.findNearbyStores(lat, lng, radius);
 
-        if (storeIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        
-        // 4. Fetch stores
-        List<StoreEntity> stores = storeRepository.findAllById(storeIds);
-        
-        // 5. Filter and map
+        log.info("[GEO_STRICT] Stores found in {}km radius: {}", radius, stores.size());
+
+        // Filter and map
         List<Store> result = stores.stream()
-            .filter(s -> tenant.equals(s.getTenantId())) // Safety check
             .filter(s -> "open".equalsIgnoreCase(s.getStatus())) // Strict status check
             .filter(s -> !Boolean.TRUE.equals(s.getOrderingDisabled())) // Strict ordering check
             .filter(s -> search == null || s.getName().toLowerCase().contains(search.toLowerCase()))
@@ -89,24 +61,25 @@ public class StoreService {
     }
 
     public List<Store> list(String search, String category) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        List<StoreEntity> list = storeRepository.findByTenantId(tenant);
+        List<StoreEntity> list = storeRepository.findAll();
         // HARD PROOF LOGS (repository result)
         for (StoreEntity e : list) {
             log.error("[PROOF][STORE_REPO] store.id={} source=DB", e != null ? e.getId() : null);
         }
-        return list.stream().map(this::toDto).sorted(Comparator.comparing(Store::getName)).collect(Collectors.toList());
+        return list.stream()
+                .filter(s -> search == null || s.getName().toLowerCase().contains(search.toLowerCase()))
+                .filter(s -> category == null || category.equalsIgnoreCase(s.getCategory()))
+                .map(this::toDto)
+                .sorted(Comparator.comparing(Store::getName))
+                .collect(Collectors.toList());
     }
 
     public Store get(String id) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null) { throw new IllegalStateException("TenantContext missing"); }
-        return storeRepository.findByIdAndTenantId(id, tenant).map(this::toDto).orElse(null);
+        return storeRepository.findById(id).map(this::toDto).orElse(null);
     }
 
-    public Optional<Store> getStoreById(String id, String tenantId) {
-        return storeRepository.findByIdAndTenantId(id, tenantId).map(this::toDto);
+    public Optional<Store> getStoreById(String id) {
+        return storeRepository.findById(id).map(this::toDto);
     }
 
     public Store add(Store s) {
@@ -116,6 +89,9 @@ public class StoreService {
             id = java.util.UUID.randomUUID().toString();
         }
         e.setId(id); e.setName(s.getName()); e.setArea(s.getArea()); e.setCategory(s.getCategory());
+        e.setAddress(s.getAddress());
+        e.setLatitude(s.getLatitude());
+        e.setLongitude(s.getLongitude());
         // ownership
         e.setOwnerId(s.getOwnerId());
         e.setOwnerPhone(s.getOwnerPhone());
@@ -125,9 +101,6 @@ public class StoreService {
         e.setClosedReason(s.getClosedReason());
         e.setClosedUntil(s.getClosedUntil());
         e.setLogo(s.getLogo());
-        // Set tenant
-        String tenant = TenantContext.getTenant();
-        if (tenant != null && !tenant.isBlank()) { e.setTenantId(tenant); }
         e.setUpdatedAt(java.time.Instant.now());
         e = storeRepository.save(e);
         if (e.getId() == null) {
@@ -141,6 +114,9 @@ public class StoreService {
             throw new IllegalStateException("Corrupt entity loaded from DB: id is null");
         }
         Store s = new Store(e.getId(), e.getName(), e.getArea(), e.getCategory());
+        s.setAddress(e.getAddress());
+        s.setLatitude(e.getLatitude());
+        s.setLongitude(e.getLongitude());
         // HARD PROOF LOGS (entity to domain mapping)
         log.error("[PROOF][STORE_MAP] entity.id={} mapped.id={}", e != null ? e.getId() : null, s.getId());
         s.setOwnerId(e.getOwnerId());

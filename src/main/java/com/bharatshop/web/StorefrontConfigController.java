@@ -36,15 +36,6 @@ public class StorefrontConfigController {
 
 
     // Checkout config
-    @Value("${checkout.delivery.enabled:true}")
-    private boolean deliverySlotsEnabled;
-    @Value("${checkout.delivery.slotLengthMin:30}")
-    private int slotLengthMin;
-    @Value("${checkout.delivery.start:08:00}")
-    private String deliveryStart;
-    @Value("${checkout.delivery.end:20:00}")
-    private String deliveryEnd;
-
     @Value("${checkout.tips.enabled:false}")
     private boolean tipsEnabled;
     @Value("${checkout.tips.ranges:10,20,50}")
@@ -60,8 +51,7 @@ public class StorefrontConfigController {
 
     @GetMapping("/payments/config")
     public ResponseEntity<?> paymentsConfig() {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        log.info("Payments config requested: tenant={}", tenant);
+        log.info("Payments config requested");
         Map<String, Object> methods = Map.of(
                 "online", onlineEnabled,
                 "cod", codEnabled,
@@ -85,14 +75,7 @@ public class StorefrontConfigController {
 
     @GetMapping("/checkout/config")
     public ResponseEntity<?> checkoutConfig() {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
-        log.info("Checkout config requested: tenant={}", tenant);
-        Map<String, Object> deliverySlots = Map.of(
-                "enabled", deliverySlotsEnabled,
-                "slotLengthMin", slotLengthMin,
-                "start", deliveryStart,
-                "end", deliveryEnd
-        );
+        log.info("Checkout config requested");
         Map<String, Object> tips = Map.of(
                 "enabled", tipsEnabled,
                 "ranges", tipsRanges.split(",")
@@ -105,7 +88,6 @@ public class StorefrontConfigController {
                 "required", addressRequiredFields.split(",")
         );
         return ResponseEntity.ok(Map.of(
-                "deliverySlots", deliverySlots,
                 "tips", tips,
                 "prescriptionFlow", prescriptionFlow,
                 "addressFields", addressFields

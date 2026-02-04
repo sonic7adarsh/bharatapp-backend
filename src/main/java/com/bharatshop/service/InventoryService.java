@@ -18,13 +18,12 @@ public class InventoryService {
     private boolean devFallback;
 
     @Transactional
-    public boolean reserve(String tenantId, String productId, int quantity) {
+    public boolean reserve(String productId, int quantity) {
         if (quantity <= 0) return false;
-        InventoryEntity inv = inventoryRepository.lockByTenantAndProduct(tenantId, productId)
+        InventoryEntity inv = inventoryRepository.lockByProduct(productId)
                 .orElseGet(() -> {
                     InventoryEntity e = new InventoryEntity();
                     e.setId(java.util.UUID.randomUUID().toString());
-                    e.setTenantId(tenantId);
                     e.setProductId(productId);
                     // Dev fallback: if enabled, seed available to requested quantity so reserve succeeds
                     e.setAvailable(devFallback ? quantity : 0);
@@ -45,9 +44,9 @@ public class InventoryService {
     }
 
     @Transactional
-    public boolean release(String tenantId, String productId, int quantity) {
+    public boolean release(String productId, int quantity) {
         if (quantity <= 0) return false;
-        InventoryEntity inv = inventoryRepository.lockByTenantAndProduct(tenantId, productId).orElse(null);
+        InventoryEntity inv = inventoryRepository.lockByProduct(productId).orElse(null);
         if (inv == null) return false;
         int available = inv.getAvailable() == null ? 0 : inv.getAvailable();
         int reserved = inv.getReserved() == null ? 0 : inv.getReserved();
@@ -64,9 +63,9 @@ public class InventoryService {
      * This decrements the reserved count without increasing available.
      */
     @Transactional
-    public boolean consume(String tenantId, String productId, int quantity) {
+    public boolean consume(String productId, int quantity) {
         if (quantity <= 0) return false;
-        InventoryEntity inv = inventoryRepository.lockByTenantAndProduct(tenantId, productId).orElse(null);
+        InventoryEntity inv = inventoryRepository.lockByProduct(productId).orElse(null);
         if (inv == null) return false;
         int reserved = inv.getReserved() == null ? 0 : inv.getReserved();
         if (reserved < quantity) return false;
@@ -79,11 +78,11 @@ public class InventoryService {
     /**
      * Check if inventory can be reserved without actually reserving it
      */
-    public boolean canReserve(String tenantId, String productId, int quantity) {
+    public boolean canReserve(String productId, int quantity) {
         if (quantity <= 0) return false;
         
         // Use a non-locking query to check availability
-        return inventoryRepository.findByTenantIdAndProductId(tenantId, productId)
+        return inventoryRepository.findByProductId(productId)
             .map(inv -> {
                 int available = inv.getAvailable() == null ? 0 : inv.getAvailable();
                 return available >= quantity;
@@ -95,8 +94,8 @@ public class InventoryService {
     /**
      * Get available inventory quantity for a product
      */
-    public int getAvailable(String tenantId, String productId) {
-        return inventoryRepository.findByTenantIdAndProductId(tenantId, productId)
+    public int getAvailable(String productId) {
+        return inventoryRepository.findByProductId(productId)
             .map(inv -> inv.getAvailable() == null ? 0 : inv.getAvailable())
             .orElse(0);
     }
@@ -105,7 +104,7 @@ public class InventoryService {
      * Placeholder hook for order acceptance to integrate inventory logic later.
      * Currently a no-op to satisfy MVP wiring without redesigning inventory.
      */
-    public void reserveForOrder(String tenantId, String orderId) {
+    public void reserveForOrder(String orderId) {
         // Intentionally left blank (MVP placeholder)
     }
 }

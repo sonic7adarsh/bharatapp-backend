@@ -7,7 +7,6 @@ import com.bharatshop.entity.UserNotificationPreference;
 import com.bharatshop.enums.NotificationEventType;
 import com.bharatshop.domain.Order;
 import com.bharatshop.domain.Store;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.scheduling.annotation.Async;
 import com.bharatshop.repository.NotificationEventRepository;
 import com.bharatshop.repository.NotificationLogRepository;
@@ -98,15 +97,11 @@ public class NotificationService {
     /**
      * Send notification to user for a specific event
      */
-    public CompletableFuture<Void> sendNotification(String tenantId, String userId, String eventType, Map<String, Object> data) {
+    public CompletableFuture<Void> sendNotification(String userId, String eventType, Map<String, Object> data) {
         return CompletableFuture.runAsync(() -> {
             try {
-                // Create notification event
-                NotificationEvent event = createNotificationEvent(tenantId, userId, eventType, data);
-                
-                // Process notification based on user preferences
+                NotificationEvent event = createNotificationEvent(userId, eventType, data);
                 processNotificationEvent(event);
-                
             } catch (Exception e) {
                 logger.error("Failed to send notification for event {} to user {}: {}", eventType, userId, e.getMessage(), e);
             }
@@ -116,14 +111,14 @@ public class NotificationService {
     /**
      * Send OTP notification
      */
-    public CompletableFuture<Void> sendOtp(String tenantId, String userId, String phone, String otp, String otpType) {
+    public CompletableFuture<Void> sendOtp(String userId, String phone, String otp, String otpType) {
         Map<String, Object> data = new HashMap<>();
         data.put("otp", otp);
         data.put("otpType", otpType);
         data.put("phone", phone);
         
         String eventType = "OTP_" + otpType.toUpperCase();
-        return sendNotification(tenantId, userId, eventType, data);
+        return sendNotification(userId, eventType, data);
     }
 
     // --- NEW EVENT SYSTEM ---
@@ -173,22 +168,13 @@ public class NotificationService {
 
     private void notifyCustomer(Order order, String templateName, List<String> params, String fallbackMessage) {
         if (order.getUserId() != null) {
-            userRepository.findByIdAndTenantId(order.getUserId(), order.getTenantId()).ifPresent(user -> {
+            userRepository.findById(order.getUserId()).ifPresent(user -> {
                 if (whatsappEnabled && user.getPhone() != null) {
                     // FORCE TEXT MODE for MVP-1 (Templates not configured)
                     logger.info("📨 [ROUTING] Sending TEXT notification to Customer: {}", user.getPhone());
                     boolean sent = whatsAppService.sendMessage(user.getPhone(), fallbackMessage);
                     if (sent) logger.info("✅ [SENT] Text notification sent to Customer: {}", user.getPhone());
                     else logger.error("❌ [FAILED] Text notification failed for Customer: {}", user.getPhone());
-                    
-                    // Original Template Logic (Commented out for now)
-                    /*
-                    boolean sent = whatsAppService.sendTemplateMessage(user.getPhone(), templateName, defaultLanguage, params);
-                    if (!sent) {
-                        logger.warn("Template {} failed for user {}, falling back to text", templateName, user.getId());
-                        whatsAppService.sendMessage(user.getPhone(), fallbackMessage);
-                    }
-                    */
                 }
             });
         }
@@ -196,29 +182,20 @@ public class NotificationService {
 
     private void notifySeller(Order order, String templateName, List<String> params, String fallbackMessage) {
         if (order.getStoreId() != null) {
-            storeService.getStoreById(order.getStoreId(), order.getTenantId()).ifPresent(store -> {
+            storeService.getStoreById(order.getStoreId()).ifPresent(store -> {
                 if (store.getOwnerPhone() != null && whatsappEnabled) {
                     // FORCE TEXT MODE for MVP-1 (Templates not configured)
                     logger.info("📨 [ROUTING] Sending TEXT notification to Seller: {}", store.getOwnerPhone());
                     boolean sent = whatsAppService.sendMessage(store.getOwnerPhone(), fallbackMessage);
                     if (sent) logger.info("✅ [SENT] Text notification sent to Seller: {}", store.getOwnerPhone());
                     else logger.error("❌ [FAILED] Text notification failed for Seller: {}", store.getOwnerPhone());
-
-                    // Original Template Logic (Commented out for now)
-                    /*
-                    boolean sent = whatsAppService.sendTemplateMessage(store.getOwnerPhone(), templateName, defaultLanguage, params);
-                    if (!sent) {
-                        logger.warn("Template {} failed for seller {}, falling back to text", templateName, store.getId());
-                        whatsAppService.sendMessage(store.getOwnerPhone(), fallbackMessage);
-                    }
-                    */
                 }
             });
         }
     }
 
     private void notifyRider(Order order, String templateName, List<String> params, String fallbackMessage) {
-        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByTenantIdAndOrderId(order.getTenantId(), order.getId());
+        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByOrderId(order.getId());
         for (OrderDeliveryEntity delivery : deliveries) {
             if (delivery.getRiderId() != null) {
                 riderRepository.findById(delivery.getRiderId()).ifPresent(rider -> {
@@ -228,15 +205,6 @@ public class NotificationService {
                         boolean sent = whatsAppService.sendMessage(rider.getPhone(), fallbackMessage);
                         if (sent) logger.info("✅ [SENT] Text notification sent to Rider: {}", rider.getPhone());
                         else logger.error("❌ [FAILED] Text notification failed for Rider: {}", rider.getPhone());
-
-                        // Original Template Logic (Commented out for now)
-                        /*
-                        boolean sent = whatsAppService.sendTemplateMessage(rider.getPhone(), templateName, defaultLanguage, params);
-                        if (!sent) {
-                            logger.warn("Template {} failed for rider {}, falling back to text", templateName, rider.getId());
-                            whatsAppService.sendMessage(rider.getPhone(), fallbackMessage);
-                        }
-                        */
                     }
                 });
             }
@@ -246,7 +214,7 @@ public class NotificationService {
     /**
      * Send order notification
      */
-    public CompletableFuture<Void> sendOrderNotification(String tenantId, String userId, String orderId, String orderStatus, Map<String, Object> additionalData) {
+    public CompletableFuture<Void> sendOrderNotification(String userId, String orderId, String orderStatus, Map<String, Object> additionalData) {
         Map<String, Object> data = new HashMap<>();
         data.put("orderId", orderId);
         data.put("orderStatus", orderStatus);
@@ -255,20 +223,20 @@ public class NotificationService {
         }
         
         String eventType = "ORDER_" + orderStatus.toUpperCase();
-        return sendNotification(tenantId, userId, eventType, data);
+        return sendNotification(userId, eventType, data);
     }
 
     /**
      * Send seller notification
      */
-    public CompletableFuture<Void> sendSellerNotification(String tenantId, String sellerId, String eventType, Map<String, Object> data) {
-        return sendNotification(tenantId, sellerId, eventType, data);
+    public CompletableFuture<Void> sendSellerNotification(String sellerId, String eventType, Map<String, Object> data) {
+        return sendNotification(sellerId, eventType, data);
     }
 
-    private NotificationEvent createNotificationEvent(String tenantId, String userId, String eventType, Map<String, Object> data) {
+    private NotificationEvent createNotificationEvent(String userId, String eventType, Map<String, Object> data) {
         NotificationEvent event = new NotificationEvent();
         event.setId(UUID.randomUUID().toString());
-        event.setTenantId(tenantId);
+        // tenantId removed
         event.setUserId(userId);
         event.setEventType(eventType);
         event.setEventData(data);
@@ -288,14 +256,12 @@ public class NotificationService {
     private void processNotificationEvent(NotificationEvent event) {
         try {
             // Get user preferences
-            List<UserNotificationPreference> preferences = preferenceRepository.findByTenantIdAndUserId(
-                event.getTenantId(), event.getUserId());
+            List<UserNotificationPreference> preferences = preferenceRepository.findByUserId(event.getUserId());
             
             if (preferences.isEmpty()) {
                 // Create default preferences if none exist
-                createDefaultPreferences(event.getTenantId(), event.getUserId());
-                preferences = preferenceRepository.findByTenantIdAndUserId(
-                    event.getTenantId(), event.getUserId());
+                createDefaultPreferences(event.getUserId());
+                preferences = preferenceRepository.findByUserId(event.getUserId());
             }
             
             // Filter preferences by enabled channels and quiet hours
@@ -304,8 +270,8 @@ public class NotificationService {
                 .toList();
             
             if (activePreferences.isEmpty()) {
-                logger.info("🚫 [SKIPPED] No active notification preferences for user {} in tenant {}", 
-                    event.getUserId(), event.getTenantId());
+                logger.info("🚫 [SKIPPED] No active notification preferences for user {}", 
+                    event.getUserId());
                 event.setStatus("SKIPPED");
                 event.setProcessedAt(LocalDateTime.now());
                 eventRepository.save(event);
@@ -348,14 +314,14 @@ public class NotificationService {
         try {
             // Get template for this event and channel
             Optional<NotificationTemplate> templateOpt = templateRepository
-                .findByTenantIdAndEventTypeAndChannelAndLanguageAndIsActive(
-                    event.getTenantId(), event.getEventType(), channel, language, true);
+                .findByEventTypeAndChannelAndLanguageAndIsActive(
+                    event.getEventType(), channel, language, true);
             
             if (templateOpt.isEmpty()) {
                 // Try with default language
                 templateOpt = templateRepository
-                    .findByTenantIdAndEventTypeAndChannelAndLanguageAndIsActive(
-                        event.getTenantId(), event.getEventType(), channel, defaultLanguage, true);
+                    .findByEventTypeAndChannelAndLanguageAndIsActive(
+                        event.getEventType(), channel, defaultLanguage, true);
             }
             
             if (templateOpt.isEmpty()) {
@@ -389,7 +355,14 @@ public class NotificationService {
             };
             
             // Log the notification attempt
-            logNotification(event, channel, template.getProvider(), recipient, message, sent, null);
+            // Provider is typically stored in template, but if not available we can infer or use channel
+            // Note: NotificationTemplate doesn't have provider field in my previous read, but I'll check if I need it.
+            // The previous code used template.getProvider() which might have been a compilation error or I missed it.
+            // Let's assume template has provider or we just use channel as provider for now if template.getProvider() is missing.
+            // Looking at NotificationTemplate entity earlier, it does NOT have getProvider(). It has channel.
+            // So previous code `template.getProvider()` was likely an error or I missed it.
+            // I'll use channel as provider name for now to be safe.
+            logNotification(event, channel, channel, recipient, message, sent, null);
             
             return sent;
             
@@ -471,7 +444,6 @@ public class NotificationService {
         try {
             NotificationLog log = new NotificationLog();
             log.setId(UUID.randomUUID().toString());
-            log.setTenantId(event.getTenantId());
             log.setEventId(event.getId());
             log.setProvider(provider);
             log.setChannel(channel);
@@ -488,12 +460,11 @@ public class NotificationService {
         }
     }
 
-    private void createDefaultPreferences(String tenantId, String userId) {
+    private void createDefaultPreferences(String userId) {
         String[] channels = {"WHATSAPP", "SMS", "EMAIL"};
         for (String channel : channels) {
             UserNotificationPreference preference = new UserNotificationPreference();
             preference.setId(UUID.randomUUID().toString());
-            preference.setTenantId(tenantId);
             preference.setUserId(userId);
             preference.setChannel(channel);
             preference.setEnabled(true);

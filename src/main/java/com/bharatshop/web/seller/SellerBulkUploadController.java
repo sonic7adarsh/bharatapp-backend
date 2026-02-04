@@ -35,7 +35,6 @@ public class SellerBulkUploadController {
                                     @RequestParam(required = false) Double defaultTaxRate,
                                     @RequestPart(required = false, name = "file") MultipartFile file,
                                     @RequestBody(required = false) Map<String, Object> body) {
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         boolean isDry = dryRun != null && dryRun;
         String effectiveMode = StringUtils.hasText(mode) ? mode : "upsert";
         String source;
@@ -45,7 +44,7 @@ public class SellerBulkUploadController {
             String key = body != null ? (String) body.get("key") : null;
             source = StringUtils.hasText(key) ? ("s3:" + key) : "unknown";
         }
-        log.info("Bulk upload request: tenant={} mode={} dryRun={} source={} ", tenant, effectiveMode, isDry, source);
+        log.info("Bulk upload request: mode={} dryRun={} source={} ", effectiveMode, isDry, source);
         var job = bulkUploadService.createJob(isDry, effectiveMode, defaultCurrency, defaultTaxRate, source);
         if (isDry) {
             return ResponseEntity.ok(Map.of(

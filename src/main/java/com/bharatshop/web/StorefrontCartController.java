@@ -4,7 +4,6 @@ import com.bharatshop.domain.CartItem;
 import com.bharatshop.security.UserPrincipal;
 import com.bharatshop.service.CartService;
 import com.bharatshop.service.InventoryService;
-import com.bharatshop.tenant.TenantContext;
 import com.bharatshop.error.BadRequestException;
 import com.bharatshop.error.ErrorCode;
 import org.slf4j.Logger;
@@ -57,9 +56,8 @@ public class StorefrontCartController {
 
     @GetMapping
     public ResponseEntity<?> getCart(@RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
-        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
-        log.info("Storefront get cart: tenant={} userId={} ", tenant, userId);
+        log.info("Storefront get cart: userId={} ", userId);
         List<CartItem> items = cartService.getCart(userId);
         return ResponseEntity.ok(toResponse(items));
     }
@@ -67,9 +65,8 @@ public class StorefrontCartController {
     @PostMapping("/items")
     public ResponseEntity<?> addItem(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                      @RequestBody CartItem item) {
-        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
-        log.info("Storefront add cart item: tenant={} userId={} itemId={} qty={}", tenant, userId, item.getId(), item.getQuantity());
+        log.info("Storefront add cart item: userId={} itemId={} qty={}", userId, item.getId(), item.getQuantity());
         List<CartItem> items = cartService.addItem(userId, item);
         return ResponseEntity.ok(toResponse(items));
     }
@@ -84,9 +81,8 @@ public class StorefrontCartController {
     public ResponseEntity<?> updateItem(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                         @PathVariable String id,
                                         @RequestBody UpdateCartItemRequest req) {
-        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
-        log.info("Storefront update cart item: tenant={} userId={} id={} quantity={} ", tenant, userId, id, req != null ? req.getQuantity() : null);
+        log.info("Storefront update cart item: userId={} id={} quantity={} ", userId, id, req != null ? req.getQuantity() : null);
         List<CartItem> items = cartService.getCart(userId);
         if (req == null || req.getQuantity() == null) {
             throw new BadRequestException("quantity required");
@@ -122,18 +118,16 @@ public class StorefrontCartController {
     @DeleteMapping("/items/{id}")
     public ResponseEntity<?> removeItem(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                         @PathVariable String id) {
-        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
-        log.info("Storefront remove cart item: tenant={} userId={} id={} ", tenant, userId, id);
+        log.info("Storefront remove cart item: userId={} id={} ", userId, id);
         List<CartItem> items = cartService.removeItem(userId, id);
         return ResponseEntity.ok(toResponse(items));
     }
 
     @DeleteMapping("/clear")
     public ResponseEntity<?> clearCart(@RequestHeader(value = "X-Guest-Id", required = false) String guestId) {
-        String tenant = TenantContext.getTenant();
         String userId = resolveUserId(guestId);
-        log.info("Storefront clear cart: tenant={} userId={} ", tenant, userId);
+        log.info("Storefront clear cart: userId={} ", userId);
         List<CartItem> items = cartService.clearCart(userId);
         return ResponseEntity.ok(toResponse(items));
     }
@@ -141,9 +135,8 @@ public class StorefrontCartController {
     @PostMapping("/validate")
     public ResponseEntity<?> validateCart(@RequestHeader(value = "X-Guest-Id", required = false) String guestId,
                                           @RequestParam String storeId) {
-        String tenant = TenantContext.getTenant();
         String resolvedUserId = resolveUserId(guestId);
-        log.info("Validate cart: tenant={} userId={} storeId={}", tenant, resolvedUserId, storeId);
+        log.info("Validate cart: userId={} storeId={}", resolvedUserId, storeId);
         
         List<CartItem> items = cartService.getCart(resolvedUserId);
         if (items == null || items.isEmpty()) {
@@ -158,12 +151,12 @@ public class StorefrontCartController {
         
         // Check inventory availability for all cart items
         List<Map<String, Object>> unavailableItems = items.stream()
-            .filter(item -> !inventoryService.canReserve(tenant, item.getId(), item.getQuantity()))
+            .filter(item -> !inventoryService.canReserve(item.getId(), item.getQuantity()))
             .map(item -> Map.<String, Object>of(
                 "productId", item.getId(),
                 "name", item.getName(),
                 "requested", item.getQuantity(),
-                "available", inventoryService.getAvailable(tenant, item.getId())
+                "available", inventoryService.getAvailable(item.getId())
             ))
             .collect(Collectors.toList());
             

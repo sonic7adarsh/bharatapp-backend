@@ -5,7 +5,6 @@ import com.bharatshop.domain.Store;
 import com.bharatshop.factory.FactoryProvider;
 import com.bharatshop.security.UserPrincipal;
 import com.bharatshop.service.StoreService;
-import com.bharatshop.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -35,46 +34,98 @@ public class StorefrontController {
         return open && orderingEnabled;
     }
 
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Radius of the earth in km
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // convert to km
+    }
+
     @GetMapping("/categories")
     public ResponseEntity<List<com.bharatshop.service.CategoryService.CategoryDto>> listCategories() {
         return ResponseEntity.ok(categoryService.getCategories());
     }
 
     @GetMapping("/stores")
-    public ResponseEntity<List<Store>> listStores(@RequestParam(required = false) String search,
+    public ResponseEntity<List<StorefrontStoreDto>> listStores(@RequestParam(required = false) String search,
                                                   @RequestParam(required = false) String category,
                                                   @RequestParam(required = false) Double lat,
                                                   @RequestParam(required = false) Double lng) {
         UserPrincipal up = UserPrincipal.current();
-        String tenant = TenantContext.getTenant();
-        log.info("Customer storefront: list stores tenant={} userId={} search={} category={} lat={} lng={}", tenant, up != null ? up.getUserId() : null, search, category, lat, lng);
+        log.info("Customer storefront: list stores userId={} search={} category={} lat={} lng={}", up != null ? up.getUserId() : null, search, category, lat, lng);
         
         // STRICT: Always use listNearby which enforces geo-fencing and requires location
         List<Store> all = storeService.listNearby(lat, lng, search, category);
 
-        List<Store> result = all.stream()
-                .sorted(Comparator.comparing(Store::getName))
+        List<StorefrontStoreDto> result = all.stream()
+                .map(s -> {
+                    StorefrontStoreDto dto = new StorefrontStoreDto(s);
+                    if (lat != null && lng != null && s.getLatitude() != null && s.getLongitude() != null) {
+                        dto.distance = calculateDistance(lat, lng, s.getLatitude(), s.getLongitude());
+                    }
+                    return dto;
+                })
+                .sorted((a, b) -> {
+                    if (a.distance == null && b.distance == null) return 0;
+                    if (a.distance == null) return 1;
+                    if (b.distance == null) return -1;
+                    return Double.compare(a.distance, b.distance);
+                })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/stores/{storeId}")
-    public ResponseEntity<Store> getStore(@PathVariable String storeId) {
+    public ResponseEntity<StorefrontStoreDto> getStore(@PathVariable String storeId) {
         UserPrincipal up = UserPrincipal.current();
-        String tenant = TenantContext.getTenant();
-        log.info("Customer storefront: get store tenant={} userId={} storeId={} ", tenant, up != null ? up.getUserId() : null, storeId);
+        log.info("Customer storefront: get store userId={} storeId={} ", up != null ? up.getUserId() : null, storeId);
         Store s = factoryProvider.getFactory().stores().get(storeId);
         if (s == null) return ResponseEntity.status(404).build();
         if (!isActiveStore(s)) return ResponseEntity.status(404).build();
-        return ResponseEntity.ok(s);
+        return ResponseEntity.ok(new StorefrontStoreDto(s));
+    }
+
+    // DTO to hide sensitive seller info (phone, ownerId) until order is placed
+    public static class StorefrontStoreDto {
+        public String id;
+        public String name;
+        public String area;
+        public String category;
+        public String address;
+        public Double latitude;
+        public Double longitude;
+        public Double distance;
+        public String logo;
+        public String status;
+        public Boolean orderingDisabled;
+        public String closedReason;
+        public java.time.Instant closedUntil;
+
+        public StorefrontStoreDto(Store s) {
+            this.id = s.getId();
+            this.name = s.getName();
+            this.area = s.getArea();
+            this.category = s.getCategory();
+            this.address = s.getAddress();
+            this.latitude = s.getLatitude();
+            this.longitude = s.getLongitude();
+            this.logo = s.getLogo();
+            this.status = s.getStatus();
+            this.orderingDisabled = s.getOrderingDisabled();
+            this.closedReason = s.getClosedReason();
+            this.closedUntil = s.getClosedUntil();
+        }
     }
 
     @GetMapping("/stores/{storeId}/products")
     public ResponseEntity<List<Product>> productsByStore(@PathVariable String storeId,
                                                          @RequestParam(required = false) String categoryId) {
         UserPrincipal up = UserPrincipal.current();
-        String tenant = TenantContext.getTenant();
-        log.info("Customer storefront: list products by store tenant={} userId={} storeId={} categoryId={}", tenant, up != null ? up.getUserId() : null, storeId, categoryId);
+        log.info("Customer storefront: list products by store userId={} storeId={} categoryId={}", up != null ? up.getUserId() : null, storeId, categoryId);
         Store s = factoryProvider.getFactory().stores().get(storeId);
         if (s == null) return ResponseEntity.status(404).build();
         if (!isActiveStore(s)) return ResponseEntity.status(404).build();
@@ -94,8 +145,7 @@ public class StorefrontController {
     public ResponseEntity<List<Product>> listProducts(@RequestParam(required = false) String category,
                                                       @RequestParam(required = false) String search) {
         UserPrincipal up = UserPrincipal.current();
-        String tenant = TenantContext.getTenant();
-        log.info("Customer storefront: list products tenant={} userId={} category={} search={} ", tenant, up != null ? up.getUserId() : null, category, search);
+        log.info("Customer storefront: list products userId={} category={} search={} ", up != null ? up.getUserId() : null, category, search);
         List<Product> all = factoryProvider.getFactory().products().list(category, search);
         List<Product> result = all.stream()
                 .sorted(Comparator.comparing(Product::getName))
@@ -106,8 +156,7 @@ public class StorefrontController {
     @GetMapping("/products/{id}")
     public ResponseEntity<?> getProduct(@PathVariable String id) {
         UserPrincipal up = UserPrincipal.current();
-        String tenant = TenantContext.getTenant();
-        log.info("Customer storefront: get product tenant={} userId={} id={}", tenant, up != null ? up.getUserId() : null, id);
+        log.info("Customer storefront: get product userId={} id={}", up != null ? up.getUserId() : null, id);
         Product p = factoryProvider.getFactory().products().get(id);
         if (p == null || !Boolean.TRUE.equals(p.getActive())) return ResponseEntity.status(404).build();
         return ResponseEntity.ok(p);

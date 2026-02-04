@@ -35,31 +35,28 @@ public class AdminController {
     }
 
     @GetMapping("/orders/{orderId}")
-    public ResponseEntity<?> getOrder(@RequestHeader("X-Tenant-Domain") String tenant,
-                                      @PathVariable String orderId) {
-        Optional<OrderEntity> opt = orderRepository.findByTenantIdAndId(tenant, orderId);
+    public ResponseEntity<?> getOrder(@PathVariable String orderId) {
+        Optional<OrderEntity> opt = orderRepository.findById(orderId);
         if (opt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "ORDER_NOT_FOUND"));
         Order dto = orderService.toDto(opt.get());
         return ResponseEntity.ok(dto);
     }
 
     @PostMapping("/orders/{orderId}/cancel")
-    public ResponseEntity<?> cancelOrder(@RequestHeader("X-Tenant-Domain") String tenant,
-                                         @PathVariable String orderId,
+    public ResponseEntity<?> cancelOrder(@PathVariable String orderId,
                                          @RequestBody(required = false) Map<String, String> body) {
         String reason = body != null ? body.getOrDefault("reason", "admin_cancelled") : "admin_cancelled";
-        log.info("Admin cancel order: tenant={} orderId={} reason={}", tenant, orderId, reason);
-        Order dto = orderService.cancelOrderByAdmin(tenant, orderId, reason);
+        log.info("Admin cancel order: orderId={} reason={}", orderId, reason);
+        Order dto = orderService.cancelOrderByAdmin(orderId, reason);
         return ResponseEntity.ok(Map.of("status", dto.getStatus(), "orderId", dto.getId()));
     }
 
     @PostMapping("/orders/{orderId}/reassign")
-    public ResponseEntity<?> reassignRider(@RequestHeader("X-Tenant-Domain") String tenant,
-                                           @PathVariable String orderId) {
-        Optional<OrderEntity> opt = orderRepository.findByTenantIdAndId(tenant, orderId);
+    public ResponseEntity<?> reassignRider(@PathVariable String orderId) {
+        Optional<OrderEntity> opt = orderRepository.findById(orderId);
         if (opt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "ORDER_NOT_FOUND"));
         String storeId = opt.get().getStoreId();
-        OrderDeliveryEntity d = logisticsService.assignRider(tenant, orderId, storeId);
+        OrderDeliveryEntity d = logisticsService.assignRider(orderId, storeId);
         if (d == null) return ResponseEntity.status(409).body(Map.of("error", "NO_AVAILABLE_RIDERS"));
         return ResponseEntity.ok(Map.of("deliveryId", d.getDeliveryId(), "riderId", d.getRiderId()));
     }

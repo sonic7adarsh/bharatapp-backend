@@ -1,7 +1,6 @@
 package com.bharatshop.factory;
 
 import org.springframework.stereotype.Component;
-import com.bharatshop.tenant.TenantContext;
 
 @Component
 public class FactoryProvider {
@@ -14,22 +13,20 @@ public class FactoryProvider {
     }
 
     public StorefrontFactory getFactory(String tenantDomain) {
-        // For now, return default factory; hook for multi-tenant specialization later
+        // tenantDomain ignored in local-first platform
         return defaultFactory;
     }
 
     public SellerFactory getSellerFactory(String tenantDomain) {
-        // For now, return default seller factory; hook for multi-tenant specialization later
+        // tenantDomain ignored in local-first platform
         return sellerFactory;
     }
 
     public StorefrontFactory getFactory() {
-        String tenant = TenantContext.getTenant();
-        return getFactory(tenant);
+        return getFactory(null);
     }
 
     public SellerFactory getSellerFactory() {
-        String tenant = TenantContext.getTenant();
-        return getSellerFactory(tenant);
+        return getSellerFactory(null);
     }
 }

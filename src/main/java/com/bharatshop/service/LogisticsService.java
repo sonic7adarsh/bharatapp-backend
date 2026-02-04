@@ -81,9 +81,9 @@ public class LogisticsService {
         this.smsService = smsService;
     }
 
-    public OrderDeliveryEntity assignRider(String tenantId, String orderId, String storeId) {
+    public OrderDeliveryEntity assignRider(String orderId, String storeId) {
         // Guard: Order must be READY
-        var orderOpt = orderRepository.findByTenantIdAndId(tenantId, orderId);
+        var orderOpt = orderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
         }
@@ -91,20 +91,12 @@ public class LogisticsService {
         if (!"READY".equals(curStatus)) {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Cannot perform this action in current order state");
         }
-        List<RiderEntity> available = riderRepository.findByTenantIdAndStatus(tenantId, "ONLINE");
+        List<RiderEntity> available = riderRepository.findByStatus("ONLINE");
         if (available.isEmpty()) { return null; }
 
         // Fetch zones served by the store
-        List<StoreZoneEntity> storeZoneLinks = storeZoneRepository.findByTenantIdAndStoreId(tenantId, storeId);
+        List<StoreZoneEntity> storeZoneLinks = storeZoneRepository.findByStoreId(storeId);
         Set<String> storeZoneIds = storeZoneLinks.stream().map(StoreZoneEntity::getZoneId).collect(Collectors.toSet());
-
-        // Get store zone center coordinates for distance calculation
-        double storeLat = 0, storeLng = 0;
-        if (!storeZoneIds.isEmpty()) {
-            String firstZoneId = storeZoneIds.iterator().next();
-            // We need to get zone entity - let's assume we have a method to get zone by id
-            // For now, we'll use a simplified approach
-        }
 
         // Prefer riders whose currentZoneId matches any store zone
         List<RiderEntity> zoneMatchedRiders = available.stream()
@@ -114,7 +106,7 @@ public class LogisticsService {
         // If zone-matched riders exist, sort by distance
         if (!zoneMatchedRiders.isEmpty()) {
             zoneMatchedRiders.sort(Comparator.comparingDouble(rider -> {
-                List<RiderLocationEntity> locs = riderLocationRepository.findByTenantIdAndRiderId(tenantId, rider.getId());
+                List<RiderLocationEntity> locs = riderLocationRepository.findByRiderId(rider.getId());
                 if (!locs.isEmpty()) {
                     RiderLocationEntity loc = locs.stream()
                             .max(Comparator.comparing(RiderLocationEntity::getUpdatedAt))
@@ -128,7 +120,7 @@ public class LogisticsService {
 
             OrderDeliveryEntity delivery = new OrderDeliveryEntity();
             delivery.setDeliveryId(UUID.randomUUID().toString());
-            delivery.setTenantId(tenantId);
+            // tenantId removed
             delivery.setOrderId(orderId);
             delivery.setStoreId(storeId);
             delivery.setRiderId(rider.getId());
@@ -140,14 +132,14 @@ public class LogisticsService {
         // If none match by currentZoneId, prefer riders mapped to the store zones
         if (!storeZoneIds.isEmpty()) {
             for (RiderEntity r : available) {
-                List<RiderZoneEntity> rZones = riderZoneRepository.findByTenantIdAndRiderId(tenantId, r.getId());
+                List<RiderZoneEntity> rZones = riderZoneRepository.findByRiderId(r.getId());
                 boolean matches = rZones.stream().anyMatch(z -> storeZoneIds.contains(z.getZoneId()));
                 if (matches) { 
                     // Do not change rider availability here; keep ONLINE/OFFLINE semantics only
 
                     OrderDeliveryEntity delivery = new OrderDeliveryEntity();
                     delivery.setDeliveryId(UUID.randomUUID().toString());
-                    delivery.setTenantId(tenantId);
+                    // tenantId removed
                     delivery.setOrderId(orderId);
                     delivery.setStoreId(storeId);
                     delivery.setRiderId(r.getId());
@@ -167,7 +159,7 @@ public class LogisticsService {
 
         OrderDeliveryEntity delivery = new OrderDeliveryEntity();
         delivery.setDeliveryId(UUID.randomUUID().toString());
-        delivery.setTenantId(tenantId);
+        // tenantId removed
         delivery.setOrderId(orderId);
         delivery.setStoreId(storeId);
         delivery.setRiderId(rider.getId());
@@ -181,10 +173,10 @@ public class LogisticsService {
     }
 
     /**
-     * Admin override: assign rider optionally explicitly. Enforces order READY and tenant scoping.
+     * Admin override: assign rider optionally explicitly. Enforces order READY.
      */
-    public OrderDeliveryEntity assignRiderAdmin(String tenantId, String orderId, String storeId, String riderId) {
-        var orderOpt = orderRepository.findByTenantIdAndId(tenantId, orderId);
+    public OrderDeliveryEntity assignRiderAdmin(String orderId, String storeId, String riderId) {
+        var orderOpt = orderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
         }
@@ -194,11 +186,11 @@ public class LogisticsService {
         }
         if (riderId == null || riderId.isBlank()) {
             // Fallback to existing auto-assignment logic
-            return assignRider(tenantId, orderId, storeId);
+            return assignRider(orderId, storeId);
         }
         RiderEntity rider = riderRepository.findById(riderId).orElse(null);
-        if (rider == null || rider.getTenantId() == null || !tenantId.equals(rider.getTenantId())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "CROSS_TENANT_RIDER", "Rider not in current tenant");
+        if (rider == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "RIDER_NOT_FOUND", "Rider not found");
         }
         if (!"ONLINE".equalsIgnoreCase(rider.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "RIDER_NOT_AVAILABLE", "Rider not available for assignment");
@@ -207,7 +199,7 @@ public class LogisticsService {
 
             OrderDeliveryEntity delivery = new OrderDeliveryEntity();
             delivery.setDeliveryId(UUID.randomUUID().toString());
-            delivery.setTenantId(tenantId);
+            // tenantId removed
             delivery.setOrderId(orderId);
             delivery.setStoreId(storeId);
             delivery.setRiderId(rider.getId());
@@ -219,14 +211,14 @@ public class LogisticsService {
     /**
      * Admin override: unassign rider from a delivery if not yet picked up.
      */
-    public OrderDeliveryEntity unassignRiderAdmin(String tenantId, String deliveryId) {
-        OrderDeliveryEntity d = orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, deliveryId)
+    public OrderDeliveryEntity unassignRiderAdmin(String deliveryId) {
+        OrderDeliveryEntity d = orderDeliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "DELIVERY_NOT_FOUND", "Delivery not found"));
         String status = d.getStatus() == null ? "" : d.getStatus().toUpperCase();
         if (!"RIDER_ASSIGNED".equals(status)) {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_TRANSITION", "Can only unassign when RIDER_ASSIGNED");
         }
-        var orderOpt = orderRepository.findByTenantIdAndId(tenantId, d.getOrderId());
+        var orderOpt = orderRepository.findById(d.getOrderId());
         if (orderOpt.isEmpty()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found");
         }
@@ -237,10 +229,8 @@ public class LogisticsService {
         // Reset rider status to ONLINE
         if (d.getRiderId() != null) {
             riderRepository.findById(d.getRiderId()).ifPresent(r -> {
-                if (tenantId.equals(r.getTenantId())) {
-                    r.setStatus("ONLINE");
-                    riderRepository.save(r);
-                }
+                r.setStatus("ONLINE");
+                riderRepository.save(r);
             });
         }
         // Reset delivery to pending assignment
@@ -253,14 +243,14 @@ public class LogisticsService {
 
     @Transactional
     public OrderDeliveryEntity acceptDelivery(String deliveryId) {
-        String tenantId = com.bharatshop.tenant.TenantContext.getTenant();
+        // tenant context removed
         var up = com.bharatshop.security.UserPrincipal.current();
         if (up == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Unauthorized");
         }
         String riderId = up.getUserId();
         OrderDeliveryEntity d = orderDeliveryRepository
-                .lockReadyForAssign(tenantId, deliveryId)
+                .lockReadyForAssign(deliveryId)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "ORDER_ALREADY_ASSIGNED", "Already taken"));
         d.setRiderId(riderId);
         d.setStatus("RIDER_ASSIGNED");
@@ -319,7 +309,7 @@ public class LogisticsService {
             
             // Send OTP via SMS
             try {
-                orderRepository.findByTenantIdAndId(d.getTenantId(), d.getOrderId()).ifPresent(order -> {
+                orderRepository.findById(d.getOrderId()).ifPresent(order -> {
                      userRepository.findById(order.getUserId()).ifPresent(user -> {
                          String phone = user.getPhone();
                          if (phone != null && !phone.isBlank()) {
@@ -353,7 +343,7 @@ public class LogisticsService {
             d.setStatus("DELIVERED");
             d.setCompletedAt(Instant.now());
             // Sync order status and notify buyer
-            orderRepository.findByTenantIdAndId(d.getTenantId(), d.getOrderId()).ifPresent(order -> {
+            orderRepository.findById(d.getOrderId()).ifPresent(order -> {
                 order.setStatus("delivered");
                 orderRepository.save(order);
                 // Consume reserved inventory for all order items
@@ -361,7 +351,7 @@ public class LogisticsService {
                     java.util.List<com.bharatshop.entity.OrderItemEntity> items = orderItemRepository.findByOrderId(order.getId());
                     for (com.bharatshop.entity.OrderItemEntity oi : items) {
                         if (oi.getProductId() != null && oi.getQuantity() > 0) {
-                            inventoryService.consume(order.getTenantId(), oi.getProductId(), oi.getQuantity());
+                            inventoryService.consume(oi.getProductId(), oi.getQuantity());
                         }
                     }
                 } catch (Exception ignore) {}
@@ -373,10 +363,10 @@ public class LogisticsService {
         }).orElse(null);
     }
 
-    public DeliveryAttemptEntity recordAttempt(String tenantId, String deliveryId, String status, String note) {
+    public DeliveryAttemptEntity recordAttempt(String deliveryId, String status, String note) {
         DeliveryAttemptEntity a = new DeliveryAttemptEntity();
         a.setId(java.util.UUID.randomUUID().toString());
-        a.setTenantId(tenantId);
+        // tenantId removed
         a.setDeliveryId(deliveryId);
         a.setStatus(status);
         a.setNote(note);
@@ -385,12 +375,12 @@ public class LogisticsService {
         return saved;
     }
 
-    public java.util.List<DeliveryAttemptEntity> getAttempts(String tenantId, String deliveryId) {
-        return deliveryAttemptRepository.findByTenantIdAndDeliveryId(tenantId, deliveryId);
+    public java.util.List<DeliveryAttemptEntity> getAttempts(String deliveryId) {
+        return deliveryAttemptRepository.findByDeliveryId(deliveryId);
     }
 
-    public java.util.Optional<OrderDeliveryEntity> findByTenantIdAndId(String tenantId, String id) {
-        return orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, id);
+    public java.util.Optional<OrderDeliveryEntity> findById(String id) {
+        return orderDeliveryRepository.findById(id);
     }
 
     private com.bharatshop.domain.Order toOrder(com.bharatshop.entity.OrderEntity e) {
@@ -401,7 +391,7 @@ public class LogisticsService {
         o.setStatus(e.getStatus());
         o.setTotal(e.getTotal());
         o.setStoreId(e.getStoreId());
-        o.setTenantId(e.getTenantId());
+        // tenantId removed
         return o;
     }
 }

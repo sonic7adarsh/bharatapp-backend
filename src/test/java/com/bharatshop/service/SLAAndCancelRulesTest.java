@@ -5,7 +5,6 @@ import com.bharatshop.entity.OrderItemEntity;
 import com.bharatshop.error.ApiException;
 import com.bharatshop.repository.OrderItemRepository;
 import com.bharatshop.repository.OrderRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +25,12 @@ public class SLAAndCancelRulesTest {
     @Autowired private OrderRepository orderRepository;
     @Autowired private OrderItemRepository orderItemRepository;
 
-    private final String tenant = "tenant-auto";
+    // private final String tenant = "tenant-auto"; // Removed
     private final String userId = "user-1";
 
     @BeforeEach
     void setup() {
-        TenantContext.setTenant(tenant);
+        // Tenant context removed
     }
 
     @Test
@@ -39,7 +38,7 @@ public class SLAAndCancelRulesTest {
         // Seed order placed with past sellerResponseDeadline
         OrderEntity e = new OrderEntity();
         e.setId(UUID.randomUUID().toString());
-        e.setTenantId(tenant);
+        // tenantId removed
         e.setUserId(userId);
         e.setStatus("placed");
         e.setCreatedAt(Instant.now().minusSeconds(3600));
@@ -66,7 +65,7 @@ public class SLAAndCancelRulesTest {
     void userCancelAllowedBeforeReady() {
         OrderEntity e = new OrderEntity();
         e.setId(UUID.randomUUID().toString());
-        e.setTenantId(tenant);
+        // tenantId removed
         e.setUserId(userId);
         e.setStatus("placed");
         e.setCreatedAt(Instant.now());
@@ -82,7 +81,7 @@ public class SLAAndCancelRulesTest {
     void userCancelBlockedAfterReady() {
         OrderEntity e = new OrderEntity();
         e.setId(UUID.randomUUID().toString());
-        e.setTenantId(tenant);
+        // tenantId removed
         e.setUserId(userId);
         e.setStatus("ready");
         e.setCreatedAt(Instant.now());

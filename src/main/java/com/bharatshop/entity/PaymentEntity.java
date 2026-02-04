@@ -9,7 +9,6 @@ public class PaymentEntity {
     @Id
     private String id; // Our internal UUID
 
-    private String tenantId;
     private String orderId; // Link to OrderEntity
     
     // Gateway Details
@@ -41,8 +40,6 @@ public class PaymentEntity {
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
     public String getGateway() { return gateway; }

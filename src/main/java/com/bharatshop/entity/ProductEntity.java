@@ -26,8 +26,6 @@ public class ProductEntity {
     private Boolean active;
     private Instant createdAt;
     private Instant updatedAt;
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId = "default";
 
     @PrePersist
     public void onCreate() {
@@ -69,6 +67,4 @@ public class ProductEntity {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 }

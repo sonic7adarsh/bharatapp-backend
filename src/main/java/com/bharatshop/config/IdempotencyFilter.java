@@ -92,9 +92,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private String buildCacheKey(ContentCachingRequestWrapper req, String key) {
         String uri = req.getRequestURI();
         String method = req.getMethod();
-        String tenant = req.getHeader("X-Tenant-Domain");
         String auth = req.getHeader("Authorization");
         String body = new String(req.getContentAsByteArray(), StandardCharsets.UTF_8);
-        return String.join("|", key, method, uri, tenant != null ? tenant : "-", auth != null ? auth : "-", body);
+        return String.join("|", key, method, uri, auth != null ? auth : "-", body);
     }
 }

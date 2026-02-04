@@ -4,7 +4,6 @@ import com.bharatshop.domain.User;
 import com.bharatshop.entity.UserEntity;
 import com.bharatshop.entity.UserRoleEntity;
 import com.bharatshop.repository.UserRepository;
-import com.bharatshop.tenant.TenantContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -74,24 +73,24 @@ public class AuthService {
 
     // Tenant-aware registration for admin/tenant scoped auth
     public Session registerWithTenant(String tenant, String name, String email, String password) {
-        String tenantId = (tenant == null || tenant.isBlank()) ? "default" : tenant.trim();
-        log.info("Registering user (tenant-aware): tenant={} email={}", tenantId, email);
-        Optional<UserEntity> existing = userRepository.findByEmailAndTenantId(email, tenantId);
+        // tenant parameter ignored in local-first platform
+        log.info("Registering user (tenant-ignored): email={}", email);
+        Optional<UserEntity> existing = userRepository.findByEmail(email);
         if (existing.isPresent()) {
-            log.warn("Registration failed (tenant-aware): email already registered: {}", email);
+            log.warn("Registration failed: email already registered: {}", email);
             throw new IllegalArgumentException("Email already registered");
         }
         UserEntity entity = new UserEntity();
         entity.setId(UUID.randomUUID().toString());
         entity.setName(name);
         entity.setEmail(email);
-        entity.setTenantId(tenantId);
+        // tenantId removed
         entity.setPasswordHash(passwordEncoder.encode(password));
         userRepository.save(entity);
 
         userRoleService.initializeCustomerRole(entity.getId());
         var session = createSession(fromEntity(entity));
-        log.info("User registered (tenant-aware): userId={} token={}", entity.getId(), session.token());
+        log.info("User registered: userId={} token={}", entity.getId(), session.token());
         return session;
     }
 
@@ -122,17 +121,13 @@ public class AuthService {
 
     public Session loginEmail(String email, String password) {
         log.info("Login (storefront) attempt: email={}", email);
-        String tenant = TenantContext.getTenant();
-        if (tenant == null || tenant.isBlank()) {
-            throw new IllegalStateException("Tenant missing");
-        }
-        String tenantId = tenant.trim();
-        UserEntity entity = userRepository.findByEmailAndTenantId(email, tenantId).orElseGet(() -> {
+        // Tenant context removed
+        UserEntity entity = userRepository.findByEmail(email).orElseGet(() -> {
             UserEntity e = new UserEntity();
             e.setId(UUID.randomUUID().toString());
             e.setName(email.split("@")[0]);
             e.setEmail(email);
-            e.setTenantId(tenantId);
+            // tenantId removed
             e.setPasswordHash(passwordEncoder.encode(password));
             UserEntity saved = userRepository.save(e);
             // Ensure roles exist
@@ -150,25 +145,25 @@ public class AuthService {
 
     // Tenant-aware email login
     public Session loginEmailWithTenant(String tenant, String email, String password) {
-        String tenantId = (tenant == null || tenant.isBlank()) ? "default" : tenant.trim();
-        log.info("Login (tenant-aware) attempt: tenant={} email={}", tenantId, email);
-        UserEntity entity = userRepository.findByEmailAndTenantId(email, tenantId).orElseGet(() -> {
+        // tenant parameter ignored
+        log.info("Login (tenant-ignored) attempt: email={}", email);
+        UserEntity entity = userRepository.findByEmail(email).orElseGet(() -> {
             UserEntity e = new UserEntity();
             e.setId(UUID.randomUUID().toString());
             e.setName(email.split("@")[0]);
             e.setEmail(email);
-            e.setTenantId(tenantId);
+            // tenantId removed
             e.setPasswordHash(passwordEncoder.encode(password));
             UserEntity saved = userRepository.save(e);
             userRoleService.initializeCustomerRole(saved.getId());
             return saved;
         });
         if (entity.getPasswordHash() != null && password != null && !passwordEncoder.matches(password, entity.getPasswordHash())) {
-            log.warn("Login (tenant-aware) failed: invalid credentials for email={} tenant={}", email, tenantId);
+            log.warn("Login failed: invalid credentials for email={}", email);
             throw new IllegalArgumentException("Invalid credentials");
         }
         var session = createSession(fromEntity(entity));
-        log.info("Login (tenant-aware) success: userId={} token={} activeRole={}", entity.getId(), session.token(), session.role());
+        log.info("Login success: userId={} token={} activeRole={}", entity.getId(), session.token(), session.role());
         return session;
     }
 
@@ -255,15 +250,9 @@ public class AuthService {
 
     public Session loginPhone(String phone, String otp) {
         log.info("Login (phone) attempt: phone={}", phone);
-        String tenant = TenantContext.getTenant();
-        if (tenant == null || tenant.isBlank()) {
-            throw new IllegalStateException("Tenant missing");
-        }
-        String tenantId = tenant.trim();
-        java.util.List<UserEntity> users = userRepository.findByTenantIdAndPhone(tenantId, phone);
-        UserEntity entity = users.isEmpty()
-                ? createTenantUserWithPhone(tenantId, phone)
-                : users.get(0);
+        // Tenant context removed
+        java.util.Optional<UserEntity> userOpt = userRepository.findByPhone(phone);
+        UserEntity entity = userOpt.orElseGet(() -> createUserWithPhone(phone));
         var session = createSession(fromEntity(entity));
         log.info("Login (phone) success: userId={} token={} activeRole={} ", entity.getId(), session.token(), session.role());
         return session;
@@ -312,9 +301,10 @@ public class AuthService {
     /**
      * Role-aware OTP verification. Requires frontend to provide desired loginRole (e.g., CUSTOMER | SELLER | RIDER).
      * Validates OTP and role, ensures the user has the requested role, and issues a JWT with activeRole=loginRole.
+     * If isRegistration is true, it will assign the requested role to the user if not already present.
      */
-    public Session verifyOtpWithRole(String phone, String otp, String loginRole) {
-        log.info("Verifying OTP (role-aware) for phone={} role={}", phone, loginRole);
+    public Session verifyOtpWithRole(String phone, String otp, String loginRole, boolean isRegistration) {
+        log.info("Verifying OTP (role-aware) for phone={} role={} isRegistration={}", phone, loginRole, isRegistration);
         OtpInfo info = otpsByPhone.get(phone);
         if (info == null) {
             log.warn("OTP verification failed: no OTP for phone={}", phone);
@@ -329,11 +319,7 @@ public class AuthService {
             return null;
         }
 
-        // Validate tenant presence
-        String tenant = TenantContext.getTenant();
-        if (tenant == null || tenant.isBlank()) {
-            throw new IllegalStateException("Tenant missing");
-        }
+        // Validate tenant presence - REMOVED
 
         // Validate and canonicalize requested login role
         if (loginRole == null || loginRole.isBlank()) {
@@ -345,8 +331,13 @@ public class AuthService {
             throw new com.bharatshop.error.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "ROLE_INVALID", "Unsupported login role");
         }
 
-        // Get or create tenant-scoped user by phone (initialize CUSTOMER on creation)
-        UserEntity entity = getOrCreateTenantUserByPhone(phone);
+        // Get or create user by phone (initialize CUSTOMER on creation)
+        UserEntity entity = getOrCreateUserByPhone(phone);
+        
+        // If this is a registration flow or implicit role assignment, add the role
+        if (isRegistration) {
+             userRoleService.addRoleToUser(entity.getId(), requested);
+        }
 
         // Check that the user actually has the requested role
         java.util.List<String> userRoles = userRoleService.getUserRoles(entity.getId());
@@ -359,29 +350,33 @@ public class AuthService {
             );
         }
 
+        // Switch active role to requested role
+        userRoleService.switchUserRole(entity.getId(), requested);
+
         // Issue a token with activeRole=requested and roles from userRoles
         var session = createSession(fromEntity(entity), requested);
         log.info("Login (OTP role-aware) success: userId={} activeRole={} tokenPresent=true", entity.getId(), requested);
         return session;
     }
 
-    // Helper: get or create tenant-scoped user by phone without creating session
-    private UserEntity getOrCreateTenantUserByPhone(String phone) {
-        String tenant = TenantContext.getTenant();
-        if (tenant == null || tenant.isBlank()) {
-            throw new IllegalStateException("Tenant missing");
-        }
-        String tenantId = tenant.trim();
-        java.util.List<UserEntity> users = userRepository.findByTenantIdAndPhone(tenantId, phone);
-        return users.isEmpty() ? createTenantUserWithPhone(tenantId, phone) : users.get(0);
+    // Legacy overload for backward compatibility if needed, though mostly unused now
+    public Session verifyOtpWithRole(String phone, String otp, String loginRole) {
+        return verifyOtpWithRole(phone, otp, loginRole, false);
     }
 
-    private UserEntity createTenantUserWithPhone(String tenantId, String phone) {
+    // Helper: get or create user by phone without creating session
+    private UserEntity getOrCreateUserByPhone(String phone) {
+        // Tenant context removed
+        Optional<UserEntity> userOpt = userRepository.findByPhone(phone);
+        return userOpt.orElseGet(() -> createUserWithPhone(phone));
+    }
+
+    private UserEntity createUserWithPhone(String phone) {
         UserEntity e = new UserEntity();
         e.setId(UUID.randomUUID().toString());
         e.setName("User" + (phone == null ? "" : phone.substring(Math.max(0, phone.length()-4))));
         e.setPhone(phone);
-        e.setTenantId(tenantId);
+        // tenantId removed
         UserEntity saved = userRepository.save(e);
         userRoleService.initializeCustomerRole(saved.getId());
         return saved;
@@ -424,7 +419,12 @@ public class AuthService {
         // Support both JWT-backed tokens and in-memory session tokens
         Session s = getSessionByToken(token);
         if (s == null) return null;
-        return userRepository.findById(s.userId()).map(this::fromEntity).orElse(null);
+        User user = userRepository.findById(s.userId()).map(this::fromEntity).orElse(null);
+        // Ensure the returned user object reflects the session's active role
+        if (user != null && s.role() != null) {
+            user.setRole(s.role());
+        }
+        return user;
     }
 
     private Session createSession(User user) {
@@ -445,15 +445,10 @@ public class AuthService {
             roles = java.util.List.of("CUSTOMER");
         }
         if (jwtService.isEnabled()) {
-            String tenant = TenantContext.getTenant();
-            if (tenant == null || tenant.isBlank()) {
-                throw new IllegalStateException("Tenant missing");
-            }
             token = jwtService.generateTokenWithRoles(
                     user.getId(),
                     user.getName(),
                     activeRole,
-                    tenant.trim(),
                     activeRole,
                     roles
             );
@@ -475,15 +470,10 @@ public class AuthService {
             roles = java.util.List.of("CUSTOMER");
         }
         if (jwtService.isEnabled()) {
-            String tenant = TenantContext.getTenant();
-            if (tenant == null || tenant.isBlank()) {
-                throw new IllegalStateException("Tenant missing");
-            }
             token = jwtService.generateTokenWithRoles(
                     user.getId(),
                     user.getName(),
                     activeRole,
-                    tenant.trim(),
                     activeRole,
                     roles
             );
@@ -512,7 +502,7 @@ public class AuthService {
         String activeRole = userRoleService.getActiveRole(e.getId())
                 .map(UserRoleEntity::getRole)
                 .orElse("CUSTOMER");
-        return new User(e.getId(), e.getName(), e.getEmail(), e.getPhone(), canonicalRole(activeRole), e.getTenantId());
+        return new User(e.getId(), e.getName(), e.getEmail(), e.getPhone(), canonicalRole(activeRole));
     }
 
     /**

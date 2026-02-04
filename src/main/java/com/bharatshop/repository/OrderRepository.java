@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<OrderEntity, String> {
     List<OrderEntity> findByUserIdOrderByCreatedAtDesc(String userId);
-    List<OrderEntity> findByTenantIdAndUserIdOrderByCreatedAtDesc(String tenantId, String userId);
-    Optional<OrderEntity> findByTenantIdAndId(String tenantId, String id);
-    Optional<OrderEntity> findByIdAndUserIdAndTenantId(String id, String userId, String tenantId);
+    List<OrderEntity> findByStoreId(String storeId);
+    Optional<OrderEntity> findByIdAndUserId(String id, String userId);
+    Optional<OrderEntity> findByReference(String reference);
 }

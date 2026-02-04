@@ -18,8 +18,6 @@ app:
     enabled: true
     secret: test-secret-key-must-be-long-enough-for-hs256-algorithm
     expSeconds: 3600
-  tenant:
-    header: X-Tenant-Domain
   orders:
     acceptanceWindowMinutes: 15
 

@@ -13,7 +13,6 @@ public class Order {
     private String paymentMethod; // cod|online
     private PaymentInfo paymentInfo;
     private Address address;
-    private String deliverySlot;
     private String deliveryInstructions;
     private String type;
 
@@ -24,7 +23,10 @@ public class Order {
     private String cancellationReason;
     private String storeId;
     private String notes;
-    private String tenantId;
+    private String prescriptionUrl;
+    private Boolean isPrescriptionVerified;
+    private ContactInfo sellerContact;
+    private ContactInfo customerContact;
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -46,8 +48,6 @@ public class Order {
     public void setPaymentInfo(PaymentInfo paymentInfo) { this.paymentInfo = paymentInfo; }
     public Address getAddress() { return address; }
     public void setAddress(Address address) { this.address = address; }
-    public String getDeliverySlot() { return deliverySlot; }
-    public void setDeliverySlot(String deliverySlot) { this.deliverySlot = deliverySlot; }
     public String getDeliveryInstructions() { return deliveryInstructions; }
     public void setDeliveryInstructions(String deliveryInstructions) { this.deliveryInstructions = deliveryInstructions; }
     public String getType() { return type; }
@@ -67,8 +67,20 @@ public class Order {
     public void setStoreId(String storeId) { this.storeId = storeId; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getPrescriptionUrl() { return prescriptionUrl; }
+    public void setPrescriptionUrl(String prescriptionUrl) { this.prescriptionUrl = prescriptionUrl; }
+    public Boolean getIsPrescriptionVerified() { return isPrescriptionVerified; }
+    public void setIsPrescriptionVerified(Boolean isPrescriptionVerified) { this.isPrescriptionVerified = isPrescriptionVerified; }
+    public ContactInfo getSellerContact() { return sellerContact; }
+    public void setSellerContact(ContactInfo sellerContact) { this.sellerContact = sellerContact; }
+    public ContactInfo getCustomerContact() { return customerContact; }
+    public void setCustomerContact(ContactInfo customerContact) { this.customerContact = customerContact; }
+
+    public static class ContactInfo {
+        public String name;
+        public String phone;
+        public String address; // Optional for seller
+    }
 
     public static class Totals {
         public Double subtotal;

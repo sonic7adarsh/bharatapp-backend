@@ -53,9 +53,8 @@ public class RiderController {
         this.userRepository = userRepository;
     }
 
-    private String tenantId() {
-        return com.bharatshop.tenant.TenantContext.getTenant();
-    }
+    // tenantId helper removed
+
 
     private String currentRiderId() {
         UserPrincipal up = UserPrincipal.current();
@@ -68,14 +67,13 @@ public class RiderController {
     @PostMapping("/onboard")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> onboard(@RequestBody Map<String, String> body) {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
         String name = body != null ? body.getOrDefault("name", "") : "";
         if (name.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("status","error","message","name required"));
         }
         // Derive phone from authenticated user's persisted record (source of truth)
-        UserEntity user = userRepository.findByIdAndTenantId(riderId, tenantId)
+        UserEntity user = userRepository.findById(riderId)
                 .orElseThrow(() -> new com.bharatshop.error.ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "DATA_INTEGRITY", "Authenticated user not found"));
         String phone = user.getPhone();
         if (phone == null || phone.isBlank()) {
@@ -83,7 +81,6 @@ public class RiderController {
         }
         RiderEntity rider = riderRepository.findById(riderId).orElseGet(RiderEntity::new);
         rider.setId(riderId);
-        rider.setTenantId(tenantId);
         rider.setName(name);
         rider.setPhone(phone);
         if (rider.getStatus() == null || rider.getStatus().isBlank()) rider.setStatus("OFFLINE");
@@ -106,7 +103,6 @@ public class RiderController {
                 rider.getId(),
                 rider.getName() == null ? "Rider" : rider.getName(),
                 "RIDER",
-                tenantId,
                 "RIDER",
                 allowedRoles
         );
@@ -124,7 +120,6 @@ public class RiderController {
     @PostMapping("/status")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> setStatus(@RequestBody Map<String, String> body) {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
         String status = body != null ? body.getOrDefault("status", "").toUpperCase() : "";
         Set<String> allowed = Set.of("ONLINE", "OFFLINE");
@@ -134,17 +129,14 @@ public class RiderController {
         RiderEntity rider = riderRepository.findById(riderId).orElseGet(() -> {
             RiderEntity r = new RiderEntity();
             r.setId(riderId);
-            r.setTenantId(tenantId);
             r.setStatus("OFFLINE");
             return r;
         });
-        rider.setTenantId(tenantId);
         rider.setStatus(status);
         riderRepository.save(rider);
 
         RiderStatusEntity rs = new RiderStatusEntity();
         rs.setId(java.util.UUID.randomUUID().toString());
-        rs.setTenantId(tenantId);
         rs.setRiderId(riderId);
         rs.setStatus(status);
         rs.setTs(java.time.Instant.now());
@@ -156,8 +148,7 @@ public class RiderController {
     @GetMapping("/orders/available")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> listAvailable() {
-        String tenantId = tenantId();
-        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByTenantIdAndStatus(tenantId, "READY");
+        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByStatus("READY");
         List<Map<String, Object>> out = new ArrayList<>();
         for (OrderDeliveryEntity d : deliveries) {
             out.add(Map.of(
@@ -180,10 +171,9 @@ public class RiderController {
     @GetMapping("/orders/active")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> listMyOrders() {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
-        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByTenantIdAndRiderIdAndStatusIn(
-                tenantId, riderId, java.util.List.of("RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY")
+        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByRiderIdAndStatusIn(
+                riderId, java.util.List.of("RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY")
         );
         List<Map<String, Object>> out = new ArrayList<>();
         for (OrderDeliveryEntity d : deliveries) {
@@ -200,9 +190,8 @@ public class RiderController {
     @PostMapping("/orders/{deliveryId}/pickup")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> pickup(@PathVariable("deliveryId") String deliveryId) {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
-        OrderDeliveryEntity delivery = orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, deliveryId)
+        OrderDeliveryEntity delivery = orderDeliveryRepository.findById(deliveryId)
                 .orElse(null);
         if (delivery == null) {
             return ResponseEntity.status(404).body(Map.of("status","error","message","Delivery not found"));
@@ -220,9 +209,8 @@ public class RiderController {
     @PostMapping("/orders/{deliveryId}/start-delivery")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> startDelivery(@PathVariable("deliveryId") String deliveryId) {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
-        OrderDeliveryEntity delivery = orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, deliveryId)
+        OrderDeliveryEntity delivery = orderDeliveryRepository.findById(deliveryId)
                 .orElse(null);
         if (delivery == null) {
             return ResponseEntity.status(404).body(Map.of("status","error","message","Delivery not found"));
@@ -240,13 +228,12 @@ public class RiderController {
     @PostMapping("/orders/{deliveryId}/deliver")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> deliver(@PathVariable("deliveryId") String deliveryId, @RequestBody(required = false) Map<String, String> body) {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
         String otp = body != null ? body.get("otp") : null;
         if (otp == null || !otp.matches("^\\d{6}$")) {
             return ResponseEntity.badRequest().body(Map.of("status","error","message","Invalid OTP format"));
         }
-        OrderDeliveryEntity delivery = orderDeliveryRepository.findByTenantIdAndDeliveryId(tenantId, deliveryId)
+        OrderDeliveryEntity delivery = orderDeliveryRepository.findById(deliveryId)
                 .orElse(null);
         if (delivery == null) {
             return ResponseEntity.status(404).body(Map.of("status","error","message","Delivery not found"));
@@ -262,12 +249,12 @@ public class RiderController {
         // record earning on successful delivery
         if (d != null && "DELIVERED".equalsIgnoreCase(d.getStatus())) {
             boolean exists = riderEarningRepository
-                    .findFirstByTenantIdAndDeliveryId(tenantId, d.getDeliveryId())
+                    .findFirstByDeliveryId(d.getDeliveryId())
                     .isPresent();
             if (!exists) {
                 RiderEarningEntity earning = new RiderEarningEntity();
                 earning.setId(java.util.UUID.randomUUID().toString());
-                earning.setTenantId(tenantId);
+                // tenantId removed
                 earning.setRiderId(riderId);
                 earning.setOrderId(d.getOrderId());
                 earning.setDeliveryId(d.getDeliveryId());
@@ -281,11 +268,8 @@ public class RiderController {
     @GetMapping("/orders/history")
     @PreAuthorize("hasRole('RIDER')")
     public ResponseEntity<?> history() {
-        String tenantId = tenantId();
         String riderId = currentRiderId();
-        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findByTenantIdAndRiderIdAndStatusIn(
-                tenantId, riderId, java.util.List.of("DELIVERED")
-        );
+        List<OrderDeliveryEntity> deliveries = orderDeliveryRepository.findCompleted(riderId);
         List<Map<String, Object>> out = new ArrayList<>();
         for (OrderDeliveryEntity d : deliveries) {
             out.add(Map.of(
@@ -304,7 +288,7 @@ public class RiderController {
     public Map<String, Object> active() {
       return Map.of(
         "deliveries",
-        orderDeliveryRepository.findActive(tenantId(), currentRiderId())
+        orderDeliveryRepository.findActive(currentRiderId())
       );
     }
 
@@ -313,7 +297,7 @@ public class RiderController {
     public Map<String, Object> completed() {
       return Map.of(
         "deliveries",
-        orderDeliveryRepository.findCompleted(tenantId(), currentRiderId())
+        orderDeliveryRepository.findCompleted(currentRiderId())
       );
     }
 }

@@ -14,9 +14,6 @@ public class AuditLog {
     @Column(name = "id", length = 255)
     private String id;
     
-    @Column(name = "tenant_id", length = 100, nullable = false)
-    private String tenantId;
-    
     @Column(name = "user_id", length = 255)
     private String userId;
     
@@ -78,9 +75,8 @@ public class AuditLog {
 
     public AuditLog() {}
 
-    public AuditLog(String id, String tenantId, String userId, String action, String actionStatus) {
+    public AuditLog(String id, String userId, String action, String actionStatus) {
         this.id = id;
-        this.tenantId = tenantId;
         this.userId = userId;
         this.action = action;
         this.actionStatus = actionStatus;
@@ -89,9 +85,6 @@ public class AuditLog {
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }

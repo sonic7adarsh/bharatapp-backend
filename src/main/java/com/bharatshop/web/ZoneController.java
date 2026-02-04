@@ -33,7 +33,6 @@ public class ZoneController {
         if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
         ZoneEntity z = new ZoneEntity();
         z.setId(UUID.randomUUID().toString());
-        z.setTenantId((String) req.getOrDefault("tenantId", "default"));
         z.setName((String) req.get("name"));
         z.setType((String) req.getOrDefault("type", "radius"));
         if ("radius".equalsIgnoreCase(z.getType())) {
@@ -47,15 +46,14 @@ public class ZoneController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@RequestParam(required = false) String tenantId) {
+    public ResponseEntity<?> list() {
         if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
-        return ResponseEntity.ok(zoneRepository.findByTenantId(tenantId == null ? "default" : tenantId));
+        return ResponseEntity.ok(zoneRepository.findAll());
     }
 
     @PostMapping("/attach-store")
     public ResponseEntity<?> attachStore(@RequestBody Map<String, String> req) {
         if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String storeId = req.get("storeId");
         String zoneId = req.get("zoneId");
         if (storeId == null || zoneId == null) {
@@ -63,7 +61,6 @@ public class ZoneController {
         }
         com.bharatshop.entity.StoreZoneEntity link = new com.bharatshop.entity.StoreZoneEntity();
         link.setId(java.util.UUID.randomUUID().toString());
-        link.setTenantId(tenant);
         link.setStoreId(storeId);
         link.setZoneId(zoneId);
         storeZoneRepository.save(link);
@@ -73,7 +70,6 @@ public class ZoneController {
     @PostMapping("/attach-rider")
     public ResponseEntity<?> attachRider(@RequestBody Map<String, String> req) {
         if (!ensureAdmin()) return ResponseEntity.status(403).body(Map.of("status","error","message","Access denied"));
-        String tenant = com.bharatshop.tenant.TenantContext.getTenant();
         String riderId = req.get("riderId");
         String zoneId = req.get("zoneId");
         if (riderId == null || zoneId == null) {
@@ -81,7 +77,6 @@ public class ZoneController {
         }
         com.bharatshop.entity.RiderZoneEntity link = new com.bharatshop.entity.RiderZoneEntity();
         link.setId(java.util.UUID.randomUUID().toString());
-        link.setTenantId(tenant);
         link.setRiderId(riderId);
         link.setZoneId(zoneId);
         riderZoneRepository.save(link);

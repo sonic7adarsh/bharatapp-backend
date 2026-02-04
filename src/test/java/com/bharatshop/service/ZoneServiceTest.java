@@ -1,7 +1,6 @@
 package com.bharatshop.service;
 
 import com.bharatshop.entity.ZoneEntity;
-import com.bharatshop.tenant.TenantContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,9 @@ public class ZoneServiceTest {
     @Autowired ZoneService zoneService;
 
     @BeforeEach
-    void setup() { TenantContext.setTenant("default"); }
+    void setup() { 
+        // TenantContext removed
+    }
 
     @Test
     void createRadiusZone_valid() {
@@ -30,7 +31,7 @@ public class ZoneServiceTest {
         req.put("radiusMeters", 200);
         ZoneEntity z = zoneService.createZone(req);
         Assertions.assertNotNull(z.getId());
-        Assertions.assertEquals("default", z.getTenantId());
+        // Tenant check removed
     }
 
     @Test
