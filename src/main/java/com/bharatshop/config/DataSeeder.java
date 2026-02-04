@@ -30,7 +30,7 @@ public class DataSeeder implements CommandLineRunner {
         createCategory("cat-medicine", "Medicine", "medicine", 1);
         createCategory("cat-stationary", "Stationary", "stationary", 2);
         createCategory("cat-service", "Service", "service", 3);
-        createCategory("cat-grocery", "Grocery", "grocery", 4); // Keeping as backup
+        createCategory("cat-grocery", "Groceries & Staples", "grocery", 4); // Keeping as backup
 
         // Seed Stores (with Location)
         Store s1 = new Store("store-med-plus", "Med Plus", "Connaught Place", "medicine");

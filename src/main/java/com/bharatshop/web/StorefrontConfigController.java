@@ -43,7 +43,7 @@ public class StorefrontConfigController {
 
     @Value("${checkout.prescription.enabled:false}")
     private boolean prescriptionEnabled;
-    @Value("${checkout.prescription.categories:pharmacy}")
+    @Value("${checkout.prescription.categories:pharmacy,medicine}")
     private String prescriptionCategories;
 
     @Value("${checkout.address.required:name,phone,line1,pincode}")

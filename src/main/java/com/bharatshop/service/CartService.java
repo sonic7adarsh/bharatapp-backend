@@ -56,7 +56,10 @@ public class CartService {
         item.setStoreId(storeId);
         item.setName(product.getName());
         item.setPrice(product.getPrice()); // Trust DB price, not client
-        item.setRequiresPrescription(product.getCategory() != null && product.getCategory().toLowerCase().contains("pharmacy")); // Simple rule for now
+        boolean isPharma = product.getCategory() != null && 
+                           (product.getCategory().toLowerCase().contains("pharmacy") || 
+                            product.getCategory().toLowerCase().contains("medicine"));
+        item.setRequiresPrescription(isPharma); // Simple rule for now
 
         // Check if item already exists, update quantity if so
         Optional<CartItem> existing = cart.stream().filter(ci -> ci.getId().equals(item.getId())).findFirst();
