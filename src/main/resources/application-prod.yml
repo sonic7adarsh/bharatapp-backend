@@ -31,10 +31,10 @@ spring:
       hibernate:
         format_sql: false
   mail:
-    host: ${MAIL_HOST}
+    host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:dummy@example.com}
+    password: ${MAIL_PASSWORD:dummy}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -42,7 +42,7 @@ spring:
 app:
   jwt:
     enabled: true
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:very_secret_key_for_production_change_this}
     expSeconds: 3600
   tenant:
     header: X-Tenant-Domain
@@ -75,17 +75,17 @@ notifications:
     enabled: true
   whatsapp:
     enabled: true
-    api-url: ${WHATSAPP_API_URL}
-    api-key: ${WHATSAPP_API_KEY}
-    sender-number: ${WHATSAPP_SENDER_NUMBER}
+    api-url: ${WHATSAPP_API_URL:https://graph.facebook.com/v17.0}
+    api-key: ${WHATSAPP_API_KEY:dummy_key}
+    sender-number: ${WHATSAPP_SENDER_NUMBER:910000000000}
 
 bharatshop:
   maps:
     provider: NOMINATIM
   payment:
     razorpay:
-      key-id: ${RAZORPAY_KEY_ID}
-      key-secret: ${RAZORPAY_KEY_SECRET}
+      key-id: ${RAZORPAY_KEY_ID:rzp_test_dummy}
+      key-secret: ${RAZORPAY_KEY_SECRET:dummy_secret}
 
 logging:
   level:
