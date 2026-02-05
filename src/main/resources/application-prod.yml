@@ -35,6 +35,8 @@ spring:
     validate-on-migrate: false
     clean-disabled: false
     clean-on-validation-error: true
+    # Attempt to repair failed migrations automatically
+    repair-on-migrate: true
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
