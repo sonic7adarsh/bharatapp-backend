@@ -14,12 +14,7 @@ CREATE TABLE user_roles (
     
     -- Unique constraint to prevent duplicate roles per user
     CONSTRAINT uk_user_role 
-        UNIQUE (user_id, role),
-    
-    -- Ensure only one active role per user
-    CONSTRAINT uk_user_active_role 
-        UNIQUE (user_id, is_active) 
-        WHERE is_active = TRUE
+        UNIQUE (user_id, role)
 );
 
 -- Create indexes for performance
